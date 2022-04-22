@@ -1,6 +1,7 @@
-import React, { useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import ReactDOM from 'react-dom/client'
 import CodeEditor from '../components/editor'
+import { useDynamicModule } from 'devjar/react'
 
 const defaultText = `
 export const add = (a, b) => a + b
@@ -15,9 +16,23 @@ if (typeof window !== 'undefined') {
 }
 
 export default function Page() {
-  const accessModuleRef = useRef(() => {})
   const portalRef = useRef(null)
   const reactRootRef = useRef(null)
+  const [code, setCode] = useState(defaultText)
+  const { mod, error, load } = useDynamicModule(code)
+
+  useEffect(() => {
+    if (error) {
+      console.error(error)
+    } else if (mod) {
+      const Component = mod.default
+      const element = <Component />
+      if (!reactRootRef.current) {
+        reactRootRef.current = ReactDOM.createRoot(portalRef.current)
+      }
+      reactRootRef.current.render(element)
+    }
+  }, [mod, error])
 
   return (
     <div>
@@ -121,25 +136,14 @@ export default function Page() {
         <h3>Code</h3>
         <CodeEditor
           defaultCode={defaultText}
-          onAccessModule={(fn) => {
-            accessModuleRef.current = fn
+          onChange={(code) => {
+            setCode(code)
           }}
         >
           <button
             className='executor'
             onClick={async () => {
-              const accessModule = accessModuleRef.current
-              const { mod, error } = await accessModule()
-              if (error) {
-                console.error(error)
-              } else {
-                const Component = mod.default
-                const element = <Component />
-                if (!reactRootRef.current) {
-                  reactRootRef.current = ReactDOM.createRoot(portalRef.current)
-                }
-                reactRootRef.current.render(element)
-              }
+              load()
             }}
           >
             run

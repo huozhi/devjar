@@ -2,7 +2,10 @@
   "name": "devjar",
   "version": "0.0.1",
   "type": "module",
-  "exports": "./lib/index.mjs",
+  "exports": {
+    ".": "./lib/index.mjs",
+    "./react": "./lib/react.mjs"
+  },
   "license": "MIT",
   "files": [
     "lib"
@@ -14,6 +17,7 @@
     "sucrase": "3.21.0"
   },
   "devDependencies": {
+    "devjar": "link:./",
     "next": "^12.1.6-canary.4",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
