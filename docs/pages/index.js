@@ -19,12 +19,17 @@ export default function Page() {
   const portalRef = useRef(null)
   const reactRootRef = useRef(null)
   const [code, setCode] = useState(defaultText)
-  const { mod, error, load } = useDynamicModule(code)
+  const { mod, error, load } = useDynamicModule()
+
+  useEffect(() => {
+    load(code)
+  }, [])
 
   useEffect(() => {
     if (error) {
       console.error(error)
     } else if (mod) {
+      window.__MOD__ = mod
       const Component = mod.default
       const element = <Component />
       if (!reactRootRef.current) {
@@ -143,7 +148,7 @@ export default function Page() {
           <button
             className='executor'
             onClick={async () => {
-              load()
+              load(code)
             }}
           >
             run
