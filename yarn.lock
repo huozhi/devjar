@@ -104,6 +104,11 @@ concat-map@0.0.1:
   version "0.0.0"
   uid ""
 
+es-module-shims@^1.5.4:
+  version "1.5.4"
+  resolved "https://registry.yarnpkg.com/es-module-shims/-/es-module-shims-1.5.4.tgz#952662871bed8ac996b7213f6943830c02b9fa9e"
+  integrity sha512-OoVOu69uuLCnlMIcZJnYjZmp/0qhnisTUinU2WtIHztM65S1+SozyiDrmJgowScuMdYO41g8FmII+YXrkZwypA==
+
 fs.realpath@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/fs.realpath/-/fs.realpath-1.0.0.tgz#1504ad2523158caa40db4a2787cb01411994ea4f"
