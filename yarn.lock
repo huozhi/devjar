@@ -90,6 +90,11 @@ caniuse-lite@^1.0.30001283:
   resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001332.tgz#39476d3aa8d83ea76359c70302eafdd4a1d727dd"
   integrity sha512-10T30NYOEQtN6C11YGg411yebhvpnC6Z102+B95eAsN0oB6KUs01ivE8u+G6FMIRtIrVlYXhL+LUwQ3/hXwDWw==
 
+codice@^0.0.4:
+  version "0.0.4"
+  resolved "https://registry.yarnpkg.com/codice/-/codice-0.0.4.tgz#e19c7e6f2b1903efd0427acc771b899f9c1f02df"
+  integrity sha512-Hgr5opCC7+eB+MX67Z/bFtocg+fg0ywZ2pYMMqIi37hzSb0DrUanHnxPEJwwEEM8PXC1huAiI9GP9NQy/s3Wlw==
+
 commander@^4.0.0:
   version "4.1.1"
   resolved "https://registry.yarnpkg.com/commander/-/commander-4.1.1.tgz#9fd602bd936294e9e9ef46a3f4d6964044b18068"
@@ -280,10 +285,10 @@ sucrase@3.21.0:
     pirates "^4.0.1"
     ts-interface-checker "^0.1.9"
 
-sugar-high@^0.3.1:
-  version "0.3.1"
-  resolved "https://registry.yarnpkg.com/sugar-high/-/sugar-high-0.3.1.tgz#095272963cdb3207e77226d2c9abfbb5d909d0fe"
-  integrity sha512-+GK95gRs+reyyxfVMLP60e8vrm6m2Qj9si4zLgpIDv5fjG6+fya/9gOZMfx3A9CBOprLG7FVj/HRh01Zz18ygw==
+sugar-high@^0.4.0:
+  version "0.4.0"
+  resolved "https://registry.yarnpkg.com/sugar-high/-/sugar-high-0.4.0.tgz#3b8713f60f5d5a064d2d5aa3a9a79c03f45fb9d9"
+  integrity sha512-B3b8RUKXz/+ta2TkLseQNo6YLnxRgKTOrZz6lilVYPVjuNi+7wI1HSiaKZPcMVa48txElVIEl1udj5Wk+Q2spQ==
 
 thenify-all@^1.0.0:
   version "1.6.0"
