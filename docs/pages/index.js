@@ -1,12 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react'
 import ReactDOM from 'react-dom/client'
-import CodeEditor from '../components/editor'
+import { Editor } from 'codice'
 import { useDynamicModule } from 'devjar/react'
 
-const defaultText = `
-export const add = (a, b) => a + b
-
-export default function MyComponent() {
+const entryText = `
+export default function App() {
   return <div>Hello World</div>
 }
 `
@@ -34,8 +32,8 @@ export default function Page() {
   const portalRef = useRef(null)
   const reactRootRef = useRef(null)
 
-  const [code, setCode] = useState({
-    'index.js': defaultText,
+  const [files, setFiles] = useState({
+    'index.js': entryText,
   })
   const [activeFile, setActiveFile] = useState('index.js')
 
@@ -56,8 +54,8 @@ export default function Page() {
   }
 
   useEffect(() => {
-    load(code).then(renderModule)
-  }, [code])
+    load(files).then(renderModule)
+  }, [files])
 
   return (
     <div>
@@ -75,32 +73,25 @@ export default function Page() {
           margin: auto;
           padding: 40px 10px 40px;
         }
-        .sh__class {
-          color: #2d5e9d;
+        :root {
+          --sh-class: #2d5e9d;
+          --sh-identifier: #354150;
+          --sh-sign: #8996a3;
+          --sh-string: #00a99a;
+          --sh-keyword: #f47067;
+          --sh-comment: #a19595;
+          --sh-jsxliterals: #6266d1;
+          --editor-text-color: transparent;
+          --editor-background-color: transparent;
         }
-        .sh__identifier {
-          color: #354150;
-        }
-        .sh__sign {
-          color: #8996a3;
-        }
-        .sh__string {
-          color: #00a99a;
-        }
-        .sh__keyword {
-          color: #f47067;
-        }
-        .sh__comment {
-          color: #a19595;
-        }
-        .sh__jsxliterals {
-          color: #6266d1;
-        }
+
         .sh__line::before {
-          content: attr(data-line-number);
+          counter-increment: sh-line-number 1;
+          content: counter(sh-line-number);
           width: 24px;
           display: inline-block;
-          margin-right: 20px;
+          margin-right: 18px;
+          margin-left: -42px;
           text-align: right;
           color: #a4a4a4;
         }
@@ -109,44 +100,26 @@ export default function Page() {
           min-height: 100px;
           display: flex;
         }
-        .absolute-full {
-          position: absolute;
-          left: 0;
-          right: 0;
-          top: 0;
-          bottom: 0;
+        pre {
+          width: 100%;
         }
-        .pad {
-          overflow-wrap: break-word;
-          display: inline-block;
+        code, textarea {
+          font-family: Consolas, Monaco, monospace;
           padding: 16px 12px;
           background-color: #f6f6f6;
           border: none;
           border-radius: 12px;
-          font-family: Consolas, Monaco, monospace;
           font-size: 16px;
           line-height: 1.25em;
           caret-color: #333;
         }
-        .block {
-          display: block;
-          position: relative;
+        textarea {
+          padding-left: 54px;
         }
-        .pre {
-          margin: 0;
-          flex: 1 0;
-          white-space: pre-wrap;
-        }
-        .pre code {
-          width: 100%;
+        code {
+          counter-reset: sh-line-number;
           min-height: 100px;
-        }
-        .code-input {
-          resize: none;
-          display: block;
           width: 100%;
-          background-color: transparent;
-          color: transparent;
           padding-left: 54px;
         }
         .executor {
@@ -161,7 +134,7 @@ export default function Page() {
       `}</style>
       <div>
         <h3>Code</h3>
-        {Object.keys(code).map((filename) => (
+        {Object.keys(files).map((filename) => (
           <button
             key={filename}
             disabled={filename === activeFile}
@@ -172,9 +145,9 @@ export default function Page() {
         ))}
         <button
           onClick={() => {
-            const newFilename = Object.keys(code).length + '.js'
-            setCode({
-              ...code,
+            const newFilename = 'mod' + Object.keys(files).length + '.js'
+            setFiles({
+              ...files,
               [newFilename]: `export default function () {}`,
             })
             setActiveFile(newFilename)
@@ -182,13 +155,13 @@ export default function Page() {
         >
           +
         </button>
-        <CodeEditor
-          key={activeFile}
-          content={code[activeFile]}
-          onChange={(updated) => {
-            setCode({
-              ...code,
-              [activeFile]: updated,
+        <Editor
+          className='editor'
+          value={files[activeFile]}
+          onChange={(code) => {
+            setFiles({
+              ...files,
+              [activeFile]: code,
             })
           }}
         />
