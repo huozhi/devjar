@@ -4,15 +4,12 @@ import { Editor } from 'codice'
 import { useDynamicModule } from 'devjar/react'
 
 const entryText = `
+import React from 'react'
+
 export default function App() {
   return <div>Hello World</div>
 }
 `
-// Share React
-if (typeof window !== 'undefined') {
-  window.React = React
-}
-
 class ErrorBoundary extends React.Component {
   state = {
     error: null,
@@ -29,33 +26,40 @@ class ErrorBoundary extends React.Component {
 }
 
 export default function Page() {
-  const portalRef = useRef(null)
-  const reactRootRef = useRef(null)
+  const iframeRef = useRef()
+  const reactRootRef = useRef()
+  const [activeFile, setActiveFile] = useState('index.js')
 
   const [files, setFiles] = useState({
     'index.js': entryText,
   })
-  const [activeFile, setActiveFile] = useState('index.js')
 
-  const { mod, error, load } = useDynamicModule()
-
-  function renderModule() {
-    if (!mod.current) return
-    if (!mod.current.default) return
-    if (!reactRootRef.current) {
-      reactRootRef.current = ReactDOM.createRoot(portalRef.current)
-    }
-    const Component = mod.current.default
-    reactRootRef.current.render(
-      <ErrorBoundary>
-        <Component />
-      </ErrorBoundary>
-    )
-  }
+  const { element, error, load } = useDynamicModule()
 
   useEffect(() => {
-    load(files).then(renderModule)
+    if (error) {
+      console.error(error)
+    }
+  }, [error])
+
+  useEffect(() => {
+    load(files)
   }, [files])
+
+  useEffect(() => {
+    const iframeBody = iframeRef.current.contentDocument.body
+    const reactRoot = reactRootRef.current
+    if (!reactRoot) {
+      const div = document.createElement('div')
+      iframeBody.appendChild(div)
+      reactRootRef.current = ReactDOM.createRoot(div)
+    }
+    reactRootRef.current.render(
+      <ErrorBoundary>
+        {element}
+      </ErrorBoundary>
+    )
+  }, [element])
 
   return (
     <div>
@@ -103,7 +107,7 @@ export default function Page() {
         pre {
           width: 100%;
         }
-        code, textarea {
+        code, textarea, .preview {
           font-family: Consolas, Monaco, monospace;
           padding: 16px 12px;
           background-color: #f6f6f6;
@@ -130,6 +134,10 @@ export default function Page() {
           background: #333;
           border-radius: 4px;
           color: #fff;
+        }
+        .preview {
+          width: 100%;
+          border: none;
         }
       `}</style>
       <div>
@@ -169,9 +177,7 @@ export default function Page() {
 
       <div>
         <h3>Preview</h3>
-        <ErrorBoundary>
-          <div className='pad block' ref={portalRef} />
-        </ErrorBoundary>
+        <iframe className='preview' ref={iframeRef} />
       </div>
 
       <div>

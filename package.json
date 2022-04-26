@@ -13,6 +13,9 @@
   "scripts": {
     "dev": "next dev ./docs"
   },
+  "peerDependencies": {
+    "react": "^17.0.0 || ^18.0.0"
+  },
   "dependencies": {
     "es-module-shims": "^1.5.4",
     "sucrase": "3.21.0"
