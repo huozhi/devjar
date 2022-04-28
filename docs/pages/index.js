@@ -1,40 +1,22 @@
 import React, { useEffect, useRef, useState } from 'react'
-import ReactDOM from 'react-dom/client'
 import { Editor } from 'codice'
 import { useDynamicModule } from 'devjar/react'
 
-const entryText = `
-import React from 'react'
+const entryText =
+`import React from 'react'
 
 export default function App() {
   return <div>Hello World</div>
 }
 `
-class ErrorBoundary extends React.Component {
-  state = {
-    error: null,
-  }
-  componentDidCatch(error) {
-    this.setState({ error })
-  }
-  render() {
-    if (this.state.error) {
-      return <div>{this.state.error.message}</div>
-    }
-    return this.props.children
-  }
-}
 
 export default function Page() {
-  const iframeRef = useRef()
-  const reactRootRef = useRef()
   const [activeFile, setActiveFile] = useState('index.js')
-
   const [files, setFiles] = useState({
     'index.js': entryText,
   })
 
-  const { element, error, load } = useDynamicModule()
+  const { ref, error, load } = useDynamicModule()
 
   useEffect(() => {
     if (error) {
@@ -45,21 +27,6 @@ export default function Page() {
   useEffect(() => {
     load(files)
   }, [files])
-
-  useEffect(() => {
-    const iframeBody = iframeRef.current.contentDocument.body
-    const reactRoot = reactRootRef.current
-    if (!reactRoot) {
-      const div = document.createElement('div')
-      iframeBody.appendChild(div)
-      reactRootRef.current = ReactDOM.createRoot(div)
-    }
-    reactRootRef.current.render(
-      <ErrorBoundary>
-        {element}
-      </ErrorBoundary>
-    )
-  }, [element])
 
   return (
     <div>
@@ -153,7 +120,7 @@ export default function Page() {
         ))}
         <button
           onClick={() => {
-            const newFilename = 'mod' + Object.keys(files).length + '.js'
+            const newFilename = '@' + Object.keys(files).length + '.js'
             setFiles({
               ...files,
               [newFilename]: `export default function () {}`,
@@ -177,7 +144,7 @@ export default function Page() {
 
       <div>
         <h3>Preview</h3>
-        <iframe className='preview' ref={iframeRef} />
+        <iframe className='preview' ref={ref} />
       </div>
 
       <div>
