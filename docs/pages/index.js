@@ -2,27 +2,27 @@ import React, { useEffect, useState } from 'react'
 import { Editor } from 'codice'
 import { useLiveCode } from 'devjar/react'
 
-const entryText =
-`import React from 'react'
-
-export default function App() {
-  return <div>Hello World</div>
-}
-`
-
 export default function Page() {
   const [activeFile, setActiveFile] = useState('index.js')
   const [files, setFiles] = useState({
-    'index.js': entryText,
+    'index.js':
+`import React from 'react'
+import Name from '@mod1'
+
+export default function App() {
+  return <div>Hello World <Name /></div>
+}
+`,
+    '@mod1':
+`import React from 'react'
+
+export default function Name() {
+  return <b>Devjar</b>
+}
+`,
   })
 
-  const { ref, error, load } = useLiveCode()
-
-  useEffect(() => {
-    if (error) {
-      console.error(error)
-    }
-  }, [error])
+  const { ref, load } = useLiveCode()
 
   useEffect(() => {
     load(files)
@@ -120,7 +120,7 @@ export default function Page() {
         ))}
         <button
           onClick={() => {
-            const newFilename = '@' + Object.keys(files).length + '.js'
+            const newFilename = '@mod' + Object.keys(files).length
             setFiles({
               ...files,
               [newFilename]: `export default function () {}`,
@@ -145,11 +145,6 @@ export default function Page() {
       <div>
         <h3>Preview</h3>
         <iframe className='preview' ref={ref} />
-      </div>
-
-      <div>
-        <h3>Error</h3>
-        <div className='pad block'>{error ? error.message : null}</div>
       </div>
     </div>
   )
