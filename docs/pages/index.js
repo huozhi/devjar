@@ -1,60 +1,31 @@
 import React, { useEffect, useRef, useState } from 'react'
-import ReactDOM from 'react-dom/client'
 import { Editor } from 'codice'
 import { useDynamicModule } from 'devjar/react'
 
-const entryText = `
+const entryText =
+`import React from 'react'
+
 export default function App() {
   return <div>Hello World</div>
 }
 `
-// Share React
-if (typeof window !== 'undefined') {
-  window.React = React
-}
-
-class ErrorBoundary extends React.Component {
-  state = {
-    error: null,
-  }
-  componentDidCatch(error) {
-    this.setState({ error })
-  }
-  render() {
-    if (this.state.error) {
-      return <div>{this.state.error.message}</div>
-    }
-    return this.props.children
-  }
-}
 
 export default function Page() {
-  const portalRef = useRef(null)
-  const reactRootRef = useRef(null)
-
+  const [activeFile, setActiveFile] = useState('index.js')
   const [files, setFiles] = useState({
     'index.js': entryText,
   })
-  const [activeFile, setActiveFile] = useState('index.js')
 
-  const { mod, error, load } = useDynamicModule()
-
-  function renderModule() {
-    if (!mod.current) return
-    if (!mod.current.default) return
-    if (!reactRootRef.current) {
-      reactRootRef.current = ReactDOM.createRoot(portalRef.current)
-    }
-    const Component = mod.current.default
-    reactRootRef.current.render(
-      <ErrorBoundary>
-        <Component />
-      </ErrorBoundary>
-    )
-  }
+  const { ref, error, load } = useDynamicModule()
 
   useEffect(() => {
-    load(files).then(renderModule)
+    if (error) {
+      console.error(error)
+    }
+  }, [error])
+
+  useEffect(() => {
+    load(files)
   }, [files])
 
   return (
@@ -103,7 +74,7 @@ export default function Page() {
         pre {
           width: 100%;
         }
-        code, textarea {
+        code, textarea, .preview {
           font-family: Consolas, Monaco, monospace;
           padding: 16px 12px;
           background-color: #f6f6f6;
@@ -131,6 +102,10 @@ export default function Page() {
           border-radius: 4px;
           color: #fff;
         }
+        .preview {
+          width: 100%;
+          border: none;
+        }
       `}</style>
       <div>
         <h3>Code</h3>
@@ -145,7 +120,7 @@ export default function Page() {
         ))}
         <button
           onClick={() => {
-            const newFilename = 'mod' + Object.keys(files).length + '.js'
+            const newFilename = '@' + Object.keys(files).length + '.js'
             setFiles({
               ...files,
               [newFilename]: `export default function () {}`,
@@ -169,9 +144,7 @@ export default function Page() {
 
       <div>
         <h3>Preview</h3>
-        <ErrorBoundary>
-          <div className='pad block' ref={portalRef} />
-        </ErrorBoundary>
+        <iframe className='preview' ref={ref} />
       </div>
 
       <div>

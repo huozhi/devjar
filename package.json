@@ -11,7 +11,11 @@
     "lib"
   ],
   "scripts": {
+    "build:core": "rollup ./core/index.mjs -o ./core/dist/index.mjs -f es",
     "dev": "next dev ./docs"
+  },
+  "peerDependencies": {
+    "react": "^17.0.0 || ^18.0.0"
   },
   "dependencies": {
     "es-module-shims": "^1.5.4",
@@ -23,6 +27,7 @@
     "next": "^12.1.6-canary.4",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
+    "rollup": "^2.70.2",
     "sugar-high": "^0.4.0"
   }
 }
