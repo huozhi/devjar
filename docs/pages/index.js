@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Editor } from 'codice'
-import { useDynamicModule } from 'devjar/react'
+import { useLiveCode } from 'devjar/react'
 
 const entryText =
 `import React from 'react'
@@ -16,7 +16,7 @@ export default function Page() {
     'index.js': entryText,
   })
 
-  const { ref, error, load } = useDynamicModule()
+  const { ref, error, load } = useLiveCode()
 
   useEffect(() => {
     if (error) {
