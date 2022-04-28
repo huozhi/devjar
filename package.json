@@ -11,7 +11,8 @@
     "lib"
   ],
   "scripts": {
-    "build:core": "rollup ./core/index.mjs -o ./core/dist/index.mjs -f es",
+    "build": "next build ./docs",
+    "start": "next start ./docs",
     "dev": "next dev ./docs"
   },
   "peerDependencies": {
@@ -27,7 +28,6 @@
     "next": "^12.1.6-canary.4",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
-    "rollup": "^2.70.2",
     "sugar-high": "^0.4.0"
   }
 }
