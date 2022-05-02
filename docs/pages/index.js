@@ -28,13 +28,10 @@ export default function Name() {
       return `https://esm.sh/${modPath}`
     }
   })
-  const debouncedLoad = useCallback((files) => {
-    return debounce(() => load(files), 200)
-  }, [])
+  const debouncedLoad = useCallback(debounce(load, 200), [])
 
   useEffect(() => {
-    load(files)
-    // debouncedLoad(files)
+    debouncedLoad(files)
   }, [files])
 
   return (
@@ -113,7 +110,8 @@ export default function Name() {
         }
         .preview {
           width: 100%;
-          border: none;
+          border: 2px solid #bbb;
+          background: #fefefe;
         }
       `}</style>
       <div>
