@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
+import { debounce } from 'lodash-es'
 import { Editor } from 'codice'
 import { useLiveCode } from 'devjar/react'
 
@@ -22,10 +23,15 @@ export default function Name() {
 `,
   })
 
-  const { ref, load } = useLiveCode()
+  const { ref, load } = useLiveCode({
+    getModulePath(modPath) {
+      return `https://esm.sh/${modPath}`
+    }
+  })
+  const debouncedLoad = useCallback(debounce(load, 200), [])
 
   useEffect(() => {
-    load(files)
+    debouncedLoad(files)
   }, [files])
 
   return (
@@ -104,7 +110,8 @@ export default function Name() {
         }
         .preview {
           width: 100%;
-          border: none;
+          border: 2px solid #bbb;
+          background: #fefefe;
         }
       `}</style>
       <div>
