@@ -8,13 +8,13 @@ export default function Page() {
   const [files, setFiles] = useState({
     'index.js':
 `import React from 'react'
-import Name from '@mod1'
+import Name from './mod1'
 
 export default function App() {
   return <div>Hello World <Name /></div>
 }
 `,
-    '@mod1':
+    './mod1':
 `import React from 'react'
 
 export default function Name() {
@@ -127,7 +127,7 @@ export default function Name() {
         ))}
         <button
           onClick={() => {
-            const newFilename = '@mod' + Object.keys(files).length
+            const newFilename = './mod' + Object.keys(files).length
             setFiles({
               ...files,
               [newFilename]: `export default function () {}`,
