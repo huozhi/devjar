@@ -19,6 +19,7 @@
     "react": "^17.0.0 || ^18.0.0"
   },
   "dependencies": {
+    "es-module-lexer": "^0.10.5",
     "es-module-shims": "^1.5.4",
     "sucrase": "3.21.0"
   },
@@ -26,7 +27,7 @@
     "codice": "^0.0.4",
     "devjar": "link:./",
     "lodash-es": "^4.17.21",
-    "next": "^12.1.6-canary.4",
+    "next": "^12.1.7-canary.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "sugar-high": "^0.4.0"
