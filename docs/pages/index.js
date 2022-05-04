@@ -25,11 +25,11 @@ export default function Name() {
 `,
   })
 
-  const { ref, load } = useLiveCode({
+  const { ref, error, load } = useLiveCode({
     getModulePath(modPath) {
       const prefix = 'https://esm.sh/'
       if (modPath === 'es-module-shims') {
-        return `${prefix}${modPath}`
+        return 'https://cdn.esm.sh/v77/es-module-shims@1.5.4/es2022/es-module-shims.js'
       }
       if (modPath.includes('/')) {
         const idx = modPath.indexOf('/')
@@ -41,6 +41,11 @@ export default function Name() {
     }
   })
   const debouncedLoad = useCallback(debounce(load, 200), [])
+
+  useEffect(() => {
+    if (error)
+      console.error(error)
+  }, [error])
 
   useEffect(() => {
     debouncedLoad(files)
