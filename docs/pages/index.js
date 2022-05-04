@@ -4,9 +4,9 @@ import { Editor } from 'codice'
 import { useLiveCode } from 'devjar/react'
 
 export default function Page() {
-  const [activeFile, setActiveFile] = useState('index.js')
+  const [activeFile, setActiveFile] = useState('index.mjs')
   const [files, setFiles] = useState({
-    'index.js':
+    'index.mjs':
 `import React from 'react'
 import useSWR from 'swr'
 import Name from './mod1'
