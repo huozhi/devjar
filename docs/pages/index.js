@@ -20,24 +20,14 @@ export default function App() {
 `import React from 'react'
 
 export default function Name() {
-  return <b>vevjar</b>
+  return <b>devjar</b>
 }
 `,
   })
 
   const { ref, error, load } = useLiveCode({
     getModulePath(modPath) {
-      const prefix = 'https://esm.sh/'
-      if (modPath === 'es-module-shims') {
-        return 'https://cdn.esm.sh/v77/es-module-shims@1.5.4/es2022/es-module-shims.js'
-      }
-      if (modPath.includes('/')) {
-        const idx = modPath.indexOf('/')
-        const pkg = modPath.slice(0, idx)
-        const path = modPath.slice(idx + 1)
-        return `${prefix}${pkg}?bundle&path=${path}`
-      }
-      return `${prefix}${modPath}?bundle`
+      return `https://cdn.skypack.dev/${modPath}`
     }
   })
   const debouncedLoad = useCallback(debounce(load, 200), [])
@@ -66,10 +56,11 @@ export default function Name() {
         ))}
         <button
           onClick={() => {
-            const newFilename = './mod' + Object.keys(files).length
+            const modId = Object.keys(files).length
+            const newFilename = './mod' + modId
             setFiles({
               ...files,
-              [newFilename]: `export default function () {}`,
+              [newFilename]: `export default function Mod${modId}() {}`,
             })
             setActiveFile(newFilename)
           }}
