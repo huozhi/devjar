@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react'
 import { debounce } from 'lodash-es'
 import { Editor } from 'codice'
 import { useLiveCode } from 'devjar/react'
+import { highlight } from 'sugar-high'
 
 export default function Page() {
   const [activeFile, setActiveFile] = useState('index.js')
@@ -68,6 +69,7 @@ export default function Name() {
           +
         </button>
         <Editor
+          highlight={highlight}
           className='editor'
           value={files[activeFile]}
           onChange={(code) => {

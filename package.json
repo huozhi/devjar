@@ -24,7 +24,7 @@
     "sucrase": "3.21.0"
   },
   "devDependencies": {
-    "codice": "^0.0.4",
+    "codice": "latest",
     "devjar": "link:./",
     "lodash-es": "^4.17.21",
     "next": "^12.1.7-canary.0",

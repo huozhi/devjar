@@ -35,13 +35,15 @@ body {
 }
 .editor {
   position: relative;
-  min-height: 100px;
+  height: 200px;
   display: flex;
+  overflow-y: hidden;
+  margin-top: 20px;
 }
 pre {
   width: 100%;
 }
-code, textarea, .preview {
+pre, textarea, .preview {
   font-family: Consolas, Monaco, monospace;
   padding: 16px 12px;
   background-color: #f6f6f6;
@@ -53,10 +55,13 @@ code, textarea, .preview {
 }
 textarea {
   padding-left: 54px;
+  overflow-y: auto;
 }
 code {
+  padding: 16px 12px;
   counter-reset: sh-line-number;
-  min-height: 100px;
+  overflow-y: auto;
+  height: 100%;
   width: 100%;
   padding-left: 54px;
 }

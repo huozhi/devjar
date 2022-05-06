@@ -90,10 +90,10 @@ caniuse-lite@^1.0.30001332:
   resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001335.tgz#899254a0b70579e5a957c32dced79f0727c61f2a"
   integrity sha512-ddP1Tgm7z2iIxu6QTtbZUv6HJxSaV/PZeSrWFZtbY4JZ69tOeNhBCl3HyRQgeNZKE5AOn1kpV7fhljigy0Ty3w==
 
-codice@^0.0.4:
-  version "0.0.4"
-  resolved "https://registry.yarnpkg.com/codice/-/codice-0.0.4.tgz#e19c7e6f2b1903efd0427acc771b899f9c1f02df"
-  integrity sha512-Hgr5opCC7+eB+MX67Z/bFtocg+fg0ywZ2pYMMqIi37hzSb0DrUanHnxPEJwwEEM8PXC1huAiI9GP9NQy/s3Wlw==
+codice@latest:
+  version "0.0.8"
+  resolved "https://registry.yarnpkg.com/codice/-/codice-0.0.8.tgz#b17232c067d2069cf5af224111b7820933ce0279"
+  integrity sha512-3WNhj2OduHjytxmaraSEZxJKqkeu1TpDTnBQ6GYeqFJdlVYljRGc+HO8MSaU/ewL9y6qcbLEiSRV7ZWid/UzDA==
 
 commander@^4.0.0:
   version "4.1.1"
