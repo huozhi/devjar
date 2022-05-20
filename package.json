@@ -10,6 +10,7 @@
   "files": [
     "lib"
   ],
+  "types": "./lib/index.d.ts",
   "scripts": {
     "build": "next build ./docs",
     "start": "next start ./docs",

@@ -17,6 +17,8 @@ import { useLiveCode } from 'devjar'
 
 function Playground() {
   const { ref, error, load } = useLiveCode({
+    // The CDN url of each imported module path in your code
+    // e.g. `import React from 'react'` will load react from skypack.dev/react
     getModulePath(modPath) {
       return `https://cdn.skypack.dev/${modPath}`
     }
@@ -30,15 +32,18 @@ function Playground() {
   // load code files and execute them as live code
   function run() {
     load({
-      'index.js': `export default function Main() { return 'hello world' }`,
-      './mod': `...` // other relative modules
+      // `index.js` is the entry of every project
+      'index.js': `export default function App() { return 'hello world' }`,
+
+      // other relative modules can be used in the live coding
+      './mod': `export default function Mod() { return 'mod' }`,
     })
   }
 
   // Attach the ref to an iframe element for runtime of code execution
   return (
     <div>
-      <button onClick={run}>run</h3>
+      <button onClick={run}>run</button>
       <iframe ref={ref} />
     </div>
   )
