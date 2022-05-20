@@ -9,7 +9,6 @@ html {
 body {
   max-width: 690px;
   margin: auto;
-  padding: 40px 10px 40px;
 }
 :root {
   --sh-class: #2d5e9d;
@@ -35,30 +34,34 @@ body {
 }
 .editor {
   position: relative;
-  height: 200px;
+  max-height: 200px;
   display: flex;
-  overflow-y: hidden;
-  margin-top: 20px;
+  overflow-y: scroll;
+  justify-content: stretch;
+  flex-direction: column;
 }
 pre {
   width: 100%;
 }
 pre, textarea, .preview {
   font-family: Consolas, Monaco, monospace;
-  padding: 16px 12px;
+  padding: 8px 12px;
   background-color: #f6f6f6;
   border: none;
-  border-radius: 12px;
   font-size: 16px;
   line-height: 1.25em;
   caret-color: #333;
 }
 textarea {
   padding-left: 54px;
-  overflow-y: auto;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
 }
 code {
-  padding: 16px 12px;
+  padding: 8px 12px;
   counter-reset: sh-line-number;
   overflow-y: auto;
   height: 100%;
@@ -78,4 +81,35 @@ code {
   width: 100%;
   border: 2px solid #bbb;
   background: #fefefe;
+}
+.filetree {
+  position: relative;
+  padding-right: 60px;
+}
+.filetree > div {
+  font-size: 0; /* remove spaces */
+}
+.filetab {
+  border: none;
+  background-color: #e9e9e9;
+  border: 1px solid #e9e9e9;
+  margin-left: 4px;
+  margin-bottom: 4px;
+}
+.filetab--active {
+  background-color: #d4d6d8;
+  color: #333;
+  font-weight: 600;
+  border: 1px solid #333;
+}
+.filetab--new {
+  background-color: #7b838f;
+  border: 1px solid #7b838f;
+  color: #fff;
+  margin-left: 20px;
+}
+.filetree .filetab--new {
+  position: absolute;
+  right: 0;
+  top: 0;
 }

@@ -4,7 +4,7 @@
   "type": "module",
   "exports": {
     ".": "./lib/index.mjs",
-    "./react": "./lib/react.mjs"
+    "./package.json": "./package.json"
   },
   "license": "MIT",
   "files": [

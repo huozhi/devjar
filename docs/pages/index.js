@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { debounce } from 'lodash-es'
 import { Editor } from 'codice'
-import { useLiveCode } from 'devjar/react'
+import { useLiveCode } from 'devjar'
 import { highlight } from 'sugar-high'
 
 export default function Page() {
@@ -45,29 +45,41 @@ export default function Name() {
   return (
     <div>
       <div>
-        <h3>Code</h3>
-        {Object.keys(files).map((filename) => (
+        <h1>Devjar</h1>
+        <p>Bundless runtime for your ESM JavaScript project in browser.</p>
+        <br />
+      </div>
+
+      <div>
+        <h3>Code Editor</h3>
+        <div className='filetree'>
+          <div>
+            {Object.keys(files).map((filename) => (
+              <button
+                key={filename}
+                disabled={filename === activeFile}
+                className={'filetab filetab--' + (filename === activeFile ? 'active' : '')}
+                onClick={() => setActiveFile(filename)}
+              >
+                {filename + (filename.endsWith('.js') ? '' : '.js')}
+              </button>
+            ))}
+          </div>
           <button
-            key={filename}
-            disabled={filename === activeFile}
-            onClick={() => setActiveFile(filename)}
+            className='filetab filetab--new'
+            onClick={() => {
+              const modId = Object.keys(files).length
+              const newFilename = './mod' + modId
+              setFiles({
+                ...files,
+                [newFilename]: `export default function Mod${modId}() {}`,
+              })
+              setActiveFile(newFilename)
+            }}
           >
-            {filename}
+            {`+ new`}
           </button>
-        ))}
-        <button
-          onClick={() => {
-            const modId = Object.keys(files).length
-            const newFilename = './mod' + modId
-            setFiles({
-              ...files,
-              [newFilename]: `export default function Mod${modId}() {}`,
-            })
-            setActiveFile(newFilename)
-          }}
-        >
-          +
-        </button>
+        </div>
         <Editor
           highlight={highlight}
           className='editor'
