@@ -92,9 +92,10 @@ export default function Name() {
         />
       </div>
 
-      <div>
-        <h3>Preview</h3>
-        <iframe className='preview' ref={ref} />
+      <h3>Preview</h3>
+      <div className='preview'>
+        <iframe className='preview--result' ref={ref} />
+        {error && <pre className='preview--error' dangerouslySetInnerHTML={{ __html: error.toString() }} />}
       </div>
     </div>
   )
