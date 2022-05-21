@@ -53,9 +53,9 @@ pre, textarea, .preview {
   caret-color: #333;
 }
 textarea {
-  padding-left: 54px;
+  padding-left: 66px;
   position: absolute;
-  top: 0;
+  top: 8px;
   bottom: 0;
   left: 0;
   right: 0;
