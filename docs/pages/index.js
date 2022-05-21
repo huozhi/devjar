@@ -8,8 +8,7 @@ export default function Page() {
   const [activeFile, setActiveFile] = useState('index.js')
   const [files, setFiles] = useState({
     'index.js':
-`import React from 'react'
-import useSWR from 'swr'
+`import useSWR from 'swr'
 import Name from './mod1'
 
 export default function App() {
