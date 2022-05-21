@@ -8,8 +8,7 @@ export default function Page() {
   const [activeFile, setActiveFile] = useState('index.js')
   const [files, setFiles] = useState({
     'index.js':
-`import React from 'react'
-import useSWR from 'swr'
+`import useSWR from 'swr'
 import Name from './mod1'
 
 export default function App() {
@@ -93,9 +92,10 @@ export default function Name() {
         />
       </div>
 
-      <div>
-        <h3>Preview</h3>
-        <iframe className='preview' ref={ref} />
+      <h3>Preview</h3>
+      <div className='preview'>
+        <iframe className='preview--result' ref={ref} />
+        {error && <pre className='preview--error' dangerouslySetInnerHTML={{ __html: error.toString() }} />}
       </div>
     </div>
   )
