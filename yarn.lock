@@ -302,10 +302,10 @@ sucrase@3.21.0:
     pirates "^4.0.1"
     ts-interface-checker "^0.1.9"
 
-sugar-high@^0.4.3:
-  version "0.4.3"
-  resolved "https://registry.yarnpkg.com/sugar-high/-/sugar-high-0.4.3.tgz#ca03d80ff7e5581ba22928ba335eea91e17390bf"
-  integrity sha512-2g4fn/Xx0Y0mmN2gDNFRr9lNcC9T2O/CfP5ugomzaI4cuJnniea2Rbq6a4Sbi4TNfeNDotoZkqZqJPFX4reH3w==
+sugar-high@^0.4.4:
+  version "0.4.4"
+  resolved "https://registry.yarnpkg.com/sugar-high/-/sugar-high-0.4.4.tgz#3991e14859d3a7fc6b5184f6c821c3c47564c649"
+  integrity sha512-EPqxXopXmRdwsRRpHFslRKe9QfJ9wjqQPaZ8TZ9v1Kig5nHL4kTfoeUdA7IyHihROSjtdB0wWTO3R6hzPncZSQ==
 
 thenify-all@^1.0.0:
   version "1.6.0"

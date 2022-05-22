@@ -31,6 +31,6 @@
     "next": "canary",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
-    "sugar-high": "^0.4.3"
+    "sugar-high": "^0.4.4"
   }
 }
