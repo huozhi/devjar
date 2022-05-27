@@ -11,13 +11,13 @@ body {
   margin: auto;
 }
 :root {
-  --sh-class: #2d5e9d;
+  --sh-class: #6f42c1;
   --sh-identifier: #354150;
-  --sh-sign: #8996a3;
-  --sh-string: #00a99a;
-  --sh-keyword: #f47067;
-  --sh-comment: #a19595;
-  --sh-jsxliterals: #6266d1;
+  --sh-sign: #24292e;
+  --sh-string: #032f62;
+  --sh-keyword: #d73a49;
+  --sh-comment: #6a737d;
+  --sh-jsxliterals: #24292e;
   --editor-text-color: transparent;
   --editor-background-color: transparent;
 }
@@ -34,18 +34,18 @@ body {
 }
 .editor {
   position: relative;
-  max-height: 200px;
+  max-height: 300px;
   display: flex;
   overflow-y: scroll;
   justify-content: stretch;
   flex-direction: column;
+  box-shadow: 0 24px 40px 4px rgb(200 200 200 / 50%);
 }
 pre {
   width: 100%;
 }
 pre, textarea, .preview--result {
   font-family: Consolas, Monaco, monospace;
-  background-color: #f6f6f6;
   border: none;
   font-size: 16px;
   line-height: 1.25em;
@@ -58,23 +58,30 @@ textarea {
   left: 0;
   right: 0;
 }
+textarea:focus,
+textarea:focus-visible {
+  outline: none;
+}
+code, textarea {
+  padding: 24px 16px;
+  padding-left: 54px;
+}
 code {
-  padding: 16px 12px;
   counter-reset: sh-line-number;
   overflow-y: auto;
   height: 100%;
   width: 100%;
-  padding-left: 54px;
 }
 .preview {
   position: relative;
+  border-top: 1px solid rgb(229, 231, 235);
 }
 .preview--error {
   margin: 0;
   padding: 8px;
   font-size: 13px;
   color: #f47067;
-  background-color: #e1e1e100;
+
   position: absolute;
   top: 0;
   right: 0;
@@ -93,41 +100,40 @@ code {
 .preview--result {
   padding: 8px 12px;
   width: 100%;
-  border: 2px solid #bbb;
-  background: #fefefe;
+  background-color: rgb(246 247 249);
+  box-shadow: 0 16px 40px 4px rgb(200 200 200 / 50%);
 }
 
-textarea {
-  padding: 16px 12px 16px 54px;
-}
 .filetree {
+  display: flex;
   position: relative;
   padding-right: 60px;
+  border-bottom: 2px solid rgb(235 236 240);
 }
-.filetree > div {
-  font-size: 0; /* remove spaces */
-}
+
 .filetab {
+  position: relative;
+  padding: 3px 12px;
   border: none;
-  background-color: #e9e9e9;
-  border: 1px solid #e9e9e9;
-  margin-left: 4px;
-  margin-bottom: 4px;
+  background-color: #fff;
+  cursor: pointer;
+  color: #000;
+}
+.filetab:hover {
+  opacity: .6;
 }
 .filetab--active {
-  background-color: #d4d6d8;
-  color: #333;
-  font-weight: 600;
-  border: 1px solid #333;
+  color: rgb(8, 126, 164);
+}
+.filetab--active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  height: 2px;
+  background: rgb(8, 126, 164);
+  left: 0;
+  width: 100%;
 }
 .filetab--new {
-  background-color: #7b838f;
-  border: 1px solid #7b838f;
-  color: #fff;
-  margin-left: 20px;
-}
-.filetree .filetab--new {
-  position: absolute;
-  right: 0;
-  top: 0;
+  background-color: #f6f6f6e0;
 }
