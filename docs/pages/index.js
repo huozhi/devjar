@@ -8,21 +8,32 @@ export default function Page() {
   const [activeFile, setActiveFile] = useState('index.js')
   const [files, setFiles] = useState({
     'index.js':
-`import useSWR from 'swr'
+`
+import { useState } from 'react'
+import useSWR from 'swr'
 import Name from './mod1'
 
+
 export default function App() {
-  const { data } = useSWR('swr', (key) => key)
-  return <div>Hello <Name /> with {data}</div>
+  const [num, inc] = useState(1)
+  const { data } = useSWR('swr', key => key)
+  return (
+    <div>
+      <p>Hello <Name /> with {data}</p>
+      <p>No. {num}</p>
+      <button onClick={() => inc(num + 1)}>increase</button>
+    </div>
+  )
 }
-`,
+`.trim(),
     './mod1':
-`import React from 'react'
+`
+import React from 'react'
 
 export default function Name() {
   return <b>devjar</b>
 }
-`,
+`.trim(),
   })
 
   const { ref, error, load } = useLiveCode({
@@ -50,21 +61,21 @@ export default function Name() {
       </div>
 
       <div>
-        <h3>Code Editor</h3>
         <div className='filetree'>
-          <div>
-            {Object.keys(files).map((filename) => (
-              <button
-                key={filename}
-                disabled={filename === activeFile}
-                className={'filetab filetab--' + (filename === activeFile ? 'active' : '')}
-                onClick={() => setActiveFile(filename)}
-              >
-                {filename + (filename.endsWith('.js') ? '' : '.js')}
-              </button>
-            ))}
-          </div>
-          <button
+          {Object.keys(files).map((filename) => (
+            <div
+              role='button'
+              key={filename}
+              disabled={filename === activeFile}
+              className={'filetab filetab--' + (filename === activeFile ? 'active' : '')}
+              onClick={() => setActiveFile(filename)}
+            >
+              {filename + (filename.endsWith('.js') ? '' : '.js')}
+            </div>
+          ))}
+
+          <div
+            role='button'
             className='filetab filetab--new'
             onClick={() => {
               const modId = Object.keys(files).length
@@ -76,8 +87,8 @@ export default function Name() {
               setActiveFile(newFilename)
             }}
           >
-            {`+ new`}
-          </button>
+            {`+`}
+          </div>
         </div>
         <Editor
           highlight={highlight}
@@ -92,7 +103,6 @@ export default function Name() {
         />
       </div>
 
-      <h3>Preview</h3>
       <div className='preview'>
         <iframe className='preview--result' ref={ref} />
         {error && <pre className='preview--error' dangerouslySetInnerHTML={{ __html: error.toString() }} />}

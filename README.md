@@ -2,7 +2,7 @@
 > bundless runtime for your ESM JavaScript project in browser
 
 
-![image](https://repository-images.githubusercontent.com/483779830/23b4d7c8-dd8e-48b0-a3ea-c519e8236714)
+![image](https://repository-images.githubusercontent.com/483779830/6c7eb87d-eb13-4fa1-9a94-61a94a529ad4)
 
 ### Install
 
