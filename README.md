@@ -1,5 +1,5 @@
 # devjar
-> bundless runtime for your ESM JavaScript project in browser
+> live code runtime for your react project in browser
 
 
 ![image](https://repository-images.githubusercontent.com/483779830/28347c03-774a-4766-b113-54041fad1e72)

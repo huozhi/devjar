@@ -8,10 +8,10 @@ export default function App({ Component, pageProps }) {
     <>
       <Head>
         <title>devjar</title>
+        <meta property="og:title" content="devjar" />
+        <meta property="og:description" content="live code runtime for your react project in browser" />
         <meta property="og:image" content={imgUrl} />
         <meta name="twitter:image" content={imgUrl} />
-        <meta property="og:title" content="Sugar High" />
-        <meta property="og:description" content="Super lightweight JSX syntax highlighter, around 1KB after minified and gzipped" />
         <meta name="twitter:card" content="summary_large_image" />
       </Head>
       <Component {...pageProps} />

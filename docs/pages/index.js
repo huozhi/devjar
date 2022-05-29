@@ -56,7 +56,7 @@ export default function Name() {
     <div>
       <div>
         <h1>Devjar</h1>
-        <p>Bundless runtime for your ESM JavaScript project in browser.</p>
+        <p>live code runtime for your react project in browser</p>
         <br />
       </div>
 
