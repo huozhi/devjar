@@ -114,15 +114,15 @@ concat-map@0.0.1:
   version "0.0.0"
   uid ""
 
-es-module-lexer@^0.10.5:
+es-module-lexer@0.10.5:
   version "0.10.5"
   resolved "https://registry.yarnpkg.com/es-module-lexer/-/es-module-lexer-0.10.5.tgz#06f76d51fa53b1f78e3bd8bb36dd275eda2fdd53"
   integrity sha512-+7IwY/kiGAacQfY+YBhKMvEmyAJnw5grTUgjG85Pe7vcUI/6b7pZjZG8nQ7+48YhzEAEqrEgD2dCz/JIK+AYvw==
 
-es-module-shims@^1.5.4:
-  version "1.5.5"
-  resolved "https://registry.yarnpkg.com/es-module-shims/-/es-module-shims-1.5.5.tgz#3fc2a186ffe38643ca7905928936c07a8fb7f96a"
-  integrity sha512-1YuWWTUou3P+SKUxNDmcwVjEi4RpzG8OySczVfF+ssR8XlkJ2AOwGwVPNEfNyFAfkYEts6WQ6FDdg5kiL/A6TQ==
+es-module-shims@1.5.6:
+  version "1.5.6"
+  resolved "https://registry.yarnpkg.com/es-module-shims/-/es-module-shims-1.5.6.tgz#f32560381e6c2574e3832a0bfde32d269163e9f3"
+  integrity sha512-P/WNC3j4hncbMjx8mdgNchYaSulXJO8Q7lF6CJthc0Rv3t6ZuzfQnkXkNzluUdgnS9/7mTTJrS9dDgZ2OYbZvA==
 
 fs.realpath@^1.0.0:
   version "1.0.0"
@@ -302,10 +302,10 @@ sucrase@3.21.0:
     pirates "^4.0.1"
     ts-interface-checker "^0.1.9"
 
-sugar-high@^0.4.4:
-  version "0.4.4"
-  resolved "https://registry.yarnpkg.com/sugar-high/-/sugar-high-0.4.4.tgz#3991e14859d3a7fc6b5184f6c821c3c47564c649"
-  integrity sha512-EPqxXopXmRdwsRRpHFslRKe9QfJ9wjqQPaZ8TZ9v1Kig5nHL4kTfoeUdA7IyHihROSjtdB0wWTO3R6hzPncZSQ==
+sugar-high@^0.4.5:
+  version "0.4.5"
+  resolved "https://registry.yarnpkg.com/sugar-high/-/sugar-high-0.4.5.tgz#306abb71993da5217bc66f7880bf4faba1eb94c1"
+  integrity sha512-jwk/CmFRYlRPS9+9uS3nXJQ+WA/erIw7gKsZmJuOS2bRK8jHTO0AWcBChLWritHRMquJW3QPMAaWa+z7V4k1og==
 
 thenify-all@^1.0.0:
   version "1.6.0"
