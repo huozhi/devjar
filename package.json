@@ -20,8 +20,8 @@
     "react": "^17.0.0 || ^18.0.0"
   },
   "dependencies": {
-    "es-module-lexer": "^0.10.5",
-    "es-module-shims": "^1.5.4",
+    "es-module-lexer": "0.10.5",
+    "es-module-shims": "1.5.6",
     "sucrase": "3.21.0"
   },
   "devDependencies": {
@@ -31,6 +31,6 @@
     "next": "canary",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
-    "sugar-high": "^0.4.4"
+    "sugar-high": "^0.4.5"
   }
 }
