@@ -4,15 +4,56 @@
 
 ![image](https://repository-images.githubusercontent.com/483779830/28347c03-774a-4766-b113-54041fad1e72)
 
-### Install
+## Introduction
+
+devjar is a library that enables you to live test and share your code snippets and examples with others. devjar will generate a live code editor where you can run your code snippets and view the results in real-time based on the provided code content of your React app. 
+
+Notice: devjar only works for browser runtime at the moment. It will always render the default export component in `index.js` as the app entry.
+
+## Install
 
 ```sh
 yarn add devjar
 ```
 
-### Usage
 
-```js
+## Usage
+
+### `DevJar`
+
+`DevJar` is a react component that allows you to develop and test your code directly in the browser, using a CDN to load your dependencies.
+
+#### Props
+
+* `files`: An object that specifies the files you want to include in your development environment.
+* `getModuleUrl`: A function that maps module names to CDN URLs.
+* `onError`: Callback function of error event from the iframe sandbox. By default `console.log`.
+
+
+```jsx
+import { DevJar } from 'devjar'
+
+const CDN_HOST = 'https://esm.sh'
+
+const files = {
+  'index.js': `export default function App() { return 'hello world' }`
+}
+
+function App() {
+  return (
+    <DevJar
+      files={files}
+      getModuleUrl={(m) => {
+        return `${CDN_HOST}/${m}`
+      }}
+    />
+  )
+}
+```
+
+#### `useLiveCode`
+
+```jsx
 import { useLiveCode } from 'devjar'
 
 function Playground() {
