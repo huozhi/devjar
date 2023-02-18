@@ -1,56 +1,42 @@
-import React, { useEffect, useState, useCallback } from 'react'
-import { debounce } from 'lodash-es'
+import React, { useState } from 'react'
 import { Editor } from 'codice'
-import { useLiveCode } from 'devjar'
+import { DevJar } from 'devjar'
 import { highlight } from 'sugar-high'
 
-export default function Page() {
-  const [activeFile, setActiveFile] = useState('index.js')
-  const [files, setFiles] = useState({
-    'index.js':
-`
-import { useState } from 'react'
-import useSWR from 'swr'
-import Name from './mod1'
+const CDN_HOST = 'https://esm.sh'
 
+const defaultFiles = {
+  'index.js':
+`import { useState } from 'react'
+import useSWR from 'swr'
+import Text from './mod1'
 
 export default function App() {
   const [num, inc] = useState(1)
   const { data } = useSWR('swr', key => key)
   return (
     <div>
-      <p>Hello <Name /> with {data}</p>
+      <p>Hello <Text /> with {data}</p>
       <p>No. {num}</p>
       <button onClick={() => inc(num + 1)}>increase</button>
     </div>
   )
 }
-`.trim(),
-    './mod1':
-`
-import React from 'react'
+`,
+  './mod1':
+`import React from 'react'
 
-export default function Name() {
+export default function Text() {
   return <b>devjar</b>
 }
-`.trim(),
-  })
+`,
+}
 
-  const { ref, error, load } = useLiveCode({
-    getModulePath(modPath) {
-      return `https://cdn.skypack.dev/${modPath}`
-    }
-  })
-  const debouncedLoad = useCallback(debounce(load, 200), [])
+export default function Page() {
+  const [activeFile, setActiveFile] = useState('index.js')
+  const [files, setFiles] = useState(defaultFiles)
 
-  useEffect(() => {
-    if (error)
-      console.error(error)
-  }, [error])
-
-  useEffect(() => {
-    debouncedLoad(files)
-  }, [files])
+  const [error, setError] = useState(null)
 
   return (
     <div>
@@ -104,7 +90,20 @@ export default function Name() {
       </div>
 
       <div className='preview'>
-        <iframe className='preview--result' ref={ref} />
+        <DevJar
+          className='preview--result'
+          files={files}
+          onError={(err) => {
+            setError(err)
+          }}
+          getModuleUrl={(m) => {
+            if (m === 'react' || m === 'react-dom' || m === 'swr') {
+              return `${CDN_HOST}/${m}@latest`
+            }
+
+            return `${CDN_HOST}/${m}`
+          }}
+        />
         {error && <pre className='preview--error' dangerouslySetInnerHTML={{ __html: error.toString() }} />}
       </div>
     </div>

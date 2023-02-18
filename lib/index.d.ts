@@ -7,7 +7,7 @@ type LiveCodeHandles = {
 }
 
 type Options = {
-  getModulePath(modulePath: string): string
+  getModuleUrl(modulePath: string): string
 }
 
 export function useLiveCode(options: Options): LiveCodeHandles

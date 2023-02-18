@@ -28,7 +28,7 @@
     "codice": "latest",
     "devjar": "link:./",
     "lodash-es": "^4.17.21",
-    "next": "canary",
+    "next": "^13.1.6",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "sugar-high": "^0.4.5"
