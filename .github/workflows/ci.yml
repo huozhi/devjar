@@ -12,33 +12,29 @@ jobs:
   install:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    strategy:
-      matrix:
-        node-version: [16]
 
-    name: Node ${{ matrix.node-version }}
+    name: Node
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Use Node ${{ matrix.node-version }}
+      - name: Use Node 16
         uses: actions/setup-node@v3
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 16
 
       - name: Get Yarn Cache Directory Path
         id: cache_keys
         run: |
-          echo "CACHE_KEY=${{ runner.os }}-node-${{ matrix.node-version }}-yarn-" >> $GITHUB_OUTPUT
+          echo "CACHE_KEY=${{ runner.os }}-node-16-yarn-" >> $GITHUB_OUTPUT
 
       - name: Cache Dependencies
         uses: actions/cache@v3
         with:
           path: node_modules
-          key: yarn-cache-${{ steps.cache_keys.outputs.CACHE_KEY }}
+          key: ${{ runner.os }}-${{ github.sha }}
           restore-keys: |
-            yarn-cache-
-            yarn-cache-${{ steps.cache_keys.outputs.CACHE_KEY }}
+            ${{ runner.os }}-${{ github.sha }}
 
       - name: Install Dependencies
         run: yarn install --frozen-lockfile --prefer-offline
@@ -52,14 +48,16 @@ jobs:
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
       - name: Restore Cached Dependencies
         uses: actions/cache@v3
         with:
           path: node_modules
-          key: yarn-cache-${{ needs.install.steps.cache_keys.outputs.CACHE_KEY }}
+          key: ${{ runner.os }}-${{ github.sha }}
           restore-keys: |
-            yarn-cache-
-            yarn-cache-${{ needs.install.steps.cache_keys.outputs.CACHE_KEY }}
+            ${{ runner.os }}-${{ github.sha }}
 
       - name: Determine tag
         id: determine_tag
