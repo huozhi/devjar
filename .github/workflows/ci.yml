@@ -51,6 +51,7 @@ jobs:
     env:
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+    steps:
       - name: Restore Cached Dependencies
         uses: actions/cache@v3
         with:
