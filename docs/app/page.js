@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useState } from 'react'
 import { Editor } from 'codice'
 import { DevJar } from 'devjar'
@@ -35,17 +37,10 @@ export default function Text() {
 export default function Page() {
   const [activeFile, setActiveFile] = useState('index.js')
   const [files, setFiles] = useState(defaultFiles)
-
   const [error, setError] = useState(null)
 
   return (
-    <div>
-      <div>
-        <h1>Devjar</h1>
-        <p>live code runtime for your react project in browser</p>
-        <br />
-      </div>
-
+    <>
       <div>
         <div className='filetree'>
           {Object.keys(files).map((filename) => (
@@ -106,6 +101,6 @@ export default function Page() {
         />
         {error && <pre className='preview--error' dangerouslySetInnerHTML={{ __html: error.toString() }} />}
       </div>
-    </div>
+    </>
   )
 }
