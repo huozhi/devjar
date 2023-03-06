@@ -8,30 +8,35 @@ import { highlight } from 'sugar-high'
 const CDN_HOST = 'https://esm.sh'
 
 const defaultFiles = {
-  'index.js':
-`import { useState } from 'react'
-import useSWR from 'swr'
-import Text from './mod1'
+  'index.js': `
+  import { useState } from 'react'
+  import useSWR from 'swr'
+  import Text from './mod1'
+  import './styles.css'
 
-export default function App() {
-  const [num, inc] = useState(1)
-  const { data } = useSWR('swr', key => key)
-  return (
-    <div>
-      <p>Hello <Text /> with {data}</p>
-      <p>No. {num}</p>
-      <button onClick={() => inc(num + 1)}>increase</button>
-    </div>
-  )
-}
-`,
-  './mod1':
-`import React from 'react'
+  export default function App() {
+    const [num, inc] = useState(1)
+    const { data } = useSWR('swr', key => key)
+    return (
+      <div>
+        <h1 className='title'>devjar</h1>
+        <p>Hello <Text /> with {data}</p>
+        <p>No. {num}</p>
+        <button onClick={() => inc(num + 1)}>increase</button>
+      </div>
+    )
+  }`,
+  './mod1': `
+  import React from 'react'
 
-export default function Text() {
-  return <b>devjar</b>
-}
-`,
+  export default function Text() {
+    return <b>devjar</b>
+  }`,
+  './styles.css': `
+  .title {
+    color: red;
+  }
+  `
 }
 
 export default function Page() {
@@ -51,7 +56,7 @@ export default function Page() {
               className={'filetab filetab--' + (filename === activeFile ? 'active' : '')}
               onClick={() => setActiveFile(filename)}
             >
-              {filename + (filename.endsWith('.js') ? '' : '.js')}
+              {filename + ((filename.endsWith('.css') || filename.endsWith('.js')) ? '' : '.js')}
             </div>
           ))}
 
