@@ -16,13 +16,12 @@ const defaultFiles = {
 
   export default function App() {
     const [num, inc] = useState(1)
-    const { data } = useSWR('swr', key => key)
+    const { data } = useSWR('world', key => key)
     return (
       <div>
-        <h1 className='title'>devjar</h1>
-        <p>Hello <Text /> with {data}</p>
-        <p>No. {num}</p>
-        <button onClick={() => inc(num + 1)}>increase</button>
+        <h2 className='title'><Text /> hello <b>{data}</b></h2>
+        <p>Volume {Array(num % 6).fill('●').join('')}</p>
+        <button className='button' onClick={() => inc(num + 1)}>increase</button>
       </div>
     )
   }`,
@@ -33,8 +32,34 @@ const defaultFiles = {
     return <b>devjar</b>
   }`,
   './styles.css': `
+  html {
+    font-family: ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Noto Sans,Ubuntu,Cantarell,Helvetica Neue,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji
+  }
   .title {
-    color: red;
+    color: rgba(51, 65, 85);
+    font-weight: 300;
+    transition: color 0.2s ease-in-out;
+  }
+  .title:hover {
+    color: rgba(23, 119, 195, 0.8);
+  }
+
+  .button {
+    background: #eee;
+    border: 1px solid #222;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 700;
+    transition: color 0.2s ease-in-out;
+  }
+  .button:hover {
+    background: #ddd;
+    color: #222;
+  }
+  .button:active {
+    background: #ccc;
+    color: #222;
+    
   }
   `
 }
