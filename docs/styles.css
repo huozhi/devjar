@@ -67,6 +67,7 @@ textarea:focus-visible {
 code, textarea {
   padding: 24px 16px;
   padding-left: 54px;
+  overflow-y: hidden;
 }
 code {
   counter-reset: sh-line-number;
