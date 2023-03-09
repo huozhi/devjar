@@ -12,9 +12,9 @@
   ],
   "types": "./lib/index.d.ts",
   "scripts": {
-    "build": "next build ./docs",
-    "start": "next start ./docs",
-    "dev": "next dev ./docs"
+    "build:site": "next build ./site",
+    "start": "next start ./site",
+    "dev": "next dev ./site"
   },
   "peerDependencies": {
     "react": "^18.2.0"
