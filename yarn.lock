@@ -107,10 +107,10 @@ client-only@0.0.1:
   resolved "https://registry.yarnpkg.com/client-only/-/client-only-0.0.1.tgz#38bba5d403c41ab150bff64a95c85013cf73bca1"
   integrity sha512-IV3Ou0jSMzZrd3pZ48nLkT9DA7Ag1pnPzaiQhpW7c3RbcqqzvzzVu+L8gfqMp/8IM2MQtSiqaCxrrcfu8I8rMA==
 
-codice@latest:
-  version "0.0.10"
-  resolved "https://registry.yarnpkg.com/codice/-/codice-0.0.10.tgz#78aeb8f115d2f7da0b6afd31b1a1cc6ec1ad64e4"
-  integrity sha512-DiXAQA79TWwo3Op7GcS2VzebIWnZ5INGrr3T5sQyXIx5ST2bBc3AUi2NNxVDZHv580ittTeCrup3DlydMtVBLQ==
+codice@^0.1.0:
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/codice/-/codice-0.1.0.tgz#da6d4f54d3239c8e7a4b22a4d9431d413b242bb9"
+  integrity sha512-V8wjvkSO8o/YFMf1MS6jWXKnK9SncNHIG275R6KNNkIxMvE7GkYc1/4v5YDlV+HOrEL3+8w28PGSnx1+kv+Djg==
 
 commander@^4.0.0:
   version "4.1.1"
