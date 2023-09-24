@@ -18,15 +18,14 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Use Node 16
+      - name: Use Node 18
         uses: actions/setup-node@v3
         with:
-          node-version: 16
+          node-version: 18
 
-      - name: Get Yarn Cache Directory Path
-        id: cache_keys
-        run: |
-          echo "CACHE_KEY=${{ runner.os }}-node-16-yarn-" >> $GITHUB_OUTPUT
+      steps:
+      - uses: actions/checkout@v3
+      - uses: pnpm/action-setup@v2.2.4
 
       - name: Cache Dependencies
         uses: actions/cache@v3
@@ -37,7 +36,7 @@ jobs:
             ${{ runner.os }}-${{ github.sha }}
 
       - name: Install Dependencies
-        run: yarn install --frozen-lockfile --prefer-offline
+        run: pnpm install --frozen-lockfile
 
 
   release:
@@ -72,10 +71,10 @@ jobs:
         if: steps.determine_tag.outputs.tag != ''
         run: |
           echo "Publishing to ${{ steps.determine_tag.outputs.tag }} tag"
-          npm publish --tag ${{ steps.determine_tag.outputs.tag }}
+          pnpm publish --tag ${{ steps.determine_tag.outputs.tag }}
 
       - name: Publish to latest
         if: steps.determine_tag.outputs.tag == ''
         run: |
           echo "Publishing to latest"
-          npm publish
+          pnpm publish
