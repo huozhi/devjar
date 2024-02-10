@@ -23,7 +23,6 @@ jobs:
         with:
           node-version: 18
 
-      - uses: actions/checkout@v3
       - uses: pnpm/action-setup@v2.2.4
 
       - name: Cache Dependencies
@@ -48,6 +47,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
+      
+      - uses: pnpm/action-setup@v2.2.4
 
       - name: Restore Cached Dependencies
         uses: actions/cache@v3
