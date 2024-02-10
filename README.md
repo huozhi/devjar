@@ -13,7 +13,7 @@ Notice: devjar only works for browser runtime at the moment. It will always rend
 ### Install
 
 ```sh
-yarn add devjar
+pnpm add devjar
 ```
 
 
