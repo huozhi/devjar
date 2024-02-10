@@ -19,7 +19,10 @@ const defaultFiles = {
     const { data } = useSWR('world', key => key)
     return (
       <div>
-        <h2 className='title'><Text /> hello <b>{data}</b></h2>
+        <h2 class="text-3xl">
+          hello <Text /> <span class="font-bold underline">{data}</span>
+        </h2>
+
         <p>Volume {Array(num % 6).fill('●').join('')}</p>
         <button className='button' onClick={() => inc(num + 1)}>increase</button>
       </div>
@@ -59,7 +62,6 @@ const defaultFiles = {
   .button:active {
     background: #ccc;
     color: #222;
-    
   }
   `
 }
@@ -122,10 +124,6 @@ export default function Page() {
             setError(err)
           }}
           getModuleUrl={(m) => {
-            if (m === 'react' || m === 'react-dom' || m === 'swr') {
-              return `${CDN_HOST}/${m}@latest`
-            }
-
             return `${CDN_HOST}/${m}`
           }}
         />
