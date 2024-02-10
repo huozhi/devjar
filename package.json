@@ -3,7 +3,7 @@
   "version": "0.4.0",
   "type": "module",
   "exports": {
-    ".": "./lib/index.mjs",
+    ".": "./lib/index.js",
     "./package.json": "./package.json"
   },
   "license": "MIT",
