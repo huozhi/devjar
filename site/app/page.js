@@ -8,19 +8,19 @@ import { highlight } from 'sugar-high'
 const CDN_HOST = 'https://esm.sh'
 
 const defaultFiles = {
-  'index.js': `
+  'index.js': `\
   import { useState } from 'react'
-  import useSWR from 'swr'
+
   import Text from './mod1'
   import './styles.css'
 
   export default function App() {
     const [num, inc] = useState(1)
-    const { data } = useSWR('world', key => key)
+    
     return (
       <div>
         <h2 class="text-3xl">
-          hello <Text /> <span class="font-bold underline">{data}</span>
+          hello <Text />
         </h2>
 
         <p>Volume {Array(num % 6).fill('●').join('')}</p>
@@ -28,13 +28,13 @@ const defaultFiles = {
       </div>
     )
   }`,
-  './mod1': `
+  './mod1': `\
   import React from 'react'
 
   export default function Text() {
     return <b>devjar</b>
   }`,
-  './styles.css': `
+  './styles.css': `\
   html {
     font-family: ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Noto Sans,Ubuntu,Cantarell,Helvetica Neue,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji
   }
