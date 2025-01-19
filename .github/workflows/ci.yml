@@ -18,12 +18,12 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4.2.2
 
-      - name: Use Node 18
+      - name: Use Node 18 and pnpm
         uses: actions/setup-node@v4.1.0
         with:
           node-version: 20
-
-      - uses: pnpm/action-setup@4.0.0
+          cache: 'pnpm'
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Cache Dependencies
         uses: actions/cache@v4.2.0
@@ -42,7 +42,12 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4.2.2
       
-      - uses: pnpm/action-setup@v4.0.0
+      - name: Use Node 18 and pnpm
+        uses: actions/setup-node@v4.1.0
+        with:
+          node-version: 20
+          cache: 'pnpm'
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Restore Cached Dependencies
         uses: actions/cache@v4.2.0
