@@ -106,6 +106,8 @@ export default function Page() {
         <Editor
           highlight={highlight}
           className='editor'
+          controls={false}
+          title={null}
           value={files[activeFile]}
           onChange={(code) => {
             setFiles({
