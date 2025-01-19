@@ -5,12 +5,13 @@ export default function RootLayout({ children }) {
     <html>
       <head></head>
       <body>
-        <div>
-          <h1>Devjar</h1>
-          <p>live code runtime for your react project in browser</p>
-          <br />
-          {children}
-        </div>
+        {children}
+        <footer>
+          <p>
+            © {new Date().getFullYear()},{` `}
+            <a href={'https://github.com/huozhi'}>Huozhi</a>
+          </p>
+        </footer>
       </body>
     </html>
   )
@@ -26,5 +27,5 @@ export const metadata = {
   twitter: {
     card: 'summary_large_image',
     images: 'https://repository-images.githubusercontent.com/483779830/28347c03-774a-4766-b113-54041fad1e72',
-  }
+  },
 }

@@ -4,11 +4,12 @@ import { useState } from 'react'
 import { Editor } from 'codice'
 import { DevJar } from 'devjar'
 import { highlight } from 'sugar-high'
+import FileTab from '../ui/file-tab'
 
 const CDN_HOST = 'https://esm.sh'
 
 const defaultFiles = {
-  'index.js': `\
+  'page.js': `\
   import { useState } from 'react'
 
   import Text from './mod1'
@@ -28,7 +29,7 @@ const defaultFiles = {
       </div>
     )
   }`,
-  './mod1': `\
+  './text.js': `\
   import React from 'react'
 
   export default function Text() {
@@ -63,49 +64,64 @@ const defaultFiles = {
     background: #ccc;
     color: #222;
   }
-  `
+  `,
 }
 
 export default function Page() {
-  const [activeFile, setActiveFile] = useState('index.js')
+  const [activeFile, setActiveFile] = useState('page.js')
   const [files, setFiles] = useState(defaultFiles)
   const [error, setError] = useState(null)
 
   return (
-    <>
+    <div>
       <div>
-        <div className='filetree'>
+        <h1>Devjar</h1>
+        <p>
+          A live-code runtime for React, running directly in the browser. Perfect for interactive demos, documentation,
+          and real-time code previews. Simple to integrate and highly flexible for any React project.
+        </p>
+        <br />
+        <div className="filetree">
           {Object.keys(files).map((filename) => (
             <div
-              role='button'
+              role="button"
               key={filename}
               data-disabled={filename === activeFile}
               className={'filetab filetab--' + (filename === activeFile ? 'active' : '')}
               onClick={() => setActiveFile(filename)}
             >
-              {filename + ((filename.endsWith('.css') || filename.endsWith('.js')) ? '' : '.js')}
+              {filename + (filename.endsWith('.css') || filename.endsWith('.js') ? '' : '.js')}
             </div>
           ))}
 
-          <div
-            role='button'
-            className='filetab filetab--new'
-            onClick={() => {
-              const modId = Object.keys(files).length
-              const newFilename = './mod' + modId
-              setFiles({
-                ...files,
-                [newFilename]: `export default function Mod${modId}() {}`,
-              })
-              setActiveFile(newFilename)
-            }}
+          <FileTab files={files} setFiles={setFiles} setActiveFile={setActiveFile} />
+          {/* <div
+            role="button"
+            className="filetab filetab--new"
           >
-            {`+`}
-          </div>
+            <span
+              onClick={() => {
+                
+              }}
+            >{`+`}</span>
+            <input 
+              type='input'
+              onChange={(e) => {
+                const filename = e.target.value
+                // const modId = Object.keys(files).length
+                const newFilename = filename // './mod' + modId
+                setFiles({
+                  ...files,
+                  [newFilename]: `export default function Mod${filename}() {}`,
+                })
+                setActiveFile(newFilename)
+              }}
+            />
+          </div> */}
         </div>
         <Editor
           highlight={highlight}
-          className='editor'
+          className="editor"
           controls={false}
           title={null}
           value={files[activeFile]}
@@ -118,9 +134,9 @@ export default function Page() {
         />
       </div>
 
-      <div className='preview'>
+      <div className="preview">
         <DevJar
-          className='preview--result'
+          className="preview--result"
           files={files}
           onError={(err) => {
             setError(err)
@@ -129,8 +145,8 @@ export default function Page() {
             return `${CDN_HOST}/${m}`
           }}
         />
-        {error && <pre className='preview--error' dangerouslySetInnerHTML={{ __html: error.toString() }} />}
+        {error && <pre className="preview--error" dangerouslySetInnerHTML={{ __html: error.toString() }} />}
       </div>
-    </>
+    </div>
   )
 }

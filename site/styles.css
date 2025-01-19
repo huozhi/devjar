@@ -7,8 +7,9 @@ html {
     'Helvetica Neue', sans-serif;
 }
 body {
-  max-width: 690px;
+  max-width: 600px;
   margin: auto;
+  padding: 0 16px;
 }
 :root {
   --sh-class: #6f42c1;
@@ -22,6 +23,13 @@ body {
   --sh-property: #1d3147;
   --codice-editor-text-color: transparent;
   --codice-editor-background-color: transparent;
+}
+
+a, a:focus, a:visited {
+  color: inherit;
+}
+a:hover {
+  color: #424d5b;
 }
 
 .sh__line::before {
@@ -144,4 +152,12 @@ code {
 }
 .filetab--new {
   background-color: #f6f6f6e0;
+}
+.filetab__button {
+  padding: 0;
+  margin: 0;
+  border: none;
+  background-color: #f6f6f6e0;
+  cursor: pointer;
+  color: #000;
 }
