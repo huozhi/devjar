@@ -14,12 +14,14 @@ body {
   --sh-class: #6f42c1;
   --sh-identifier: #354150;
   --sh-sign: #24292e;
-  --sh-string: #032f62;
+  --sh-string: #53b487;
   --sh-keyword: #d73a49;
   --sh-comment: #6a737d;
   --sh-jsxliterals: #24292e;
-  --editor-text-color: transparent;
-  --editor-background-color: transparent;
+  --sh-entity: #424d5b;
+  --sh-property: #1d3147;
+  --codice-editor-text-color: transparent;
+  --codice-editor-background-color: transparent;
 }
 
 .sh__line::before {
@@ -41,6 +43,13 @@ body {
   flex-direction: column;
   box-shadow: 0 24px 40px 4px rgb(200 200 200 / 50%);
 }
+
+.editor[data-codice-editor] code, .editor[data-codice-editor] textarea {
+  padding: 24px 16px;
+  padding-left: 54px;
+  overflow-y: hidden;
+}
+
 pre {
   width: 100%;
 }
@@ -64,11 +73,7 @@ textarea:focus,
 textarea:focus-visible {
   outline: none;
 }
-code, textarea {
-  padding: 24px 16px;
-  padding-left: 54px;
-  overflow-y: hidden;
-}
+
 code {
   counter-reset: sh-line-number;
   overflow-y: auto;
