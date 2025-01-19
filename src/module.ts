@@ -1,3 +1,17 @@
+// declare esmsInitOptions on global window
+
+declare global {
+  interface Window {
+    esmsInitOptions: {
+      shimMode: boolean
+      mapOverrides: boolean
+    }
+  }
+
+  // importShim
+  function importShim(url: string): Promise<any>
+}
+
 async function createModule(files, { getModuleUrl }) {
   let currentImportMap
   let shim

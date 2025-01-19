@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useState, useId, useRef } from 'react'
-import { createModule } from './module.js'
+import { createModule } from './module'
 import { transform } from 'sucrase'
 import { init, parse } from 'es-module-lexer'
 
@@ -80,15 +80,15 @@ function replaceImports(source, getModuleUrl, externals) {
 function createRenderer(createModule_, getModuleUrl) {
   let reactRoot
 
-  async function render(files) {
+  async function render(files: Record<string, string>) {
     const mod = await createModule_(files, { getModuleUrl })
-    const ReactMod = await self.importShim('react')
-    const ReactDOMMod = await self.importShim('react-dom/client')
+    const ReactMod: typeof import('react') = await self.importShim('react')
+    const ReactDOMMod: typeof import('react-dom/client') = await self.importShim('react-dom/client')
 
     const _jsx = ReactMod.createElement
     const root = document.getElementById('__reactRoot')
-    class ErrorBoundary extends ReactMod.Component {
-      constructor(props) {
+    class ErrorBoundary extends ReactMod.Component<any, { error: unknown }> {
+      constructor(props: any) {
         super(props)
         this.state = { error: null }
       }
@@ -97,7 +97,7 @@ function createRenderer(createModule_, getModuleUrl) {
       }
       render() {
         if (this.state.error) {
-          return _jsx('div', null, this.state.error.message)
+          return _jsx('div', null, (this.state.error as any)?.message)
         }
         return this.props.children
       }
@@ -140,7 +140,14 @@ function useScript() {
   return useRef(typeof window !== 'undefined' ? document.createElement('script') : null)
 }
 
-function createScript(scriptRef, { content, src, type } = {}) {
+function createScript(
+  scriptRef: React.RefObject<HTMLScriptElement>,
+  { content, src, type }: {
+    content?: string
+    src?: string
+    type?: string
+  } = {}
+) {
   const script = scriptRef.current
   if (type) script.type = type
   
@@ -153,8 +160,8 @@ function createScript(scriptRef, { content, src, type } = {}) {
   return script
 }
 
-function useLiveCode({ getModuleUrl }) {
-  const iframeRef = useRef()
+function useLiveCode({ getModuleUrl }: { getModuleUrl?: (name: string) => string }) {
+  const iframeRef = useRef(null)
   const [error, setError] = useState()
   const rerender = useState({})[1]
   const appScriptRef = useScript()
@@ -255,7 +262,7 @@ function useLiveCode({ getModuleUrl }) {
             }
           }
         }
-        setError()
+        setError(undefined)
       } catch (e) {
         console.error(e)
         setError(e)

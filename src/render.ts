@@ -1,9 +1,13 @@
 import React, { useEffect, useRef } from 'react'
-import { useLiveCode } from './core.js'
+import { useLiveCode } from './core'
 
 const defaultOnError = typeof window !== 'undefined' ? console.error : (() => {})
 
-export function DevJar({ files, getModuleUrl, onError = defaultOnError, ...props }) {
+export function DevJar({ files, getModuleUrl, onError = defaultOnError, ...props }: {
+  files: any
+  getModuleUrl?: (name: string) => string
+  onError?: (...data: any[]) => void
+}) {
   const onErrorRef = useRef(onError)
   const { ref, error, load } = useLiveCode({ getModuleUrl })
 
