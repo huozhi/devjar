@@ -9,10 +9,10 @@ import FileTab from '../ui/file-tab'
 const CDN_HOST = 'https://esm.sh'
 
 const defaultFiles = {
-  'page.js': `\
+  'index.js': `\
   import { useState } from 'react'
 
-  import Text from './mod1'
+  import Text from './text'
   import './styles.css'
 
   export default function App() {
@@ -68,7 +68,7 @@ const defaultFiles = {
 }
 
 export default function Page() {
-  const [activeFile, setActiveFile] = useState('page.js')
+  const [activeFile, setActiveFile] = useState('index.js')
   const [files, setFiles] = useState(defaultFiles)
   const [error, setError] = useState(null)
 
@@ -95,29 +95,6 @@ export default function Page() {
           ))}
 
           <FileTab files={files} setFiles={setFiles} setActiveFile={setActiveFile} />
-          {/* <div
-            role="button"
-            className="filetab filetab--new"
-          >
-            <span
-              onClick={() => {
-                
-              }}
-            >{`+`}</span>
-            <input 
-              type='input'
-              onChange={(e) => {
-                const filename = e.target.value
-                // const modId = Object.keys(files).length
-                const newFilename = filename // './mod' + modId
-                setFiles({
-                  ...files,
-                  [newFilename]: `export default function Mod${filename}() {}`,
-                })
-                setActiveFile(newFilename)
-              }}
-            />
-          </div> */}
         </div>
         <Editor
           highlight={highlight}

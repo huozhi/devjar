@@ -5,6 +5,7 @@ import { init, parse } from 'es-module-lexer'
 
 let esModuleLexerInit
 const isRelative = s => s.startsWith('./')
+const removeExtension = (str: string) => str.replace(/\.[^/.]+$/, '')
 
 function transformCode(_code, getModuleUrl, externals) {
   const code = transform(_code, {
@@ -77,6 +78,7 @@ function replaceImports(source, getModuleUrl, externals) {
   return code
 }
 
+// createRenderer is going to be stringified and executed in the iframe
 function createRenderer(createModule_, getModuleUrl) {
   let reactRoot
 
@@ -132,7 +134,7 @@ function createEsShimOptionsScript() {
   return `\
 window.esmsInitOptions = {
   polyfillEnable: ['css-modules', 'json-modules'],
-  onerror: error => console.log(error),
+  onerror: console.error,
 }`
 }
 
@@ -240,11 +242,18 @@ function useLiveCode({ getModuleUrl }: { getModuleUrl?: (name: string) => string
          *  '@mod2': '...',
          */
         const transformedFiles = Object.keys(files).reduce((res, filename) => {
-          const key = isRelative(filename) ? ('@' + filename.slice(2)) : filename
+          // 1. Remove ./
+          // 2. For non css files, remove extension
+          // e.g. './styles.css' -> '@styles.css'
+          // e.g. './foo.js' -> '@foo'
+          const moduleKey = isRelative(filename) ? ('@' + filename.slice(2)) : filename
+          
           if (filename.endsWith('.css')) {
-            res[key] = files[filename]
+            res[moduleKey] = files[filename]
           } else {
-            res[key] = transformCode(files[filename], getModuleUrl, overrideExternals)
+            // JS or TS files
+            const normalizedModuleKey = removeExtension(moduleKey)
+            res[normalizedModuleKey] = transformCode(files[filename], getModuleUrl, overrideExternals)
           }
           return res
         }, {})
@@ -259,6 +268,10 @@ function useLiveCode({ getModuleUrl }: { getModuleUrl?: (name: string) => string
             // if render is not loaded yet, wait until it's loaded
             script.onload = () => {
               iframe.contentWindow.__render__(transformedFiles)
+                .catch((err) => {
+                  setError(err)
+                })
+              
             }
           }
         }

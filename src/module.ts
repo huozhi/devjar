@@ -8,13 +8,15 @@ declare global {
     }
   }
 
-  // importShim
   function importShim(url: string): Promise<any>
 }
 
-async function createModule(files, { getModuleUrl }) {
-  let currentImportMap
-  let shim
+async function createModule(
+  files: Record<string, string>,
+  { getModuleUrl }: { getModuleUrl: (name: string) => string }
+): Promise<void> {
+  let currentImportMap: HTMLScriptElement | undefined
+  let shim: any
 
   async function setupImportMap() {
     if (shim) return shim
@@ -26,7 +28,7 @@ async function createModule(files, { getModuleUrl }) {
     await shim
   }
 
-  function updateImportMap(imports) {
+  function updateImportMap(imports: Record<string, string>) {
     imports['react'] = getModuleUrl('react')
     imports['react-dom'] = getModuleUrl('react-dom')
     imports['react-dom/client'] = getModuleUrl('react-dom/client')
@@ -57,7 +59,7 @@ async function createModule(files, { getModuleUrl }) {
   )
 
   updateImportMap(imports)
-  return self.importShim('index.js')
+  return self.importShim('index')
 }
 
 export { createModule }
