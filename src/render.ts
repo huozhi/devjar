@@ -4,7 +4,7 @@ import { useLiveCode } from './core'
 const defaultOnError = typeof window !== 'undefined' ? console.error : (() => {})
 
 export function DevJar({ files, getModuleUrl, onError = defaultOnError, ...props }: {
-  files: any
+  files: Record<string, string>
   getModuleUrl?: (name: string) => string
   onError?: (...data: any[]) => void
 }) {
