@@ -31,7 +31,7 @@ importers:
         specifier: ^0.4.4
         version: 0.4.4(react@19.0.0)
       devjar:
-        specifier: 'link:'
+        specifier: link:./
         version: 'link:'
       next:
         specifier: ^15.1.5
