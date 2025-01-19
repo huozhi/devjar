@@ -7,7 +7,7 @@ export function DevJar({ files, getModuleUrl, onError = defaultOnError, ...props
   files: Record<string, string>
   getModuleUrl?: (name: string) => string
   onError?: (...data: any[]) => void
-}) {
+} & React.IframeHTMLAttributes<HTMLIFrameElement>) {
   const onErrorRef = useRef(onError)
   const { ref, error, load } = useLiveCode({ getModuleUrl })
 

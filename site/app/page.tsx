@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { Editor } from 'codice'
 import { DevJar } from 'devjar'
 import { highlight } from 'sugar-high'
@@ -79,7 +79,7 @@ export default function Page() {
             <div
               role='button'
               key={filename}
-              disabled={filename === activeFile}
+              data-disabled={filename === activeFile}
               className={'filetab filetab--' + (filename === activeFile ? 'active' : '')}
               onClick={() => setActiveFile(filename)}
             >

@@ -14,7 +14,7 @@
   "scripts": {
     "build": "bunchee",
     "prepublishOnly": "pnpm run build",
-    "build:site": "next build ./site",
+    "build:site": "pnpm run build && next build ./site",
     "start": "next start ./site",
     "dev": "next dev ./site"
   },
@@ -27,6 +27,7 @@
     "sucrase": "3.35.0"
   },
   "devDependencies": {
+    "@types/node": "^22.10.7",
     "@types/react": "^19.0.7",
     "@types/react-dom": "^19.0.3",
     "bunchee": "^6.3.2",
