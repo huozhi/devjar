@@ -1,2 +1,2 @@
-export { DevJar } from './render'
 export { useLiveCode } from './core'
+export { DevJar } from './render'

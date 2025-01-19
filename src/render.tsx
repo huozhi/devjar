@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useLiveCode } from './core'
 
 const defaultOnError = typeof window !== 'undefined' ? console.error : (() => {})
@@ -21,5 +21,5 @@ export function DevJar({ files, getModuleUrl, onError = defaultOnError, ...props
   }, [files])
 
   // Attach the ref to an iframe element for runtime of code execution
-  return React.createElement('iframe', { ...props, ref })
+  return <iframe {...props} ref={ref} />
 }
