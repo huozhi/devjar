@@ -27,9 +27,6 @@ jobs:
           cache: 'pnpm'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Cache Dependencies
-        uses: actions/cache@v4
-
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
@@ -52,9 +49,6 @@ jobs:
           node-version: 20
           cache: 'pnpm'
           registry-url: 'https://registry.npmjs.org'
-
-      - name: Restore Cached Dependencies
-        uses: actions/cache@v4
 
       - name: Determine tag
         id: determine_tag
