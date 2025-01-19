@@ -3,16 +3,18 @@
   "version": "0.5.0",
   "type": "module",
   "exports": {
-    ".": "./lib/index.js",
+    ".": "./dist/index.js",
     "./package.json": "./package.json"
   },
   "license": "MIT",
   "files": [
-    "lib"
+    "dist"
   ],
-  "types": "./lib/index.d.ts",
+  "types": "./dist/index.d.ts",
   "scripts": {
-    "build:site": "next build ./site",
+    "build": "bunchee",
+    "prepublishOnly": "pnpm run build",
+    "build:site": "pnpm run build && next build ./site",
     "start": "next start ./site",
     "dev": "next dev ./site"
   },
@@ -25,12 +27,17 @@
     "sucrase": "3.35.0"
   },
   "devDependencies": {
+    "@types/node": "^22.10.7",
+    "@types/react": "^19.0.7",
+    "@types/react-dom": "^19.0.3",
+    "bunchee": "^6.3.2",
     "codice": "^0.4.4",
-    "devjar": "link:",
+    "devjar": "link:./",
     "next": "^15.1.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "sugar-high": "^0.8.2"
+    "sugar-high": "^0.8.2",
+    "typescript": "^5.7.3"
   },
   "packageManager": "pnpm@9.15.4"
 }
