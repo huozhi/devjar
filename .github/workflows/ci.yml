@@ -16,17 +16,19 @@ jobs:
     name: Node
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
 
       - name: Use Node 18 and pnpm
-        uses: actions/setup-node@v4.1.0
+        uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'pnpm'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Cache Dependencies
-        uses: actions/cache@v4.2.0
+        uses: actions/cache@v4
 
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
@@ -40,17 +42,19 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v4
       
+      - uses: pnpm/action-setup@v4
+
       - name: Use Node 18 and pnpm
-        uses: actions/setup-node@v4.1.0
+        uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'pnpm'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Restore Cached Dependencies
-        uses: actions/cache@v4.2.0
+        uses: actions/cache@v4
 
       - name: Determine tag
         id: determine_tag
