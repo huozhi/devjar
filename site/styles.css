@@ -15,9 +15,6 @@ body {
   margin: 0 auto;
   width: 100vw;
 }
-main {
-  min-width: 600px;
-}
 :root {
   --sh-class: #6f42c1;
   --sh-identifier: #354150;
@@ -198,5 +195,12 @@ textarea:focus-visible {
     display: flex;
     flex-direction: column;
     align-items: center;
+  }
+}
+
+@media screen and (max-width: 680px) {
+  .titles {
+    margin: 0 auto;
+    max-width: 100%;
   }
 }
