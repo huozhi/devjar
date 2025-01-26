@@ -191,3 +191,12 @@ textarea:focus-visible {
   max-width: 680px;
   margin: 0 auto;
 }
+
+@media screen and (max-width: 1260px) {
+  .codesandboxes {
+    margin: 32px auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+}

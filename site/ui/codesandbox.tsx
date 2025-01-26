@@ -5,7 +5,7 @@ const CDN_HOST = 'https://esm.sh'
 import { Editor } from 'codice'
 import { DevJar } from 'devjar'
 import FileTab from './file-tab'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 export function Codesandbox({
   title,
@@ -17,6 +17,10 @@ export function Codesandbox({
   const [activeFile, setActiveFile] = useState('index.js')
   const [files, setFiles] = useState(initialFiles)
   const [error, setError] = useState(null)
+
+  useEffect(() => {
+    if (initialFiles !== files) setFiles(initialFiles)
+  }, [initialFiles])
 
   return (
     <div data-codesandbox>
