@@ -3,7 +3,6 @@ import { Codesandbox } from '../ui/codesandbox'
 const codeSample4 = {
   'index.js': `\
   import { useState } from 'react'
-
   import Text from './text'
   import './styles.css'
 
@@ -135,11 +134,13 @@ export default function App() {
 export default function Page() {
   return (
     <main>
-      <div>
+      <div className='titles'>
         <h1>Devjar</h1>
+        <h3>
+          Live React Component Previews in Browser
+        </h3>
         <p>
-          A live-code runtime for React, running directly in the browser. Perfect for interactive demos, documentation,
-          and real-time code previews. Simple to integrate and highly flexible for any React project.
+          Devjar lets you create interactive demos, enhance documentation, and deliver real-time code previews with ease. It's simple to integrate and highly adaptable for any React project.
         </p>
         <br />  
       </div>

@@ -12,10 +12,11 @@ body {
   margin: 0;
   padding: 0 8px;
   max-width: 1260px;
+  margin: 0 auto;
+  width: 100vw;
 }
 main {
   min-width: 600px;
-  margin: 0 auto;
 }
 :root {
   --sh-class: #6f42c1;
@@ -143,5 +144,36 @@ textarea:focus-visible {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(600px, 1fr));
   gap: 16px;
+  margin: 54px 0;
+}
 
+.titles {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 32px 0;
+  line-height: 1.4;
+  width: 100%;
+  max-width: 680px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.titles h1 {
+  font-size: 52px;
+  margin: 0;
+}
+
+.titles h3 {
+  font-size: 32px;
+  color: #404756;
+  margin: 0;
+  padding: 8px 0;
+}
+
+.titles p {
+  font-size: 20px;
+  margin: 0;
+  padding: 8px 0;
 }
