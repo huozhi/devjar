@@ -1,14 +1,6 @@
-'use client'
+import { Codesandbox } from '../ui/codesandbox'
 
-import { useState } from 'react'
-import { Editor } from 'codice'
-import { DevJar } from 'devjar'
-import { highlight } from 'sugar-high'
-import FileTab from '../ui/file-tab'
-
-const CDN_HOST = 'https://esm.sh'
-
-const defaultFiles = {
+const codeSample4 = {
   'index.js': `\
   import { useState } from 'react'
 
@@ -67,63 +59,97 @@ const defaultFiles = {
   `,
 }
 
-export default function Page() {
-  const [activeFile, setActiveFile] = useState('index.js')
-  const [files, setFiles] = useState(defaultFiles)
-  const [error, setError] = useState(null)
+
+const codeSample2 = {
+  'index.js': `\
+import React, { useState } from "react";
+
+function App() {
+  const [darkMode, setDarkMode] = useState(false);
 
   return (
-    <div>
+    <div
+      style={{
+        backgroundColor: darkMode ? "#333" : "#fff",
+        color: darkMode ? "#fff" : "#000",
+        height: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        flexDirection: "column",
+      }}
+    >
+      <h1>{darkMode ? "Dark Mode" : "Light Mode"}</h1>
+      <button onClick={() => setDarkMode(!darkMode)}>
+        Toggle {darkMode ? "Light" : "Dark"} Mode
+      </button>
+    </div>
+  );
+}
+
+export default App;
+`,
+}
+
+const codeSample3 = {
+  'index.js': `\
+  import React, { useState } from "react";
+
+const quotes = [
+  "The only limit to our realization of tomorrow is our doubts of today.",
+  "The future belongs to those who believe in the beauty of their dreams.",
+  "Do not watch the clock. Do what it does. Keep going.",
+  "You miss 100% of the shots you don't take.",
+  "Life is 10% what happens to us and 90% how we react to it."
+];
+
+function App() {
+  const [quote, setQuote] = useState(quotes[0]);
+
+  const generateQuote = () => {
+    const randomIndex = Math.floor(Math.random() * quotes.length);
+    setQuote(quotes[randomIndex]);
+  };
+
+  return (
+    <div style={{ textAlign: "center", padding: "2rem" }}>
+      <h1>Random Quote</h1>
+      <p>"{quote}"</p>
+      <button onClick={generateQuote}>New Quote</button>
+    </div>
+  );
+}
+
+export default App;
+`,
+}
+
+const codeSample1 = {
+  'index.js': `\
+export default function App() {
+  return "hello world"
+}
+`,
+}
+
+export default function Page() {
+  return (
+    <main>
       <div>
         <h1>Devjar</h1>
         <p>
           A live-code runtime for React, running directly in the browser. Perfect for interactive demos, documentation,
           and real-time code previews. Simple to integrate and highly flexible for any React project.
         </p>
-        <br />
-        <div className="filetree">
-          {Object.keys(files).map((filename) => (
-            <div
-              role="button"
-              key={filename}
-              data-disabled={filename === activeFile}
-              className={'filetab filetab--' + (filename === activeFile ? 'active' : '')}
-              onClick={() => setActiveFile(filename)}
-            >
-              {filename + (filename.endsWith('.css') || filename.endsWith('.js') ? '' : '.js')}
-            </div>
-          ))}
-
-          <FileTab files={files} setFiles={setFiles} setActiveFile={setActiveFile} />
-        </div>
-        <Editor
-          highlight={highlight}
-          className="editor"
-          controls={false}
-          title={null}
-          value={files[activeFile]}
-          onChange={(code) => {
-            setFiles({
-              ...files,
-              [activeFile]: code,
-            })
-          }}
-        />
+        <br />  
       </div>
 
-      <div className="preview">
-        <DevJar
-          className="preview--result"
-          files={files}
-          onError={(err) => {
-            setError(err)
-          }}
-          getModuleUrl={(m) => {
-            return `${CDN_HOST}/${m}`
-          }}
-        />
-        {error && <pre className="preview--error" dangerouslySetInnerHTML={{ __html: error.toString() }} />}
+      <div className='codesandboxes'>
+        <Codesandbox files={codeSample1} />
+        <Codesandbox files={codeSample4} />
+        <Codesandbox files={codeSample2} />
+        <Codesandbox files={codeSample3} />
       </div>
-    </div>
+    </main>
   )
 }

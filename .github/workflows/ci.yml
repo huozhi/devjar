@@ -63,10 +63,10 @@ jobs:
         if: steps.determine_tag.outputs.tag != ''
         run: |
           echo "Publishing to ${{ steps.determine_tag.outputs.tag }} tag"
-          pnpm publish --tag ${{ steps.determine_tag.outputs.tag }}
+          pnpm publish --tag ${{ steps.determine_tag.outputs.tag }} --no-git-check
 
       - name: Publish to latest
         if: steps.determine_tag.outputs.tag == ''
         run: |
           echo "Publishing to latest"
-          pnpm publish
+          pnpm publish --no-git-check

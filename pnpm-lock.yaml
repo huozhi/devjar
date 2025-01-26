@@ -31,8 +31,8 @@ importers:
         specifier: ^6.3.2
         version: 6.3.2(typescript@5.7.3)
       codice:
-        specifier: ^0.5.0
-        version: 0.5.0(react@19.0.0)
+        specifier: 1.0.0-beta.3
+        version: 1.0.0-beta.3(react@19.0.0)
       devjar:
         specifier: link:./
         version: 'link:'
@@ -45,9 +45,6 @@ importers:
       react-dom:
         specifier: ^19.0.0
         version: 19.0.0(react@19.0.0)
-      sugar-high:
-        specifier: ^0.8.2
-        version: 0.8.2
       typescript:
         specifier: ^5.7.3
         version: 5.7.3
@@ -575,8 +572,8 @@ packages:
     resolution: {integrity: sha512-BSeNnyus75C4//NQ9gQt1/csTXyo/8Sb+afLAkzAptFuMsod9HFokGNudZpi/oQV73hnVK+sR+5PVRMd+Dr7YQ==}
     engines: {node: '>=12'}
 
-  codice@0.5.0:
-    resolution: {integrity: sha512-dlBNZAa2mOk9ptvvq2Ad0GDC+N+cyzkVzToP8/KtJunye73g2ZniybvGJFaBBE7ZcLDQrGd3PGWt7xxWfVhZhw==}
+  codice@1.0.0-beta.3:
+    resolution: {integrity: sha512-im6/ltNezNIcHSX75JTnzOZ4zYvguW13L15jL/EsEktleCWGz3vmuGAbO+rf1Ju032elrzGfAtD9NRRVXIeiQg==}
     peerDependencies:
       react: ^17.0.0 || ^18.0.0 || ^19.0.0
 
@@ -996,8 +993,8 @@ packages:
     engines: {node: '>=16 || 14 >=14.17'}
     hasBin: true
 
-  sugar-high@0.8.2:
-    resolution: {integrity: sha512-u/U1idCsHBMG9p5z88XYdEh9bxU19o5kueS0a3TKBYSFbTqtRqSyVqdbkFNXv/sDc9WYALCFT56EosyA0k1+3Q==}
+  sugar-high@0.8.4:
+    resolution: {integrity: sha512-A/oWx/LxaZHccNCasj+DdMJXy2Cqi/x8CZja8t+jYvTdSCp2fDG57zOPi/EnLYH05uGzdMprsHDGfyW3qf59sg==}
 
   supports-preserve-symlinks-flag@1.0.0:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}
@@ -1466,9 +1463,10 @@ snapshots:
       strip-ansi: 6.0.1
       wrap-ansi: 7.0.0
 
-  codice@0.5.0(react@19.0.0):
+  codice@1.0.0-beta.3(react@19.0.0):
     dependencies:
       react: 19.0.0
+      sugar-high: 0.8.4
 
   color-convert@2.0.1:
     dependencies:
@@ -1893,7 +1891,7 @@ snapshots:
       pirates: 4.0.6
       ts-interface-checker: 0.1.13
 
-  sugar-high@0.8.2: {}
+  sugar-high@0.8.4: {}
 
   supports-preserve-symlinks-flag@1.0.0: {}
 
