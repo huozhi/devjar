@@ -8,8 +8,10 @@ import FileTab from './file-tab'
 import { useState } from 'react'
 
 export function Codesandbox({
+  title,
   files: initialFiles
 }: {
+  title?: string
   files: Record<string, string>
 }) {
   const [activeFile, setActiveFile] = useState('index.js')
@@ -18,6 +20,7 @@ export function Codesandbox({
 
   return (
     <div data-codesandbox>
+      {title ? <h2>{title}</h2> : null}
       <div className="filetree">
         {Object.keys(files).map((filename) => (
           <div

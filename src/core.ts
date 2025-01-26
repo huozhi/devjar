@@ -202,7 +202,7 @@ function useLiveCode({ getModuleUrl }: { getModuleUrl?: (name: string) => string
     
     const esmShimOptionsScript = createScript(esShimOptionsScriptRef, { content: scriptOptionsContent })
     const appScript = createScript(appScriptRef, { content: appScriptContent, type: 'module' })
-    const tailwindScript = createScript(tailwindcssScriptRef, { src: 'https://cdn.tailwindcss.com' })
+    const tailwindScript = createScript(tailwindcssScriptRef, { src: 'https://unpkg.com/@tailwindcss/browser@4' })
 
     body.appendChild(div)
     body.appendChild(esmShimOptionsScript)
@@ -277,7 +277,7 @@ function useLiveCode({ getModuleUrl }: { getModuleUrl?: (name: string) => string
         }
         setError(undefined)
       } catch (e) {
-        console.error(e)
+        console.warn(e)
         setError(e)
       }
     }

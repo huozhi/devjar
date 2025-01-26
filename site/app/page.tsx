@@ -1,6 +1,6 @@
 import { Codesandbox } from '../ui/codesandbox'
 
-const codeSample4 = {
+const codeSampleCssImport = {
   'index.js': `\
   import { useState } from 'react'
   import Text from './text'
@@ -10,8 +10,8 @@ const codeSample4 = {
     const [num, inc] = useState(1)
     
     return (
-      <div>
-        <h2 class="text-3xl">
+      <div className='container'>
+        <h2>
           hello <Text />
         </h2>
 
@@ -27,8 +27,17 @@ const codeSample4 = {
     return <b>devjar</b>
   }`,
   './styles.css': `\
-  html {
-    font-family: ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Noto Sans,Ubuntu,Cantarell,Helvetica Neue,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji
+  .container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 0;
+  }
+  h2 {
+    color: rgba(51, 65, 85);
+    font-weight: 300;
+    font-size: 2rem;
   }
   .title {
     color: rgba(51, 65, 85);
@@ -58,75 +67,39 @@ const codeSample4 = {
   `,
 }
 
-
-const codeSample2 = {
+const codeSampleTheme = {
   'index.js': `\
-import React, { useState } from "react";
+import React, { useState } from 'react'
 
 function App() {
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(false)
 
   return (
     <div
-      style={{
-        backgroundColor: darkMode ? "#333" : "#fff",
-        color: darkMode ? "#fff" : "#000",
-        height: "100vh",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        flexDirection: "column",
-      }}
+      className={\`flex flex-col items-center justify-center min-h-screen $\{
+        darkMode ? 'bg-gray-800 text-white' : 'bg-white text-black'
+      }\`}
     >
-      <h1>{darkMode ? "Dark Mode" : "Light Mode"}</h1>
-      <button onClick={() => setDarkMode(!darkMode)}>
-        Toggle {darkMode ? "Light" : "Dark"} Mode
+      <h1 className="text-2xl font-semibold mb-4">{darkMode ? 'Dark Mode' : 'Light Mode'}</h1>
+      <button
+        onClick={() => setDarkMode(!darkMode)}
+        className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+      >
+        Toggle {darkMode ? 'Light' : 'Dark'} Mode
       </button>
     </div>
-  );
+  )
 }
 
-export default App;
+export default App
+
 `,
 }
 
-const codeSample3 = {
-  'index.js': `\
-  import React, { useState } from "react";
-
-const quotes = [
-  "The only limit to our realization of tomorrow is our doubts of today.",
-  "The future belongs to those who believe in the beauty of their dreams.",
-  "Do not watch the clock. Do what it does. Keep going.",
-  "You miss 100% of the shots you don't take.",
-  "Life is 10% what happens to us and 90% how we react to it."
-];
-
-function App() {
-  const [quote, setQuote] = useState(quotes[0]);
-
-  const generateQuote = () => {
-    const randomIndex = Math.floor(Math.random() * quotes.length);
-    setQuote(quotes[randomIndex]);
-  };
-
-  return (
-    <div style={{ textAlign: "center", padding: "2rem" }}>
-      <h1>Random Quote</h1>
-      <p>"{quote}"</p>
-      <button onClick={generateQuote}>New Quote</button>
-    </div>
-  );
-}
-
-export default App;
-`,
-}
-
-const codeSample1 = {
+const codeSamplePlayground = {
   'index.js': `\
 export default function App() {
-  return "hello world"
+  return "type your code here..."
 }
 `,
 }
@@ -134,22 +107,31 @@ export default function App() {
 export default function Page() {
   return (
     <main>
-      <div className='titles'>
+      <div className="titles">
         <h1>Devjar</h1>
-        <h3>
-          Live React Component Previews in Browser
-        </h3>
+        <h3>Live React Component Previews in Browser</h3>
         <p>
-          Devjar lets you create interactive demos, enhance documentation, and deliver real-time code previews with ease. It's simple to integrate and highly adaptable for any React project.
+          Devjar empowers you create interactive, real-time React code preview easier. Builtin <b>Tailwind</b> and{' '}
+          <b>CSS imports</b> for styling, creating demos that are stylish and eye-catching.
         </p>
-        <br />  
+        <br />
+
+        <p>
+          <a href="https://github.com/huozhi/devjar" target="_blank" rel="noopener noreferrer">
+            Source Code & Usage ↗
+          </a>
+        </p>
       </div>
 
-      <div className='codesandboxes'>
-        <Codesandbox files={codeSample1} />
-        <Codesandbox files={codeSample4} />
-        <Codesandbox files={codeSample2} />
-        <Codesandbox files={codeSample3} />
+      <h1 className="text-center">Examples</h1>
+      <div className="codesandboxes">
+        <Codesandbox title="Tailwind CSS" files={codeSampleTheme} />
+        <Codesandbox title="Plain CSS" files={codeSampleCssImport} />
+      </div>
+
+      <div className="playground">
+        <h1>Playground</h1>
+        <Codesandbox files={codeSamplePlayground} />
       </div>
     </main>
   )

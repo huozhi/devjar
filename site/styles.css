@@ -28,6 +28,8 @@ main {
   --sh-jsxliterals: #24292e;
   --sh-entity: #424d5b;
   --sh-property: #1d3147;
+
+  --codice-caret-color: #333;
 }
 
 a, a:focus, a:visited {
@@ -35,6 +37,10 @@ a, a:focus, a:visited {
 }
 a:hover {
   color: #424d5b;
+}
+
+.text-center {
+  text-align: center;
 }
 
 .editor {
@@ -46,16 +52,11 @@ a:hover {
   flex-direction: column;
   box-shadow: 0 24px 40px 4px rgb(200 200 200 / 50%);
 }
-
-pre {
-  width: 100%;
-}
-pre, textarea, .preview--result {
+.preview--result {
   font-family: Consolas, Monaco, monospace;
   border: none;
   font-size: 16px;
   line-height: 1.25em;
-  caret-color: #333;
 }
 textarea:focus,
 textarea:focus-visible {
@@ -176,4 +177,17 @@ textarea:focus-visible {
   font-size: 20px;
   margin: 0;
   padding: 8px 0;
+  color: #404756;
+}
+
+.playground {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 32px 0;
+  line-height: 1.4;
+  width: 100%;
+  max-width: 680px;
+  margin: 0 auto;
 }
