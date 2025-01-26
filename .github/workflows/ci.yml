@@ -69,4 +69,5 @@ jobs:
         if: steps.determine_tag.outputs.tag == ''
         run: |
           echo "Publishing to latest"
+          pnpm install --frozen-lockfile
           pnpm publish --no-git-check
