@@ -19,7 +19,7 @@ body {
   --sh-class: #6f42c1;
   --sh-identifier: #354150;
   --sh-sign: #24292e;
-  --sh-string: #53b487;
+  --sh-string: #57a3a7;
   --sh-keyword: #d73a49;
   --sh-comment: #6a737d;
   --sh-jsxliterals: #24292e;
@@ -156,6 +156,7 @@ textarea:focus-visible {
   max-width: 680px;
   margin: 0 auto;
   text-align: center;
+  color: #404756;
 }
 
 .titles h1 {
@@ -165,7 +166,6 @@ textarea:focus-visible {
 
 .titles h3 {
   font-size: 32px;
-  color: #404756;
   margin: 0;
   padding: 8px 0;
 }
@@ -174,7 +174,6 @@ textarea:focus-visible {
   font-size: 20px;
   margin: 0;
   padding: 8px 0;
-  color: #404756;
 }
 
 .playground {

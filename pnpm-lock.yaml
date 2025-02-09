@@ -28,11 +28,11 @@ importers:
         specifier: ^19.0.3
         version: 19.0.3(@types/react@19.0.7)
       bunchee:
-        specifier: ^6.3.2
-        version: 6.3.2(typescript@5.7.3)
+        specifier: ^6.3.3
+        version: 6.3.3(typescript@5.7.3)
       codice:
-        specifier: 1.0.0
-        version: 1.0.0(react@19.0.0)
+        specifier: 1.1.0
+        version: 1.1.0(react@19.0.0)
       devjar:
         specifier: link:./
         version: 'link:'
@@ -532,8 +532,8 @@ packages:
     resolution: {integrity: sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA==}
     engines: {node: '>=8'}
 
-  bunchee@6.3.2:
-    resolution: {integrity: sha512-f7EIySdCuzCsT4TLKQSH9OgH57R8HqEwToebt60P3b1sW4UYID8lRZ+wvZPoR01CW0jNzNuRGKGzY5ZNAMtZVQ==}
+  bunchee@6.3.3:
+    resolution: {integrity: sha512-ZpFm50nbpGfy8Nne7uEDx+dfqOGHz/0Qj3u2v2FVAO3W+2wDNUatEVxDF86RoL2Q60sCybei5clMZMuSuq/vXA==}
     engines: {node: '>= 18.0.0'}
     hasBin: true
     peerDependencies:
@@ -572,8 +572,8 @@ packages:
     resolution: {integrity: sha512-BSeNnyus75C4//NQ9gQt1/csTXyo/8Sb+afLAkzAptFuMsod9HFokGNudZpi/oQV73hnVK+sR+5PVRMd+Dr7YQ==}
     engines: {node: '>=12'}
 
-  codice@1.0.0:
-    resolution: {integrity: sha512-jaaDR+b80oA61IJ6WR2VurWiYCM9fgEYSPak722YJE+UW9P3veIRJwWDEgdn8Dm9GL+HJDV3VJ2BfN1PpikdbQ==}
+  codice@1.1.0:
+    resolution: {integrity: sha512-M97Qyn8wNxYtFfz7D3aaEDpErYC+0KtAxEt035giz37jZHdU6NlOq7iGYIA8nAu0ZI9y/Znz1DjHcWEEcBX8hQ==}
     peerDependencies:
       react: ^17.0.0 || ^18.0.0 || ^19.0.0
 
@@ -993,8 +993,8 @@ packages:
     engines: {node: '>=16 || 14 >=14.17'}
     hasBin: true
 
-  sugar-high@0.8.4:
-    resolution: {integrity: sha512-A/oWx/LxaZHccNCasj+DdMJXy2Cqi/x8CZja8t+jYvTdSCp2fDG57zOPi/EnLYH05uGzdMprsHDGfyW3qf59sg==}
+  sugar-high@0.9.2:
+    resolution: {integrity: sha512-jqbFM/pR6KlanZw87kBQZd0DO+C2mX8PML2q9VrTc3gz1c/jQtF2cZpBCnKDR4hRraUb15jS5WIxeRhua6gAXA==}
 
   supports-preserve-symlinks-flag@1.0.0:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}
@@ -1412,7 +1412,7 @@ snapshots:
     dependencies:
       fill-range: 7.1.1
 
-  bunchee@6.3.2(typescript@5.7.3):
+  bunchee@6.3.3(typescript@5.7.3):
     dependencies:
       '@rollup/plugin-commonjs': 28.0.2(rollup@4.31.0)
       '@rollup/plugin-json': 6.1.0(rollup@4.31.0)
@@ -1463,10 +1463,10 @@ snapshots:
       strip-ansi: 6.0.1
       wrap-ansi: 7.0.0
 
-  codice@1.0.0(react@19.0.0):
+  codice@1.1.0(react@19.0.0):
     dependencies:
       react: 19.0.0
-      sugar-high: 0.8.4
+      sugar-high: 0.9.2
 
   color-convert@2.0.1:
     dependencies:
@@ -1891,7 +1891,7 @@ snapshots:
       pirates: 4.0.6
       ts-interface-checker: 0.1.13
 
-  sugar-high@0.8.4: {}
+  sugar-high@0.9.2: {}
 
   supports-preserve-symlinks-flag@1.0.0: {}
 

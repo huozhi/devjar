@@ -52,7 +52,7 @@ const codeSampleCssImport = {
     background: #eee;
     border: 1px solid #222;
     padding: 8px 16px;
-    border-radius: 8px;
+    border-radius: 4px;
     font-weight: 700;
     transition: color 0.2s ease-in-out;
   }
@@ -123,7 +123,7 @@ export default function Page() {
         </p>
       </div>
 
-      <h1 className="text-center">Examples</h1>
+      <h2 className="text-center">Examples</h2>
       <div className="codesandboxes">
         <Codesandbox title="Tailwind CSS" files={codeSampleTheme} />
         <Codesandbox title="Plain CSS" files={codeSampleCssImport} />
