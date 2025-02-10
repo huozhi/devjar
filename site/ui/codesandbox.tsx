@@ -45,6 +45,7 @@ export function Codesandbox({
         controls={false}
         title={null}
         lineNumbers={false}
+        fontSize={13}
         value={files[activeFile]}
         onChange={(code) => {
           setFiles({

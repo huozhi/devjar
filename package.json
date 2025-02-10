@@ -31,7 +31,7 @@
     "@types/react": "^19.0.7",
     "@types/react-dom": "^19.0.3",
     "bunchee": "^6.3.3",
-    "codice": "1.1.0",
+    "codice": "^1.2.1",
     "devjar": "link:./",
     "next": "^15.1.5",
     "react": "^19.0.0",
