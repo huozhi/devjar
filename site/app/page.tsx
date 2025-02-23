@@ -123,15 +123,23 @@ export default function Page() {
         </p>
       </div>
 
-      <h2 className="text-center">Examples</h2>
-      <div className="codesandboxes">
-        <Codesandbox title="Tailwind CSS" files={codeSampleTheme} />
-        <Codesandbox title="Plain CSS" files={codeSampleCssImport} />
-      </div>
-
-      <div className="playground">
+      <div className="playground section">
         <h1>Playground</h1>
         <Codesandbox files={codeSamplePlayground} />
+      </div>
+
+      <div className='showcase'>
+        <h1>Showcase</h1>
+        <div className="codesandboxes section">
+          <div>
+            <h2>Tailwind CSS</h2>
+            <Codesandbox files={codeSampleTheme} />
+          </div>
+          <div>
+            <h2>Plain CSS</h2>
+            <Codesandbox files={codeSampleCssImport} />
+          </div>
+        </div>
       </div>
     </main>
   )

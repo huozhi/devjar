@@ -11,8 +11,6 @@ html {
 body {
   margin: 0;
   padding: 0 8px;
-  max-width: 1260px;
-  margin: 0 auto;
   width: 100vw;
 }
 :root {
@@ -47,21 +45,16 @@ a:hover {
   overflow-y: scroll;
   justify-content: stretch;
   flex-direction: column;
-  box-shadow: 0 24px 40px 4px rgb(200 200 200 / 50%);
 }
-.preview--result {
-  font-family: Consolas, Monaco, monospace;
-  border: none;
-  font-size: 16px;
-  line-height: 1.25em;
-}
+
 textarea:focus,
 textarea:focus-visible {
   outline: none;
 }
 .preview {
   position: relative;
-  border-top: 1px solid rgb(229, 231, 235);
+  border-top: 1px solid #dfe0e5;
+  padding: 1.5rem 1rem;
 }
 .preview--error {
   margin: 0;
@@ -84,78 +77,68 @@ textarea:focus-visible {
   color: #fff;
 }
 .preview--result {
-  padding: 8px 12px;
+  font-family: Consolas, Monaco, monospace;
+  border: none;
+  font-size: 16px;
+  line-height: 1.25em;
+  background-color: #fff;
   width: 100%;
-  background-color: rgb(246 247 249);
-  box-shadow: 0 16px 40px 4px rgb(200 200 200 / 50%);
 }
 
 .filetree {
   display: flex;
   position: relative;
-  padding-right: 60px;
-  border-bottom: 2px solid rgb(235 236 240);
+  padding-right: 2rem;
 }
 
 .filetab {
   position: relative;
-  padding: 3px 12px;
+  padding: 0.5rem 1rem;
   border: none;
   background-color: #fff;
   cursor: pointer;
   color: #000;
 }
 .filetab:hover {
-  opacity: .6;
+  opacity: .8;
 }
 .filetab--active {
-  color: rgb(8, 126, 164);
+  color: #087ea4;
 }
 .filetab--active::after {
   content: '';
   position: absolute;
   bottom: -2px;
   height: 2px;
-  background: rgb(8, 126, 164);
+  background: #087ea4;
   left: 0;
   width: 100%;
 }
 .filetab--new {
-  background-color: #f6f6f6e0;
+  color: #087ea4;
+  background-color: #f0f0f0;
 }
 .filetab__button {
   padding: 0;
   margin: 0;
   border: none;
-  background-color: #f6f6f6e0;
+  background-color: transparent;
   cursor: pointer;
-  color: #000;
+  color: #70858c;
 }
 
 [data-codesandbox] {
-  max-width: 600px;
-  width: 100%;
-  padding: 0 8px;
-}
-
-.codesandboxes {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(600px, 1fr));
-  gap: 16px;
-  margin: 54px 0;
+  box-shadow: 0 24px 40px 4px rgb(200 200 200 / 50%);
 }
 
 .titles {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  align-items: center;
-  padding: 32px 0;
+  padding: 1rem 0;
   line-height: 1.4;
   width: 100%;
   max-width: 680px;
-  margin: 0 auto;
-  text-align: center;
   color: #404756;
 }
 
@@ -171,7 +154,7 @@ textarea:focus-visible {
 }
 
 .titles p {
-  font-size: 20px;
+  font-size: 18px;
   margin: 0;
   padding: 8px 0;
 }
@@ -180,26 +163,19 @@ textarea:focus-visible {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  align-items: center;
-  padding: 32px 0;
   line-height: 1.4;
   width: 100%;
   max-width: 680px;
-  margin: 0 auto;
 }
 
-@media screen and (max-width: 1260px) {
-  .codesandboxes {
-    margin: 32px auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
+.showcase {
+  justify-content: center;
+  line-height: 1.4;
+  margin: 2rem 0;
 }
 
-@media screen and (max-width: 680px) {
-  .titles {
-    margin: 0 auto;
-    max-width: 100%;
-  }
+.section {
+  max-width: 680px;
+  border-bottom: 1px dashed #e5e7eb;
+  padding: 32px 0;
 }
