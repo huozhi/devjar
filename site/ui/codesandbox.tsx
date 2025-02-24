@@ -1,5 +1,7 @@
 'use client'
 
+import './codesandbox.css'
+
 const CDN_HOST = 'https://esm.sh'
 
 import { Editor } from 'codice'

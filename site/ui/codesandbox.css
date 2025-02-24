@@ -1,0 +1,89 @@
+textarea:focus,
+textarea:focus-visible {
+  outline: none;
+}
+.preview {
+  position: relative;
+  border-top: 1px solid #dfe0e5;
+  padding: 1.5rem 1rem;
+}
+.preview--error {
+  margin: 0;
+  padding: 8px;
+  font-size: 13px;
+  color: #f47067;
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  bottom: 0;
+}
+.preview--result {
+  font-family: Consolas, Monaco, monospace;
+  border: none;
+  font-size: 16px;
+  line-height: 1.25em;
+  background-color: #fff;
+  width: 100%;
+}
+
+.filetree {
+  display: flex;
+  position: relative;
+  flex-wrap: wrap;
+  padding-right: 2rem;
+}
+
+.filetab {
+  position: relative;
+  padding: 0.4rem 1.5rem;
+  border: none;
+  line-height: 1;
+  background-color: #fff;
+  cursor: pointer;
+  color: #000;
+}
+.filetab:hover {
+  opacity: .8;
+}
+.filetab--active {
+  color: #087ea4;
+}
+.filetab--active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  height: 2px;
+  background: #087ea4;
+  left: 0;
+  width: 100%;
+}
+.filetab--new {
+  padding: 0;
+  color: #087ea4;
+  background-color: #f0f0f0;
+}
+.filetab__button {
+  display: inline-block;
+  padding: 0.4rem 1.5rem;
+  margin: 0;
+  line-height: 1;
+  border: none;
+  background-color: transparent;
+  cursor: pointer;
+  color: #70858c;
+}
+.filetab__input {
+  display: inline-block;
+  outline: none;
+  border: none;
+  padding: 0.4rem 1.5rem;
+  margin: 0;
+  background-color: #f0f0f0;
+}
+
+[data-codesandbox] {
+  border-radius: 8px;
+  overflow: hidden  ;
+  box-shadow: 0 12px 36px 4px rgb(200 200 200 / 50%);
+}
