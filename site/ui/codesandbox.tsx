@@ -8,10 +8,8 @@ import FileTab from './file-tab'
 import { useEffect, useState } from 'react'
 
 export function Codesandbox({
-  title,
   files: initialFiles
 }: {
-  title?: string
   files: Record<string, string>
 }) {
   const [activeFile, setActiveFile] = useState('index.js')
@@ -24,7 +22,6 @@ export function Codesandbox({
 
   return (
     <div data-codesandbox>
-      {title ? <h2>{title}</h2> : null}
       <div className="filetree">
         {Object.keys(files).map((filename) => (
           <div
@@ -37,7 +34,6 @@ export function Codesandbox({
             {filename + (filename.endsWith('.css') || filename.endsWith('.js') ? '' : '.js')}
           </div>
         ))}
-
         <FileTab files={files} setFiles={setFiles} setActiveFile={setActiveFile} />
       </div>
       <Editor
