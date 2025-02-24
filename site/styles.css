@@ -5,13 +5,10 @@ html {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
     'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans',
     'Helvetica Neue', sans-serif;
+}
+html, body {
   margin: 0;
   padding: 0;
-}
-body {
-  margin: 0;
-  padding: 0 8px;
-  width: 100vw;
 }
 :root {
   --sh-class: #6f42c1;
@@ -32,6 +29,11 @@ a, a:focus, a:visited {
 }
 a:hover {
   color: #424d5b;
+}
+
+
+main {
+  padding: 0 1.5rem;
 }
 
 .text-center {
@@ -88,6 +90,7 @@ textarea:focus-visible {
 .filetree {
   display: flex;
   position: relative;
+  flex-wrap: wrap;
   padding-right: 2rem;
 }
 
@@ -190,4 +193,25 @@ textarea:focus-visible {
   max-width: 680px;
   border-bottom: 1px dashed #e5e7eb;
   padding: 32px 0;
+}
+
+@media (max-width: 640px) {
+  main {
+    padding: 0 0.5rem;
+  }
+  .filetree {
+    padding-right: 0;
+    gap: 4px;
+  }
+  .titles h1 {
+    font-size: 36px;
+  }
+
+  .titles h3 {
+    font-size: 24px;
+  }
+
+  .titles p {
+    font-size: 16px;
+  }
 }
