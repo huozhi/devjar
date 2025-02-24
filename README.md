@@ -2,7 +2,7 @@
 > live code runtime for your react project in browser
 
 
-![image](https://repository-images.githubusercontent.com/483779830/28347c03-774a-4766-b113-54041fad1e72)
+![image](https://repository-images.githubusercontent.com/483779830/55bf67ee-fcc6-4a12-ad0c-5221a5f78c26)
 
 ### Introduction
 
