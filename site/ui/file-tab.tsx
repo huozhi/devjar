@@ -29,7 +29,11 @@ function FileTab({ files, setFiles, setActiveFile }) {
   }
 
   return (
-    <div className="filetab filetab--new" role="button">
+    <div
+     className="filetab filetab--new"
+     role="button"
+     {...(!isEditing && { onClick: () => setIsEditing(true) })}
+    >
       {isEditing ? (
         <input
           type="text"
@@ -49,9 +53,9 @@ function FileTab({ files, setFiles, setActiveFile }) {
           onBlur={handleNewFileSubmit}
         />
       ) : (
-        <button className="filetab__button" onClick={() => setIsEditing(true)} aria-label="Add new file">
+        <span className="filetab__button" aria-label="Add new file">
           + New
-        </button>
+        </span>
       )}
     </div>
   )
