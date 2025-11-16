@@ -1,4 +1,6 @@
 import { GlslSandbox } from '../../ui/glsl-sandbox'
+import { CodeBlock } from '../../ui/code-block'
+import { RuntimeNav } from '../../ui/runtime-nav'
 
 const DEFAULT_SHADER = `\
 precision mediump float;
@@ -37,22 +39,55 @@ void main() {
 }
 `
 
+const glRuntimeExample = `import { useGL } from 'devjar'
+import { useRef } from 'react'
+
+function Shader() {
+  const canvasRef = useRef(null)
+  
+  useGL({
+    fragment: \`
+      precision mediump float;
+      uniform vec2 u_resolution;
+      uniform float u_time;
+      
+      void main() {
+        vec2 st = gl_FragCoord.xy / u_resolution.xy;
+        gl_FragColor = vec4(st.x, st.y, abs(sin(u_time)), 1.0);
+      }
+    \`,
+    canvasRef,
+    onError: (err) => console.error(err)
+  })
+  
+  return <canvas ref={canvasRef} />
+}`
+
 export default function GlPage() {
   return (
-    <main>
-      <div className="titles">
-        <h1>GLSL Shader Playground</h1>
-        <p>
-          Write and preview GLSL fragment shaders in real-time.
-        </p>
-      </div>
-
+    <>
       <div className="playground-container">
+        <RuntimeNav active="gl" />
         <div className="playground-wrapper">
           <GlslSandbox initialCode={DEFAULT_SHADER} />
         </div>
       </div>
-    </main>
+      
+      <div className="usage-section">
+        <div className="usage-content">
+          <h2>Usage</h2>
+          <div className="usage-example">
+            <h3>GL Runtime</h3>
+            <p>
+              Import <code>useGL</code> from <code>devjar</code> and call it with your fragment shader code, 
+              a canvas ref, and an optional error callback. The hook handles WebGL setup, shader compilation, 
+              and provides automatic uniforms for time, resolution, and mouse position.
+            </p>
+            <CodeBlock code={glRuntimeExample} />
+          </div>
+        </div>
+      </div>
+    </>
   )
 }
 

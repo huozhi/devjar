@@ -1,7 +1,7 @@
 import PlaygroundSection from './playground-section'
 import dedent from 'dedent'
 
-const codeSampleCssImport = {
+const codeSample = {
   'index.js': dedent`\
   import { useState } from 'react'
   import Text from './text'
@@ -9,10 +9,19 @@ const codeSampleCssImport = {
 
   export default function App() {
     const [num, inc] = useState(1)
+    const [darkMode, setDarkMode] = useState(false)
     const volume = num % 6
     
     return (
-      <div className='root'>
+      <div className={\`root \${darkMode ? 'dark' : ''}\`}>
+        <div className="theme-toggle">
+          <button
+            onClick={() => setDarkMode(!darkMode)}
+            className={\`toggle-button \${darkMode ? 'dark' : ''}\`}
+          >
+            <span className={\`toggle-slider \${darkMode ? 'dark' : ''}\`} />
+          </button>
+        </div>
         <h2>
           hello <Text />
         </h2>
@@ -44,12 +53,51 @@ const codeSampleCssImport = {
     align-items: center;
     justify-content: center;
     min-height: 100vh;
+    transition: background-color 0.2s ease-in-out;
+  }
+  .root.dark {
+    background-color: #111827;
+  }
+  .theme-toggle {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+  }
+  .toggle-button {
+    position: relative;
+    width: 3.5rem;
+    height: 1.75rem;
+    border-radius: 9999px;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+    background-color: #e5e7eb;
+    padding: 0;
+  }
+  .toggle-button.dark {
+    background-color: #374151;
+  }
+  .toggle-slider {
+    position: absolute;
+    top: 0.125rem;
+    left: 0.125rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 9999px;
+    background-color: white;
+    transition: transform 0.2s ease-in-out;
+  }
+  .toggle-slider.dark {
+    transform: translateX(1.75rem);
   }
   h2 {
     color: rgba(51, 65, 85);
     font-weight: 300;
     font-size: 2rem;
     margin: 0;
+  }
+  .root.dark h2 {
+    color: #f9fafb;
   }
   .title {
     color: rgba(51, 65, 85);
@@ -72,6 +120,9 @@ const codeSampleCssImport = {
     letter-spacing: 0.05em;
     font-weight: 500;
   }
+  .root.dark .volume-label {
+    color: #9ca3af;
+  }
   .volume-indicator {
     display: flex;
     gap: 0.5rem;
@@ -82,6 +133,9 @@ const codeSampleCssImport = {
     background: rgba(229, 231, 235, 1);
     border-radius: 0.125rem;
     transition: all 0.2s ease-in-out;
+  }
+  .root.dark .volume-bar {
+    background: #4b5563;
   }
   .volume-bar:nth-child(1) {
     height: 1rem;
@@ -101,6 +155,9 @@ const codeSampleCssImport = {
   .volume-bar.active {
     background: rgba(51, 65, 85, 1);
   }
+  .root.dark .volume-bar.active {
+    background: #60a5fa;
+  }
   .button {
     background: #fff;
     border: 1px solid rgba(51, 65, 85, 1);
@@ -111,8 +168,17 @@ const codeSampleCssImport = {
     cursor: pointer;
     transition: all 0.2s ease-in-out;
   }
+  .root.dark .button {
+    background: #374151;
+    border-color: #6b7280;
+    color: #f9fafb;
+  }
   .button:hover {
     background: rgba(51, 65, 85, 1);
+    color: #fff;
+  }
+  .root.dark .button:hover {
+    background: #4b5563;
     color: #fff;
   }
   .button:active {
@@ -121,71 +187,10 @@ const codeSampleCssImport = {
   `,
 }
 
-const codeSampleTheme = {
-  'index.js': dedent`\
-import React, { useState } from 'react'
-
-function App() {
-  const [darkMode, setDarkMode] = useState(false)
-
-  return (
-    <div
-      className={\`min-h-screen flex items-center justify-center
-        transition-colors duration-200 $\{
-        darkMode ? 'bg-gray-900' : 'bg-white'
-      }\`}
-    >
-      <button
-        onClick={() => setDarkMode(!darkMode)}
-        className={\`relative w-14 h-7 rounded-full
-          transition-colors duration-200
-          focus:outline-none focus:ring-2 focus:ring-offset-2 $\{
-          darkMode 
-            ? 'bg-gray-700 focus:ring-gray-500' 
-            : 'bg-gray-200 focus:ring-gray-400'
-        }\`}
-      >
-        <span
-          className={\`absolute top-0.5 left-0.5 w-6 h-6 rounded-full
-            transition-transform duration-200 $\{
-            darkMode ? 'translate-x-7 bg-white' : 'translate-x-0 bg-white'
-          }\`}
-        />
-      </button>
-    </div>
-  )
-}
-
-export default App
-
-`,
-}
-
-const examples = [
-  { id: 'plain-css', name: 'Plain CSS', files: codeSampleCssImport },
-  { id: 'tailwind', name: 'Tailwind CSS', files: codeSampleTheme },
-]
-
 export default function Page() {
   return (
-    <main>
-      <div className="titles">
-        <h1>Devjar</h1>
-        <h3>Live React Component Previews in Browser</h3>
-        <p>
-          Devjar empowers you create interactive, real-time React code preview easier. Builtin <b>Tailwind</b> and{' '}
-          <b>CSS imports</b> for styling, creating demos that are stylish and eye-catching.
-        </p>
-        <br />
-
-        <p>
-          <a href="https://github.com/huozhi/devjar" target="_blank" rel="noopener noreferrer">
-            Source Code & Usage ↗
-          </a>
-        </p>
-      </div>
-
-      <PlaygroundSection examples={examples} />
-    </main>
+    <PlaygroundSection 
+      codeRuntimeFiles={codeSample}
+    />
   )
 }

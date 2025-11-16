@@ -329,7 +329,7 @@ export function Codesandbox({
             className="editor"
             controls={false}
             title={null}
-            lineNumbers={false}
+            lineNumbers={true}
             fontSize={13}
             value={activeFile ? files[activeFile] || '' : ''}
             onChange={(code) => {

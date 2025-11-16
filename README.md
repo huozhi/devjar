@@ -108,14 +108,14 @@ function Playground() {
 
 ## GLSL Shader Runtime
 
-### `useGlslRenderer(options)`
+### `useGL(options)`
 
 A hook that renders GLSL fragment shaders using WebGL. Perfect for creating interactive shader playgrounds and visualizations.
 
 **Parameters**
 
 * `options`
-  * `fragmentShader`: The GLSL fragment shader source code as a string.
+  * `fragment`: The GLSL fragment shader source code as a string.
   * `canvasRef`: A React ref to an HTML canvas element where the shader will be rendered.
   * `onError`: Optional callback function that receives error messages (prefixed with `devjar:gl`).
 
@@ -130,7 +130,7 @@ The hook automatically provides these uniforms to your fragment shader:
 **Example**
 
 ```jsx
-import { useGlslRenderer } from 'devjar'
+import { useGL } from 'devjar'
 import { useRef, useState } from 'react'
 
 function ShaderPlayground() {
@@ -150,8 +150,8 @@ function ShaderPlayground() {
   `)
   const [error, setError] = useState(null)
 
-  useGlslRenderer({
-    fragmentShader: shaderCode,
+  useGL({
+    fragment: shaderCode,
     canvasRef,
     onError: setError
   })

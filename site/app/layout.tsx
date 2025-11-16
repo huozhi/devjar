@@ -5,7 +5,25 @@ export default function RootLayout({ children }) {
     <html>
       <head></head>
       <body>
-        {children}
+        <main>
+          <div className="titles">
+            <h1>Devjar</h1>
+            <h3>Live React Component Previews in Browser</h3>
+            <p>
+              Devjar empowers you create interactive, real-time React code preview easier. Builtin <b>Tailwind</b> and{' '}
+              <b>CSS imports</b> for styling, creating demos that are stylish and eye-catching.
+            </p>
+            <br />
+
+            <p>
+              <a href="https://github.com/huozhi/devjar" target="_blank" rel="noopener noreferrer">
+                Source Code & Usage ↗
+              </a>
+            </p>
+          </div>
+
+          {children}
+        </main>
         <footer>
           <p>
             © {new Date().getFullYear()},{` `}

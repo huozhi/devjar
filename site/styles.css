@@ -143,15 +143,25 @@ footer > p {
 }
 
 .example-tab {
-  padding: 4px 12px;
+  padding: 8px 20px;
   border: none;
   background: none;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 400;
+  font-family: inherit;
   color: #374151;
   transition: text-decoration 0.15s ease;
   text-decoration: none;
+  display: inline-block;
+}
+
+.example-tab,
+.example-tab:link,
+.example-tab:visited {
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 400;
 }
 
 .example-tab:hover {
@@ -159,8 +169,70 @@ footer > p {
 }
 
 .example-tab.active {
-  color: #111827;
   text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.usage-section {
+  width: 100%;
+  max-width: 680px;
+  margin: 3rem auto;
+  padding: 0 0.5rem;
+}
+
+.usage-content h2 {
+  font-size: 24px;
+  font-weight: 500;
+  color: #404756;
+  margin: 0 0 1rem 0;
+}
+
+.usage-example h3 {
+  font-size: 18px;
+  font-weight: 500;
+  color: #404756;
+  margin: 0 0 0.75rem 0;
+}
+
+.usage-example h4 {
+  font-size: 16px;
+  font-weight: 500;
+  color: #404756;
+  margin: 1.5rem 0 0.75rem 0;
+}
+
+.usage-example p {
+  color: #6b7280;
+  margin: 0 0 1rem 0;
+}
+
+.code-block {
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #fff;
+  box-shadow: 
+    -1px -1px 2px rgba(0, 0, 0, 0.03),
+    1px 1px 2px rgba(0, 0, 0, 0.03);
+  transition: box-shadow 0.2s ease-in-out;
+}
+
+.code-block:hover {
+  box-shadow: 
+    -2px -2px 4px rgba(0, 0, 0, 0.05),
+    2px 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.code-block .editor {
+  min-height: auto;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.code-block .editor textarea,
+.code-block .editor [contenteditable] {
+  pointer-events: none;
+  user-select: text;
+  cursor: text;
 }
 
 .playground {

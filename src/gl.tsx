@@ -65,13 +65,13 @@ function createQuad(gl: WebGLRenderingContext): WebGLBuffer | null {
 }
 
 export interface UseGlslRendererOptions {
-  fragmentShader: string
+  fragment: string
   canvasRef: RefObject<HTMLCanvasElement>
   onError?: (error: string | null) => void
 }
 
-export function useGlslRenderer({
-  fragmentShader,
+export function useGL({
+  fragment,
   canvasRef,
   onError,
 }: UseGlslRendererOptions) {
@@ -161,7 +161,7 @@ export function useGlslRenderer({
       const vertexShader = createShader(gl, gl.VERTEX_SHADER, DEFAULT_VERTEX_SHADER)
       if (!vertexShader) throw new Error('devjar:gl Failed to create vertex shader')
 
-      const compiledFragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShader)
+      const compiledFragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragment)
       if (!compiledFragmentShader) throw new Error('devjar:gl Failed to create fragment shader')
 
       // Create program
@@ -249,6 +249,6 @@ export function useGlslRenderer({
         cancelAnimationFrame(animationFrameRef.current)
       }
     }
-  }, [fragmentShader, canvasRef, onError])
+  }, [fragment, canvasRef, onError])
 }
 

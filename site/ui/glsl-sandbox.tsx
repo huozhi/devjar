@@ -2,7 +2,7 @@
 
 import { Editor } from 'codice'
 import { useRef, useState } from 'react'
-import { useGlslRenderer } from 'devjar'
+import { useGL } from 'devjar'
 import './codesandbox.css'
 import './glsl-sandbox.css'
 
@@ -26,8 +26,8 @@ export function GlslSandbox({ initialCode }: { initialCode?: string }) {
   const [code, setCode] = useState(initialCode || DEFAULT_FRAGMENT_SHADER)
   const [error, setError] = useState<string | null>(null)
 
-  useGlslRenderer({
-    fragmentShader: code,
+  useGL({
+    fragment: code,
     canvasRef,
     onError: setError,
   })

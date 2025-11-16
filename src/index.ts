@@ -1,6 +1,6 @@
 export { useLiveCode } from './core'
 export { DevJar } from './render'
 export { 
-  useGlslRenderer, 
+  useGL, 
   type UseGlslRendererOptions
 } from './gl'
