@@ -117,7 +117,7 @@ textarea:focus-visible {
   cursor: pointer;
   color: #374151;
   font-size: 13px;
-  transition: background-color 0.15s ease;
+  transition: background-color 0.15s ease, opacity 0.2s ease-out, transform 0.2s ease-out;
   border: none;
   background: none;
   text-align: left;
@@ -151,8 +151,19 @@ textarea:focus-visible {
   flex: 1;
 }
 
+.filetree-item--nested {
+  padding-left: 24px;
+}
+
 .filetree-item--editing {
   background-color: #f9fafb;
+}
+
+.filetree-item--deleting {
+  opacity: 0;
+  transform: translateX(-10px);
+  transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+  pointer-events: none;
 }
 
 .filetree-item-input {

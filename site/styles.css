@@ -11,7 +11,7 @@ html, body {
   padding: 0;
 }
 :root {
-  --sh-class: #477ac2;
+  --sh-class: #24292e;
   --sh-identifier: #354150;
   --sh-sign: #24292e;
   --sh-string: #57a3a7;
@@ -19,7 +19,7 @@ html, body {
   --sh-comment: #6a737d;
   --sh-jsxliterals: #24292e;
   --sh-entity: #424d5b;
-  --sh-property: #1d3147;
+  --sh-property: #83898f;
 
   --codice-caret-color: #333;
 }
