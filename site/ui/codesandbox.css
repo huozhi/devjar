@@ -5,6 +5,7 @@ textarea:focus-visible {
 .preview {
   position: relative;
   border-top: 1px solid #dfe0e5;
+  background-color: #fff;
 }
 .preview--error {
   margin: 0;
@@ -22,7 +23,6 @@ textarea:focus-visible {
   border: none;
   font-size: 16px;
   line-height: 1.25em;
-  background-color: #fff;
   width: 100%;
   min-height: 200px;
 }

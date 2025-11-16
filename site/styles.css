@@ -186,28 +186,96 @@ footer > p {
     padding: 0 0.5rem;
   }
   .codesandbox-layout {
-    flex-direction: column;
+    flex-direction: column !important;
+    min-height: auto;
+    height: auto;
+    flex: 0 0 auto;
+  }
+  .codesandbox-layout > .filetree {
+    order: 1;
+    width: auto !important;
+    min-width: auto !important;
+    max-width: 100% !important;
+  }
+  .codesandbox-layout > .editor {
+    order: 2;
+    width: auto !important;
+    flex: 0 0 auto !important;
+    align-self: flex-start !important;
   }
   .filetree {
-    width: 100%;
-    min-width: 100%;
-    border-right: none;
+    width: auto !important;
+    min-width: auto !important;
+    max-width: 100% !important;
+    border-right: none !important;
     border-bottom: 1px solid #e5e7eb;
+    height: auto !important;
+    max-height: 180px !important;
+    flex-shrink: 0 !important;
+    flex-grow: 1 !important;
+    flex-basis: auto !important;
   }
   .filetree-root {
-    display: none;
+    display: flex;
+    padding: 8px 12px;
+    flex-shrink: 0;
   }
   .filetree-files {
     display: flex;
-    flex-direction: row;
-    overflow-x: auto;
-    padding: 8px;
-    gap: 4px;
+    flex-direction: column;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 0;
+    gap: 0;
+    -webkit-overflow-scrolling: touch;
+    height: auto !important;
+    flex: 0 0 auto !important;
+    flex-grow: 0 !important;
+    min-height: 0 !important;
+    max-height: 140px;
   }
   .filetree-item {
-    padding: 8px 12px;
+    padding: 4px 12px;
     white-space: nowrap;
     flex-shrink: 0;
+    width: 100%;
+    border-radius: 0;
+  }
+  .filetree-item--nested {
+    padding-left: 10px;
+  }
+  .filetree-item-name {
+    max-width: none;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+  .filetree-item--editing {
+    min-width: 150px;
+  }
+  .filetree-item-input {
+    min-width: 120px;
+  }
+  .editor {
+    min-height: 300px;
+    max-height: 400px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    width: auto;
+    flex: 0 0 auto;
+  }
+  [data-codesandbox] {
+    height: auto;
+    min-height: auto;
+  }
+  .codesandbox-layout {
+    height: auto;
+  }
+  .preview {
+    min-height: 200px;
+    padding: 1rem 0.75rem;
+  }
+  .playground-wrapper {
+    padding: 0 0.5rem;
   }
   .titles h1 {
     font-size: 36px;
