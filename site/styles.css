@@ -31,9 +31,20 @@ a:hover {
   color: #424d5b;
 }
 
-main,
+main {
+  padding: 0 1.5rem;
+}
+
 footer {
   padding: 0 1.5rem;
+  display: flex;
+  justify-content: center;
+}
+
+footer > p {
+  max-width: 680px;
+  width: 100%;
+  text-align: center;
 }
 
 .text-center {
@@ -68,6 +79,7 @@ footer {
   line-height: 1.4;
   width: 100%;
   max-width: 680px;
+  margin: 0 auto;
   color: #404756;
 }
 
@@ -86,6 +98,65 @@ footer {
   font-size: 18px;
   margin: 0;
   padding: 8px 0;
+}
+
+.playground-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 300px);
+  width: 100%;
+  padding: 2rem 0;
+}
+
+.playground-wrapper {
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.examples-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.examples-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.example-tabs {
+  display: flex;
+  gap: 0;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.example-tab {
+  padding: 4px 12px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 400;
+  color: #374151;
+  transition: background-color 0.15s ease;
+}
+
+.example-tab:hover {
+  background-color: #f3f4f6;
+}
+
+.example-tab.active {
+  color: #111827;
+  background-color: #f9fafb;
 }
 
 .playground {
@@ -114,9 +185,29 @@ footer {
   footer {
     padding: 0 0.5rem;
   }
+  .codesandbox-layout {
+    flex-direction: column;
+  }
   .filetree {
-    padding-right: 0;
+    width: 100%;
+    min-width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .filetree-root {
+    display: none;
+  }
+  .filetree-files {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    padding: 8px;
     gap: 4px;
+  }
+  .filetree-item {
+    padding: 8px 12px;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
   .titles h1 {
     font-size: 36px;

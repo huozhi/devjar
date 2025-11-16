@@ -39,7 +39,7 @@ function FileTab({ files, setFiles, setActiveFile }) {
           type="text"
           className="filetab__input"
           value={newFilename}
-          placeholder="filename (e.g. foo.js)"
+          placeholder="filename.js"
           autoFocus
           onChange={(e) => setNewFilename(e.target.value)}
           onKeyDown={(e) => {
@@ -53,9 +53,13 @@ function FileTab({ files, setFiles, setActiveFile }) {
           onBlur={handleNewFileSubmit}
         />
       ) : (
-        <span className="filetab__button" aria-label="Add new file">
-          + New
-        </span>
+        <button className="filetab__button" aria-label="Add new file" type="button">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" className="new-file-icon">
+            <circle cx="6" cy="6" r="4.5" stroke="currentColor" strokeWidth="1" fill="none"/>
+            <line x1="6" y1="3.5" x2="6" y2="8.5" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
+            <line x1="3.5" y1="6" x2="8.5" y2="6" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
+          </svg>
+        </button>
       )}
     </div>
   )

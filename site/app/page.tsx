@@ -1,4 +1,4 @@
-import { Codesandbox } from '../ui/codesandbox'
+import PlaygroundSection from './playground-section'
 
 const codeSampleCssImport = {
   'index.js': `\
@@ -104,6 +104,12 @@ export default function App() {
 `,
 }
 
+const examples = [
+  { id: 'playground', name: 'Playground', files: codeSamplePlayground },
+  { id: 'tailwind', name: 'Tailwind CSS', files: codeSampleTheme },
+  { id: 'plain-css', name: 'Plain CSS', files: codeSampleCssImport },
+]
+
 export default function Page() {
   return (
     <main>
@@ -123,24 +129,7 @@ export default function Page() {
         </p>
       </div>
 
-      <div className="playground section">
-        <h1>Playground</h1>
-        <Codesandbox files={codeSamplePlayground} />
-      </div>
-
-      <div className='showcase'>
-        <h1>Showcase</h1>
-        <div className="codesandboxes section">
-          <div>
-            <h2>Tailwind CSS</h2>
-            <Codesandbox files={codeSampleTheme} />
-          </div>
-          <div>
-            <h2>Plain CSS</h2>
-            <Codesandbox files={codeSampleCssImport} />
-          </div>
-        </div>
-      </div>
+      <PlaygroundSection examples={examples} />
     </main>
   )
 }
