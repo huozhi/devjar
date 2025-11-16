@@ -1,32 +1,85 @@
 'use client'
 
 import { Codesandbox } from '../ui/codesandbox'
-import { useState } from 'react'
+import { CodeBlock } from '../ui/code-block'
+import { RuntimeNav } from '../ui/runtime-nav'
 
-export default function PlaygroundSection({ examples }: { examples: Array<{ id: string; name: string; files: Record<string, string> }> }) {
-  const [activeExample, setActiveExample] = useState(examples[0]?.id || '')
-  const currentExample = examples.find(ex => ex.id === activeExample) || examples[0]
+const codeRuntimeExample = `\
+import { DevJar } from 'devjar'
 
+const files = {
+  'index.js': \`export default function App() {
+  return <h1>Hello World</h1>
+}\`
+}
+
+function App() {
   return (
-    <div className="playground-container">
-      <div className="examples-section">
-        <div className="examples-label">Examples</div>
-        <div className="example-tabs">
-          {examples.map((example) => (
-            <button
-              key={example.id}
-              className={`example-tab ${activeExample === example.id ? 'active' : ''}`}
-              onClick={() => setActiveExample(example.id)}
-            >
-              {example.name}
-            </button>
-          ))}
+    <DevJar
+      files={files}
+      getModuleUrl={(m) => \`https://esm.sh/\${m}\`}
+    />
+  )
+}`
+
+const hookExample = `\
+import { useLiveCode } from 'devjar'
+import { useEffect, useState } from 'react'
+
+function Playground() {
+  const { ref, error, load } = useLiveCode({
+    getModuleUrl: (m) => \`https://esm.sh/\${m}\`
+  })
+  
+  const [files, setFiles] = useState({
+    'index.js': \`export default function App() {
+  return <h1>Hello World</h1>
+}\`
+  })
+  
+  useEffect(() => {
+    load(files)
+  }, [files])
+  
+  return <iframe ref={ref} />
+}`
+
+export default function PlaygroundSection({ 
+  codeRuntimeFiles
+}: { 
+  codeRuntimeFiles: Record<string, string>
+}) {
+  return (
+    <>
+      <div className="playground-container">
+        <RuntimeNav active="react" />
+        <div className="playground-wrapper">
+          <Codesandbox files={codeRuntimeFiles} />
         </div>
       </div>
-      <div className="playground-wrapper">
-        <Codesandbox key={activeExample} files={currentExample.files} />
+      
+      <div className="usage-section">
+        <div className="usage-content">
+          <h2>Usage</h2>
+          <div className="usage-example">
+            <h3>React Runtime</h3>
+            <p>
+              Use the <code>DevJar</code> component to create interactive React code previews. 
+              Pass your files as an object and provide a module resolver function to handle imports. 
+              Devjar supports CSS imports and Tailwind CSS out of the box.
+            </p>
+            <CodeBlock code={codeRuntimeExample} />
+            <h4>Using the Hook</h4>
+            <p>
+              For more control, use the <code>useLiveCode</code> hook directly. 
+              It returns an iframe ref, error state, and a load function to execute your code files.
+            </p>
+            <CodeBlock code={hookExample} />
+          </div>
+        </div>
       </div>
-    </div>
+    </>
   )
 }
+
 

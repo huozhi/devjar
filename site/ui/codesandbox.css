@@ -196,6 +196,11 @@ textarea:focus-visible {
   height: 100%;
 }
 
+.editor [data-codice-code-line-number] {
+  opacity: 0.4;
+  color: #9ca3af;
+}
+
 
 [data-codesandbox] {
   border-radius: 8px;
