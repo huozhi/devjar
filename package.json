@@ -4,6 +4,7 @@
   "type": "module",
   "exports": {
     ".": "./dist/index.js",
+    "./gl": "./dist/gl.js",
     "./package.json": "./package.json"
   },
   "license": "MIT",
