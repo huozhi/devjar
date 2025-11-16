@@ -11,7 +11,7 @@ html, body {
   padding: 0;
 }
 :root {
-  --sh-class: #6f42c1;
+  --sh-class: #477ac2;
   --sh-identifier: #354150;
   --sh-sign: #24292e;
   --sh-string: #57a3a7;
@@ -32,11 +32,11 @@ a:hover {
 }
 
 main {
-  padding: 0 1.5rem;
+  padding: 0 0.5rem;
 }
 
 footer {
-  padding: 0 1.5rem;
+  padding: 0 0.5rem;
   display: flex;
   justify-content: center;
 }
@@ -53,7 +53,6 @@ footer > p {
 
 .editor {
   position: relative;
-  max-height: 300px;
   display: flex;
   overflow-y: scroll;
   justify-content: stretch;
@@ -147,16 +146,17 @@ footer > p {
   font-size: 13px;
   font-weight: 400;
   color: #374151;
-  transition: background-color 0.15s ease;
+  transition: text-decoration 0.15s ease;
+  text-decoration: none;
 }
 
 .example-tab:hover {
-  background-color: #f3f4f6;
+  text-decoration: underline;
 }
 
 .example-tab.active {
   color: #111827;
-  background-color: #f9fafb;
+  text-decoration: underline;
 }
 
 .playground {

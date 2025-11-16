@@ -1,48 +1,12 @@
 'use client'
 
-import { useState } from 'react'
-
-const kebabCase = (str: string) => str.replace(/([a-z0-9]|(?=[A-Z]))([A-Z])/g, '$1-$2').toLowerCase()
-const removeExtension = (str: string) => str.replace(/\.[^/.]+$/, '')
-
-function RootActions({ files, setFiles, setActiveFile }) {
-  const [isEditingFile, setIsEditingFile] = useState(false)
-  const [isEditingFolder, setIsEditingFolder] = useState(false)
-  const [newFilename, setNewFilename] = useState('')
-
-  const handleNewFileSubmit = () => {
-    if (!newFilename.trim()) {
-      setIsEditingFile(false)
-      setNewFilename('')
-      return
-    }
-
-    const uniqueFilename = newFilename.trim()
-    const fileBaseName = removeExtension(uniqueFilename)
-    setFiles({
-      ...files,
-      [uniqueFilename]: `export default function ${kebabCase(fileBaseName)}() {}`,
-    })
-    setActiveFile(uniqueFilename)
-    setNewFilename('')
-    setIsEditingFile(false)
-  }
-
-  const handleNewFolderSubmit = () => {
-    // For now, folders are not fully implemented, so we'll just dismiss
-    setIsEditingFolder(false)
-    setNewFilename('')
-  }
-
+function RootActions({ onNewFile, onNewFolder }: { onNewFile: () => void; onNewFolder: () => void }) {
   return (
     <div className="root-actions">
       <button
         className="root-action-button"
         aria-label="New file"
-        onClick={() => {
-          setIsEditingFile(true)
-          setIsEditingFolder(false)
-        }}
+        onClick={onNewFile}
         title="New file"
       >
         <svg width="16" height="18" viewBox="0 0 12 14" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -55,10 +19,7 @@ function RootActions({ files, setFiles, setActiveFile }) {
       <button
         className="root-action-button"
         aria-label="New folder"
-        onClick={() => {
-          setIsEditingFolder(true)
-          setIsEditingFile(false)
-        }}
+        onClick={onNewFolder}
         title="New folder"
       >
         <svg width="18" height="18" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -68,36 +29,6 @@ function RootActions({ files, setFiles, setActiveFile }) {
           <line x1="8" y1="10.25" x2="11" y2="10.25" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
         </svg>
       </button>
-      {(isEditingFile || isEditingFolder) && (
-        <input
-          type="text"
-          className="root-action-input"
-          value={newFilename}
-          placeholder={isEditingFile ? "filename.js" : "foldername"}
-          autoFocus
-          onChange={(e) => setNewFilename(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              if (isEditingFile) {
-                handleNewFileSubmit()
-              } else {
-                handleNewFolderSubmit()
-              }
-            } else if (e.key === 'Escape') {
-              setIsEditingFile(false)
-              setIsEditingFolder(false)
-              setNewFilename('')
-            }
-          }}
-          onBlur={() => {
-            if (isEditingFile) {
-              handleNewFileSubmit()
-            } else {
-              handleNewFolderSubmit()
-            }
-          }}
-        />
-      )}
     </div>
   )
 }

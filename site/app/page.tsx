@@ -1,43 +1,55 @@
 import PlaygroundSection from './playground-section'
+import dedent from 'dedent'
 
 const codeSampleCssImport = {
-  'index.js': `\
+  'index.js': dedent`\
   import { useState } from 'react'
   import Text from './text'
   import './styles.css'
 
   export default function App() {
     const [num, inc] = useState(1)
+    const volume = num % 6
     
     return (
-      <div className='container'>
+      <div className='root'>
         <h2>
           hello <Text />
         </h2>
-
-        <p>Volume {Array(num % 6).fill('●').join('')}</p>
+        <div className='volume-section'>
+          <div className='volume-label'>Volume</div>
+          <div className='volume-indicator'>
+            {Array(5).fill(0).map((_, i) => (
+              <div 
+                key={i} 
+                className={\`volume-bar \${i < volume ? 'active' : ''}\`}
+              />
+            ))}
+          </div>
+        </div>
         <button className='button' onClick={() => inc(num + 1)}>increase</button>
       </div>
     )
   }`,
-  './text.js': `\
+  './text.js': dedent`\
   import React from 'react'
 
   export default function Text() {
     return <b>devjar</b>
   }`,
-  './styles.css': `\
-  .container {
+  './styles.css': dedent`\
+  .root {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 16px 0;
+    min-height: 100vh;
   }
   h2 {
     color: rgba(51, 65, 85);
     font-weight: 300;
     font-size: 2rem;
+    margin: 0;
   }
   .title {
     color: rgba(51, 65, 85);
@@ -47,28 +59,70 @@ const codeSampleCssImport = {
   .title:hover {
     color: rgba(23, 119, 195, 0.8);
   }
-
+  .volume-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  .volume-label {
+    font-size: 0.875rem;
+    color: rgba(107, 114, 128, 1);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 500;
+  }
+  .volume-indicator {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-end;
+  }
+  .volume-bar {
+    width: 0.5rem;
+    background: rgba(229, 231, 235, 1);
+    border-radius: 0.125rem;
+    transition: all 0.2s ease-in-out;
+  }
+  .volume-bar:nth-child(1) {
+    height: 1rem;
+  }
+  .volume-bar:nth-child(2) {
+    height: 1.5rem;
+  }
+  .volume-bar:nth-child(3) {
+    height: 2rem;
+  }
+  .volume-bar:nth-child(4) {
+    height: 2.5rem;
+  }
+  .volume-bar:nth-child(5) {
+    height: 3rem;
+  }
+  .volume-bar.active {
+    background: rgba(51, 65, 85, 1);
+  }
   .button {
-    background: #eee;
-    border: 1px solid #222;
-    padding: 8px 16px;
-    border-radius: 4px;
-    font-weight: 700;
-    transition: color 0.2s ease-in-out;
+    background: #fff;
+    border: 1px solid rgba(51, 65, 85, 1);
+    padding: 0.5rem 1.5rem;
+    border-radius: 0.375rem;
+    font-weight: 500;
+    color: rgba(51, 65, 85, 1);
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
   }
   .button:hover {
-    background: #ddd;
-    color: #222;
+    background: rgba(51, 65, 85, 1);
+    color: #fff;
   }
   .button:active {
-    background: #ccc;
-    color: #222;
+    transform: scale(0.98);
   }
   `,
 }
 
 const codeSampleTheme = {
-  'index.js': `\
+  'index.js': dedent`\
 import React, { useState } from 'react'
 
 function App() {
@@ -76,16 +130,27 @@ function App() {
 
   return (
     <div
-      className={\`flex flex-col items-center justify-center min-h-screen $\{
-        darkMode ? 'bg-gray-800 text-white' : 'bg-white text-black'
+      className={\`min-h-screen flex items-center justify-center
+        transition-colors duration-200 $\{
+        darkMode ? 'bg-gray-900' : 'bg-white'
       }\`}
     >
-      <h1 className="text-2xl font-semibold mb-4">{darkMode ? 'Dark Mode' : 'Light Mode'}</h1>
       <button
         onClick={() => setDarkMode(!darkMode)}
-        className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+        className={\`relative w-14 h-7 rounded-full
+          transition-colors duration-200
+          focus:outline-none focus:ring-2 focus:ring-offset-2 $\{
+          darkMode 
+            ? 'bg-gray-700 focus:ring-gray-500' 
+            : 'bg-gray-200 focus:ring-gray-400'
+        }\`}
       >
-        Toggle {darkMode ? 'Light' : 'Dark'} Mode
+        <span
+          className={\`absolute top-0.5 left-0.5 w-6 h-6 rounded-full
+            transition-transform duration-200 $\{
+            darkMode ? 'translate-x-7 bg-white' : 'translate-x-0 bg-white'
+          }\`}
+        />
       </button>
     </div>
   )
@@ -96,18 +161,9 @@ export default App
 `,
 }
 
-const codeSamplePlayground = {
-  'index.js': `\
-export default function App() {
-  return "type your code here..."
-}
-`,
-}
-
 const examples = [
-  { id: 'playground', name: 'Playground', files: codeSamplePlayground },
-  { id: 'tailwind', name: 'Tailwind CSS', files: codeSampleTheme },
   { id: 'plain-css', name: 'Plain CSS', files: codeSampleCssImport },
+  { id: 'tailwind', name: 'Tailwind CSS', files: codeSampleTheme },
 ]
 
 export default function Page() {

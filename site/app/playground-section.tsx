@@ -4,7 +4,7 @@ import { Codesandbox } from '../ui/codesandbox'
 import { useState } from 'react'
 
 export default function PlaygroundSection({ examples }: { examples: Array<{ id: string; name: string; files: Record<string, string> }> }) {
-  const [activeExample, setActiveExample] = useState('playground')
+  const [activeExample, setActiveExample] = useState(examples[0]?.id || '')
   const currentExample = examples.find(ex => ex.id === activeExample) || examples[0]
 
   return (

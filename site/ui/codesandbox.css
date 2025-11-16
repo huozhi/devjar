@@ -5,7 +5,6 @@ textarea:focus-visible {
 .preview {
   position: relative;
   border-top: 1px solid #dfe0e5;
-  padding: 1.5rem 1rem;
 }
 .preview--error {
   margin: 0;
@@ -25,11 +24,14 @@ textarea:focus-visible {
   line-height: 1.25em;
   background-color: #fff;
   width: 100%;
+  min-height: 200px;
 }
 
 .codesandbox-layout {
   display: flex;
-  min-height: 600px;
+  flex-direction: row;
+  flex: 1;
+  min-height: 0;
 }
 
 .filetree {
@@ -39,19 +41,18 @@ textarea:focus-visible {
   min-width: 200px;
   border-right: 1px solid #e5e7eb;
   background-color: #fafafa;
-  padding: 8px 0;
+  flex-shrink: 0;
 }
 
 .filetree-root {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
+  padding: 4px 12px;
   font-size: 13px;
   font-weight: 500;
   color: #1f2937;
   border-bottom: 1px solid #e5e7eb;
-  margin-bottom: 4px;
 }
 
 .react-icon {
@@ -128,8 +129,12 @@ textarea:focus-visible {
 }
 
 .filetree-item.active {
-  color: #111827;
-  background-color: #f9fafb;
+  color: #374151;
+  background-color: #f3f4f6;
+}
+
+.filetree-item.active:hover {
+  background-color: #f3f4f6;
 }
 
 .file-icon {
@@ -146,22 +151,47 @@ textarea:focus-visible {
   flex: 1;
 }
 
-.codesandbox-content {
+.filetree-item--editing {
+  background-color: #f9fafb;
+}
+
+.filetree-item-input {
   flex: 1;
-  display: flex;
-  flex-direction: column;
+  outline: none;
+  border: 1px solid #e5e7eb;
+  border-radius: 3px;
+  padding: 2px 0;
+  margin: 0;
+  background-color: transparent;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: normal;
+  color: #374151;
+  font-family: inherit;
+  caret-color: #9ca3af;
+  letter-spacing: normal;
+  vertical-align: baseline;
+}
+
+.filetree-item-input:focus {
+  border-color: #d1d5db;
+  outline: none;
+}
+
+.editor {
+  flex: 1;
   min-width: 0;
+  height: 100%;
 }
 
 
 [data-codesandbox] {
   border-radius: 8px;
-  overflow: hidden;
+  overflow-x: hidden;
   box-shadow: 0 12px 36px 4px rgb(200 200 200 / 50%);
   background-color: #fff;
+  display: flex;
+  flex-direction: column;
+  height: 520px;
 }
 
-.filetree {
-  overflow-y: auto;
-  max-height: 100%;
-}
