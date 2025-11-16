@@ -6,6 +6,7 @@ textarea:focus-visible {
   position: relative;
   border-top: 1px solid #dfe0e5;
   background-color: #fff;
+  overflow: hidden;
 }
 .preview--error {
   margin: 0;
@@ -198,7 +199,7 @@ textarea:focus-visible {
 
 [data-codesandbox] {
   border-radius: 8px;
-  overflow-x: hidden;
+  overflow: hidden;
   box-shadow: 0 12px 36px 4px rgb(200 200 200 / 50%);
   background-color: #fff;
   display: flex;

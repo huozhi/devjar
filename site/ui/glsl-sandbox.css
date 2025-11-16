@@ -1,0 +1,38 @@
+/* GLSL Sandbox specific styles */
+[data-codesandbox="gl"] .codesandbox-layout {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+  max-width: 760px;
+}
+
+[data-codesandbox="gl"] .glsl-editor-wrapper {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+[data-codesandbox="gl"] .glsl-editor-wrapper .editor {
+  flex: 1;
+  min-height: 0;
+}
+
+[data-codesandbox="gl"] .preview {
+  display: flex;
+  flex-direction: column;
+  height: 300px;
+  flex-shrink: 0;
+  position: relative;
+  border-top: 1px solid #dfe0e5;
+}
+
+[data-codesandbox="gl"] .glsl-canvas {
+  display: block;
+  width: 100%;
+  height: 300px;
+}
+

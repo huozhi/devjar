@@ -115,6 +115,10 @@ footer > p {
   margin: 0 auto;
 }
 
+.playground-wrapper:has([data-codesandbox="gl"]) {
+  max-width: 760px;
+}
+
 .examples-section {
   display: flex;
   flex-direction: column;

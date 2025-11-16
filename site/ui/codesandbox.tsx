@@ -104,7 +104,7 @@ export function Codesandbox({
   }, [activeFile, activeFolder, files, folders, editingNewItem])
 
   return (
-    <div data-codesandbox>
+    <div data-codesandbox="react">
       <div className="codesandbox-layout">
         <div className="filetree">
           <div className="filetree-root">
