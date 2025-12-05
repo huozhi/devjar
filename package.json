@@ -4,7 +4,10 @@
   "type": "module",
   "exports": {
     ".": "./dist/index.js",
-    "./gl": "./dist/gl.js",
+    "./gl": {
+      "types": "./dist/gl.d.ts",
+      "default": "./dist/gl.js"
+    },
     "./package.json": "./package.json"
   },
   "license": "MIT",
@@ -35,9 +38,9 @@
     "bunchee": "^6.3.3",
     "codice": "^1.5.4",
     "devjar": "link:",
-    "next": "^16.0.3",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
+    "next": "^16.0.7",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1",
     "typescript": "^5.7.3"
   },
   "packageManager": "pnpm@9.15.4"

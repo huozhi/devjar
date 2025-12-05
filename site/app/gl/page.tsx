@@ -39,7 +39,7 @@ void main() {
 }
 `
 
-const glRuntimeExample = `import { useGL } from 'devjar'
+const glRuntimeExample = `import { useGL } from 'devjar/gl'
 import { useRef } from 'react'
 
 function Shader() {
@@ -79,7 +79,7 @@ export default function GlPage() {
           <div className="usage-example">
             <h3>GL Runtime</h3>
             <p>
-              Import <code>useGL</code> from <code>devjar</code> and call it with your fragment shader code, 
+              Import <code>useGL</code> from <code>devjar/gl</code> and call it with your fragment shader code, 
               a canvas ref, and an optional error callback. The hook handles WebGL setup, shader compilation, 
               and provides automatic uniforms for time, resolution, and mouse position.
             </p>

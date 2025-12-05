@@ -2,7 +2,7 @@
 
 import { Editor } from 'codice'
 import { useRef, useState } from 'react'
-import { useGL } from 'devjar'
+import { useGL } from 'devjar/gl'
 import './codesandbox.css'
 import './glsl-sandbox.css'
 

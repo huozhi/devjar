@@ -120,15 +120,21 @@ footer > p {
 }
 
 .examples-section {
+  position: sticky;
+  top: 0;
+  z-index: 100;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.75rem;
   margin-bottom: 1.5rem;
+  padding: 1rem 0;
+  background-color: #fff;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .examples-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   color: #9ca3af;
   text-transform: uppercase;
@@ -143,11 +149,11 @@ footer > p {
 }
 
 .example-tab {
-  padding: 8px 20px;
+  padding: 10px 24px;
   border: none;
   background: none;
   cursor: pointer;
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 400;
   font-family: inherit;
   color: #374151;
@@ -160,7 +166,7 @@ footer > p {
 .example-tab:link,
 .example-tab:visited {
   font-family: inherit;
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 400;
 }
 
