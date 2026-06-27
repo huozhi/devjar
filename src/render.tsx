@@ -1,17 +1,22 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
+import { useEffect, useImperativeHandle, useRef } from 'react'
 import { useLiveCode } from './core'
 
 const defaultOnError = typeof window !== 'undefined' ? console.error : (() => {})
 
-export const DevJar = forwardRef<HTMLIFrameElement, {
+export function DevJar({
+  files,
+  getModuleUrl,
+  onError = defaultOnError,
+  tailwindSrc,
+  ref: forwardedRef,
+  ...props
+}: {
   files: Record<string, string>
   getModuleUrl?: (name: string) => string
   onError?: (...data: any[]) => void
   tailwindSrc?: string | false
-} & React.IframeHTMLAttributes<HTMLIFrameElement>>(function DevJar(
-  { files, getModuleUrl, onError = defaultOnError, tailwindSrc, ...props },
-  forwardedRef
-) {
+  ref?: React.Ref<HTMLIFrameElement>
+} & React.IframeHTMLAttributes<HTMLIFrameElement>) {
   const onErrorRef = useRef(onError)
   const { ref, error, load } = useLiveCode({ getModuleUrl, tailwindSrc })
 
@@ -28,4 +33,4 @@ export const DevJar = forwardRef<HTMLIFrameElement, {
 
   // Attach the ref to an iframe element for runtime of code execution
   return <iframe {...props} ref={ref} />
-})
+}

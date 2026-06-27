@@ -106,6 +106,7 @@ export function Codesandbox({
   const [previewHeight, setPreviewHeight] = useState(440)
   const [previewReady, setPreviewReady] = useState(false)
   const [loaderFrame, setLoaderFrame] = useState(0)
+  const activeExtension = activeFile?.split('.').pop() || ''
 
   useEffect(() => {
     if (previewReady) return
@@ -522,6 +523,8 @@ export function Codesandbox({
             title={null}
             lineNumbers={true}
             fontSize={13}
+            extension={activeExtension}
+            data-active-extension={activeExtension}
             value={activeFile ? files[activeFile] || '' : ''}
             onChange={(code) => {
               if (activeFile) {

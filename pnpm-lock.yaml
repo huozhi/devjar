@@ -34,8 +34,8 @@ importers:
         specifier: ^6.3.3
         version: 6.3.3(typescript@5.7.3)
       codice:
-        specifier: ^1.5.4
-        version: 1.5.4(react@19.2.1)
+        specifier: ^1.6.0
+        version: 1.6.0(react@19.2.1)
       devjar:
         specifier: 'link:'
         version: 'link:'
@@ -706,8 +706,8 @@ packages:
     resolution: {integrity: sha512-BSeNnyus75C4//NQ9gQt1/csTXyo/8Sb+afLAkzAptFuMsod9HFokGNudZpi/oQV73hnVK+sR+5PVRMd+Dr7YQ==}
     engines: {node: '>=12'}
 
-  codice@1.5.4:
-    resolution: {integrity: sha512-M2epkmtAKqtYG5P7g5NYPVIQixJ2FS3HTSUlCqpDmADLSHp1CdNl3JtNbmuM7bjAXr6bXyiWq7GEunE5kd2RTw==}
+  codice@1.6.0:
+    resolution: {integrity: sha512-mA9XiwXqVCKPkxQ5VGzp4a1VXeWRzM4HNZUkujMe0LMaAbrlqEEFLF26LX+acHRDs5lDdrL05fLAzcb4ObLQ3w==}
     peerDependencies:
       react: ^18.0.0 || ^19.0.0
 
@@ -1042,8 +1042,8 @@ packages:
       babel-plugin-macros:
         optional: true
 
-  sugar-high@0.9.5:
-    resolution: {integrity: sha512-eirwp9p7QcMg6EFCD6zrGh4H30uFx2YtfiMJUavagceP6/YUUjLeiQmis7QuwqKB3nXrWXlLaRumCqOd9AKpSA==}
+  sugar-high@1.2.1:
+    resolution: {integrity: sha512-C2E0iSC0Gwv+7t32ATFxgiH6fxskoSfd/nF5z11pQSrgJHYjY8/U11K+X0izV9ZyPNPwaomtn6uF7y11MxVNQA==}
 
   supports-preserve-symlinks-flag@1.0.0:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}
@@ -1563,10 +1563,10 @@ snapshots:
       strip-ansi: 6.0.1
       wrap-ansi: 7.0.0
 
-  codice@1.5.4(react@19.2.1):
+  codice@1.6.0(react@19.2.1):
     dependencies:
       react: 19.2.1
-      sugar-high: 0.9.5
+      sugar-high: 1.2.1
 
   color-convert@2.0.1:
     dependencies:
@@ -1913,7 +1913,7 @@ snapshots:
       client-only: 0.0.1
       react: 19.2.1
 
-  sugar-high@0.9.5: {}
+  sugar-high@1.2.1: {}
 
   supports-preserve-symlinks-flag@1.0.0: {}
 

@@ -7,7 +7,7 @@
 
 devjar is a library that enables you to live test and share your code snippets and examples with others. devjar will generate a live code editor where you can run your code snippets and view the results in real-time based on the provided code content of your React app.
 
-**Notice:** devjar only works for browser runtime at the moment. It will always render the default export component in `index.js` as the app entry.
+**Notice:** devjar requires React 19 and only works for browser runtime at the moment. It will always render the default export component in `index.js` as the app entry.
 
 ## Install
 

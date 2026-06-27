@@ -2,6 +2,8 @@
 
 Devjar runs editable React code in a browser iframe. The runtime renders the default export from `index.js`.
 
+Devjar requires React 19.
+
 ## Install
 
 ```sh

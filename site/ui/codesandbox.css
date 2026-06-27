@@ -377,6 +377,18 @@ textarea:focus-visible {
   height: 100%;
 }
 
+.editor[data-active-extension="css"] .sh__token--identifier {
+  color: var(--sh-property) !important;
+}
+
+.editor[data-active-extension="css"] .sh__token--class {
+  color: var(--sh-string) !important;
+}
+
+.editor[data-active-extension="css"] .sh__token--sign {
+  color: var(--sh-sign) !important;
+}
+
 .editor [data-codice-code-line-number] {
   opacity: 0.4;
   color: #9ca3af;

@@ -28,7 +28,7 @@
     "dev:site": "next dev ./site"
   },
   "peerDependencies": {
-    "react": "^18.2.0 || ^19.0.0"
+    "react": "^19.0.0"
   },
   "dependencies": {
     "dedent": "^1.7.0",
@@ -41,7 +41,7 @@
     "@types/react": "^19.0.7",
     "@types/react-dom": "^19.0.3",
     "bunchee": "^6.3.3",
-    "codice": "^1.5.4",
+    "codice": "^1.6.0",
     "devjar": "link:",
     "next": "16.3.0-canary.69",
     "react": "^19.2.1",
