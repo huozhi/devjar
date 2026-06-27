@@ -3,6 +3,18 @@
 import './codesandbox.css'
 
 const CDN_HOST = 'https://esm.sh'
+const REACT_DEV_MODULES = new Set([
+  'react',
+  'react-dom',
+  'react-dom/client',
+  'react/jsx-runtime',
+  'react/jsx-dev-runtime',
+])
+
+function getModuleUrl(moduleName: string) {
+  const url = `${CDN_HOST}/${moduleName}`
+  return REACT_DEV_MODULES.has(moduleName) ? `${url}?dev` : url
+}
 
 import { Editor } from 'codice'
 import { DevJar } from 'devjar'
@@ -349,9 +361,7 @@ export function Codesandbox({
           onError={(err) => {
             setError(err)
           }}
-          getModuleUrl={(m) => {
-            return `${CDN_HOST}/${m}`
-          }}
+          getModuleUrl={getModuleUrl}
         />
         {error && <pre className="preview--error" dangerouslySetInnerHTML={{ __html: error.toString() }} />}
       </div>

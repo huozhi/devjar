@@ -7,37 +7,49 @@ const isRelative = s => s.startsWith('./')
 const removeExtension = (str: string) => str.replace(/\.[^/.]+$/, '')
 
 function transformWorkerMain() {
-  let swc
+  let oxc
+
+  function getLang(filename) {
+    if (/\.[cm]?tsx?$/.test(filename)) return 'tsx'
+    return 'jsx'
+  }
+
+  function getTransformErrorMessage(errors) {
+    if (!errors?.length) return ''
+
+    const error = errors.find(error => error.severity === 'Error')
+    if (!error) return ''
+
+    return error.codeframe || error.message || 'devjar: transform failed'
+  }
 
   self.onmessage = async ({ data }) => {
     const { id, moduleUrl, files } = data
     try {
-      if (!swc) {
-        swc = await import(/* webpackIgnore: true */ /* @vite-ignore */ moduleUrl)
-        await swc.default()
+      if (!oxc) {
+        oxc = await import(/* webpackIgnore: true */ /* @vite-ignore */ moduleUrl)
       }
 
       const transformed = {}
       for (const [filename, source] of Object.entries(files)) {
-        const isTypeScript = /\.[cm]?tsx?$/.test(filename)
-        const output = swc.transformSync(source, {
-          filename,
-          jsc: {
-            target: 'es2022',
-            parser: isTypeScript
-              ? { syntax: 'typescript', tsx: true, decorators: true }
-              : { syntax: 'ecmascript', jsx: true, decorators: true },
-            transform: {
-              react: {
-                runtime: 'classic',
-                development: true,
-                refresh: true,
-              },
-            },
+        const output = oxc.transformSync(filename, source, {
+          lang: getLang(filename),
+          sourceType: 'module',
+          target: 'es2022',
+          decorator: {
+            legacy: true,
           },
-          module: { type: 'es6' },
-          sourceMaps: false,
+          jsx: {
+            runtime: 'automatic',
+            development: true,
+            refresh: true,
+          },
+          sourcemap: false,
         })
+
+        const errorMessage = getTransformErrorMessage(output.errors)
+        if (errorMessage) throw new Error(errorMessage)
+
         transformed[filename] = output.code
       }
       self.postMessage({ id, transformed })
@@ -123,7 +135,7 @@ function replaceImports(source, filename, moduleKey, getModuleUrl, externals) {
 
   if (cssImports.length) {
     cssImports.forEach((cssPath, index) => {
-      code += `\nimport __devjarSheet${index} from "${cssPath}" assert { type: "css" };\n`
+      code += `\nimport __devjarSheet${index} from "${cssPath}" with { type: "css" };\n`
     })
     code += `globalThis.__devjarStyleSheets ||= new Map();\n`
     cssImports.forEach((cssPath, index) => {
@@ -201,8 +213,13 @@ function createRenderer(createModule_, getModuleUrl) {
 
     if (result.changed) {
       errorBoundary?.reset()
-      const refreshUpdate = moduleRuntime.refreshRuntime.performReactRefresh()
-      if (!refreshUpdate) {
+      const refreshRuntime = moduleRuntime.refreshRuntime
+      const refreshUpdate = refreshRuntime.performReactRefresh()
+      const mountedRootCount = typeof refreshRuntime._getMountedRootCount === 'function'
+        ? refreshRuntime._getMountedRootCount()
+        : 0
+
+      if (!refreshUpdate || mountedRootCount === 0) {
         revision++
         reactRoot.render(_jsx(ErrorBoundary, { revision, ref: value => errorBoundary = value }, _jsx(result.module.default)))
       }
@@ -364,7 +381,7 @@ function useLiveCode({ getModuleUrl }: { getModuleUrl?: (name: string) => string
       worker.postMessage({
         id,
         files,
-        moduleUrl: getModuleUrl('@swc/wasm-web'),
+        moduleUrl: getModuleUrl('oxc-transform'),
       })
     })
   }, [getModuleUrl])

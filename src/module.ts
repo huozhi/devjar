@@ -117,7 +117,12 @@ async function createModule(
     globalThis.__devjarRefreshRuntime = runtime.refreshRuntime
   }
 
-  const module = await self.importShim('index')
+  const entryUrl = imports['index']
+  if (!entryUrl) {
+    throw new Error('devjar: Module not found: index')
+  }
+
+  const module = await self.importShim(entryUrl)
   runtime.files = { ...files }
   return { module, changed: changedModules.size > 0 }
 }
