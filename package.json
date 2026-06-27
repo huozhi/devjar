@@ -9,6 +9,10 @@
     }
   },
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/huozhi/devjar"
+  },
   "files": [
     "dist"
   ],
