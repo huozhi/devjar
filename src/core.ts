@@ -1,47 +1,73 @@
 import { useEffect, useCallback, useState, useId, useRef } from 'react'
 import { createModule } from './module'
-import { transform } from 'sucrase'
 import { init, parse } from 'es-module-lexer'
 
 let esModuleLexerInit
 const isRelative = s => s.startsWith('./')
 const removeExtension = (str: string) => str.replace(/\.[^/.]+$/, '')
+const localImportPrefix = '__DEVJAR_LOCAL_IMPORT__'
+const defaultTailwindSrc = 'https://unpkg.com/@tailwindcss/browser@4'
 
-function transformCode(_code, getModuleUrl, externals) {
-  const code = transform(_code, {
-    transforms: ['jsx', 'typescript'],
-  }).code
-
-  return replaceImports(code, getModuleUrl, externals)
+function createLocalImportPlaceholder(moduleKey: string) {
+  return `${localImportPrefix}${encodeURIComponent(moduleKey)}__`
 }
 
-function replaceImports(source, getModuleUrl, externals) {
+function createTransformWorker() {
+  return new Worker(new URL('./transform-worker.js', import.meta.url), {
+    type: 'module',
+    name: 'devjar-transform',
+  })
+}
+
+function getModuleKey(filename: string) {
+  const key = isRelative(filename) ? '@' + filename.slice(2) : filename
+  return filename.endsWith('.css') ? key : removeExtension(key)
+}
+
+function resolveRelativeModule(importer: string, imported: string) {
+  const importerPath = importer.startsWith('./') ? importer.slice(2) : importer
+  const parts = importerPath.split('/')
+  parts.pop()
+
+  for (const part of imported.split('/')) {
+    if (!part || part === '.') continue
+    if (part === '..') parts.pop()
+    else parts.push(part)
+  }
+
+  const path = parts.join('/')
+  return imported.endsWith('.css') ? '@' + path : removeExtension('@' + path)
+}
+
+function replaceImports(source, filename, moduleKey, resolveModule, localModules) {
   let code = ''
   let lastIndex = 0
   let hasReactImports = false
   const [imports] = parse(source)
   const cssImports = []
-  let cssImportIndex = 0
+  const dependencies = []
   
   // start, end, statementStart, statementEnd, assertion, name
   imports.forEach(({ s, e, ss, se, a, n }) => {
+    if (!n) return
     code += source.slice(lastIndex, ss) // content from last import to beginning of this line 
-    
+
+    const localModuleKey = isRelative(n)
+      ? resolveRelativeModule(filename, n)
+      : localModules.has(n) ? n : undefined
 
     // handle imports
-    if (n.endsWith('.css')) {
+    if (localModuleKey && localModuleKey.endsWith('.css')) {
       // Map './styles.css' -> '@styles.css', and collect it
-      const cssPath = `${'@' + n.slice(2)}`
-      cssImports.push(cssPath)
-      
+      cssImports.push(localModuleKey)
     } else {
       code += source.substring(ss, s)
-      code += isRelative(n)
-          ? ('@' + n.slice(2))
-          : externals.has(n) ? n : getModuleUrl(n)
+      code += localModuleKey
+        ? createLocalImportPlaceholder(localModuleKey)
+        : resolveModule(n)
       code += source.substring(e, se)
     }
-    
+    if (localModuleKey) dependencies.push(localModuleKey)
     lastIndex = se
 
     if (n === 'react') {
@@ -51,66 +77,99 @@ function replaceImports(source, getModuleUrl, externals) {
       }
     }
 
-    cssImports.forEach(cssPath => {
-      code += `\nimport sheet${cssImportIndex} from "${cssPath}" assert { type: "css" };\n`
-      cssImportIndex++
-    })
   })
 
   if (cssImports.length) {
-    code += `const __customStyleSheets = [`
-    for (let i = 0; i < cssImports.length; i++) {
-      code += `sheet${i}`
-      if (i < cssImports.length - 1) {
-        code += `, `
-      }
-    }
-    code += `];\n`
-    code += `document.adoptedStyleSheets = [...document.adoptedStyleSheets, ...__customStyleSheets];\n`
+    cssImports.forEach((cssPath, index) => {
+      code += `\nimport __devjarSheet${index} from "${createLocalImportPlaceholder(cssPath)}";\n`
+    })
+    code += `globalThis.__devjarStyleSheets ||= new Map();\n`
+    cssImports.forEach((cssPath, index) => {
+      code += `{ const previous = globalThis.__devjarStyleSheets.get(${JSON.stringify(cssPath)});\n`
+      code += `const sheets = [...document.adoptedStyleSheets];\n`
+      code += `const sheetIndex = sheets.indexOf(previous);\n`
+      code += `if (sheetIndex < 0) sheets.push(__devjarSheet${index}); else sheets[sheetIndex] = __devjarSheet${index};\n`
+      code += `document.adoptedStyleSheets = sheets;\n`
+      code += `globalThis.__devjarStyleSheets.set(${JSON.stringify(cssPath)}, __devjarSheet${index}); }\n`
+    })
   }
 
   code += source.substring(lastIndex)
 
   if (!hasReactImports) {
-    code = `import React from 'react';\n${code}`
+    code = `import React from ${JSON.stringify(resolveModule('react'))};\n${code}`
   }
 
-  return code
+  code = `const $RefreshReg$ = (type, id) => globalThis.__devjarRefreshRuntime.register(type, ${JSON.stringify(moduleKey + ' ')} + id);\n` +
+    `const $RefreshSig$ = globalThis.__devjarRefreshRuntime.createSignatureFunctionForTransform;\n` +
+    code
+
+  return { code, dependencies }
 }
 
 // createRenderer is going to be stringified and executed in the iframe
-function createRenderer(createModule_, getModuleUrl) {
+function createRenderer(createModule_, resolveModule) {
   let reactRoot
+  let ErrorBoundary
+  let errorBoundary
+  let revision = 0
+  const moduleRuntime: any = {}
 
-  async function render(files: Record<string, string>) {
-    const mod = await createModule_(files, { getModuleUrl })
-    const ReactMod: typeof import('react') = await self.importShim('react')
-    const ReactDOMMod: typeof import('react-dom/client') = await self.importShim('react-dom/client')
+  async function render(files: Record<string, string>, dependencies: Record<string, string[]>) {
+    const result = await createModule_(files, { resolveModule, dependencies, runtime: moduleRuntime })
+    const ReactMod: typeof import('react') = await import(/* webpackIgnore: true */ /* @vite-ignore */ /* turbopackIgnore: true */ resolveModule('react'))
+    const ReactDOMMod: typeof import('react-dom/client') = await import(/* webpackIgnore: true */ /* @vite-ignore */ /* turbopackIgnore: true */ resolveModule('react-dom/client'))
 
     const _jsx = ReactMod.createElement
     const root = document.getElementById('__reactRoot')
-    class ErrorBoundary extends ReactMod.Component<any, { error: unknown }> {
-      constructor(props: any) {
-        super(props)
-        this.state = { error: null }
-      }
-      componentDidCatch(error) {
-        this.setState({ error })
-      }
-      render() {
-        if (this.state.error) {
-          return _jsx('div', null, (this.state.error as any)?.message)
+
+    if (!ErrorBoundary) {
+      ErrorBoundary = class extends ReactMod.Component<any, { error: unknown }> {
+        constructor(props: any) {
+          super(props)
+          this.state = { error: null }
         }
-        return this.props.children
+        static getDerivedStateFromError(error) {
+          return { error }
+        }
+        reset() {
+          if (this.state.error) this.setState({ error: null })
+        }
+        componentDidUpdate(previousProps) {
+          if (previousProps.revision !== this.props.revision && this.state.error) {
+            this.setState({ error: null })
+          }
+        }
+        render() {
+          if (this.state.error) {
+            return _jsx('div', null, (this.state.error as any)?.message)
+          }
+          return this.props.children
+        }
       }
     }
 
     if (!reactRoot) {
       reactRoot = ReactDOMMod.createRoot(root)
+      revision++
+      reactRoot.render(_jsx(ErrorBoundary, { revision, ref: value => errorBoundary = value }, _jsx(result.module.default)))
+      moduleRuntime.hasRendered = true
+      return
     }
-    const Component = mod.default
-    const element = _jsx(ErrorBoundary, null, _jsx(Component))
-    reactRoot.render(element)
+
+    if (result.changed) {
+      errorBoundary?.reset()
+      const refreshRuntime = moduleRuntime.refreshRuntime
+      const refreshUpdate = refreshRuntime.performReactRefresh()
+      const mountedRootCount = typeof refreshRuntime._getMountedRootCount === 'function'
+        ? refreshRuntime._getMountedRootCount()
+        : 0
+
+      if (!refreshUpdate || mountedRootCount === 0) {
+        revision++
+        reactRoot.render(_jsx(ErrorBoundary, { revision, ref: value => errorBoundary = value }, _jsx(result.module.default)))
+      }
+    }
   }
 
   return render
@@ -122,20 +181,12 @@ function createMainScript({ uid }) {
 const _createModule = ${createModule.toString()};
 const _createRenderer = ${createRenderer.toString()};
 
-const getModuleUrl = (m) => window.parent.__devjar__[globalThis.uid].getModuleUrl(m)
+const resolveModule = (specifier) => window.parent.__devjar__[globalThis.uid].resolveModule(specifier)
 
 globalThis.uid = ${JSON.stringify(uid)};
-globalThis.__render__ = _createRenderer(_createModule, getModuleUrl);
+globalThis.__render__ = _createRenderer(_createModule, resolveModule);
 `)
   return code
-}
-
-function createEsShimOptionsScript() {
-  return `\
-window.esmsInitOptions = {
-  polyfillEnable: ['css-modules', 'json-modules'],
-  onerror: console.error,
-}`
 }
 
 function useScript() {
@@ -162,29 +213,50 @@ function createScript(
   return script
 }
 
-function useLiveCode({ getModuleUrl }: { getModuleUrl?: (name: string) => string }) {
+function useLiveCode({
+  resolveModule,
+  tailwindSrc = defaultTailwindSrc,
+}: {
+  resolveModule?: (specifier: string) => string
+  tailwindSrc?: string | false
+}) {
   const iframeRef = useRef(null)
   const [error, setError] = useState()
   const rerender = useState({})[1]
   const appScriptRef = useScript()
-  const esShimOptionsScriptRef = useScript()
   const tailwindcssScriptRef = useScript()
+  const transformWorkerRef = useRef<Worker | undefined>(undefined)
+  const transformCacheRef = useRef(new Map<string, { source: string, code: string }>())
+  const transformRequestsRef = useRef(new Map<number, { resolve: (value: any) => void, reject: (error: Error) => void }>())
+  const transformRequestIdRef = useRef(0)
+  const loadIdRef = useRef(0)
   const uid = useId()
 
-  // Let getModuleUrl executed on parent window side since it might involve
+  // Let resolveModule execute on parent window side since it might involve
   // variables that iframe cannot access.
   useEffect(() => {
     if (!globalThis.__devjar__) {
       globalThis.__devjar__ = {};
     }
     globalThis.__devjar__[uid] = {
-      getModuleUrl,
+      resolveModule,
     }
 
     return () => {
       if (globalThis.__devjar__) {
         delete globalThis.__devjar__[uid]
       }
+    }
+  }, [resolveModule, uid])
+
+  useEffect(() => {
+    return () => {
+      transformWorkerRef.current?.terminate()
+      transformWorkerRef.current = undefined
+      for (const { reject } of transformRequestsRef.current.values()) {
+        reject(new Error('devjar: transform worker was terminated'))
+      }
+      transformRequestsRef.current.clear()
     }
   }, [])
 
@@ -198,42 +270,91 @@ function useLiveCode({ getModuleUrl }: { getModuleUrl?: (name: string) => string
     div.id = '__reactRoot'
     
     const appScriptContent = createMainScript({ uid })
-    const scriptOptionsContent = createEsShimOptionsScript()
     
-    const esmShimOptionsScript = createScript(esShimOptionsScriptRef, { content: scriptOptionsContent })
-    const appScript = createScript(appScriptRef, { content: appScriptContent, type: 'module' })
-    const tailwindScript = createScript(tailwindcssScriptRef, { src: 'https://unpkg.com/@tailwindcss/browser@4' })
+    const appScript = createScript(appScriptRef, { content: appScriptContent })
+    const tailwindScript = tailwindSrc
+      ? createScript(tailwindcssScriptRef, { src: tailwindSrc })
+      : null
 
     body.appendChild(div)
-    body.appendChild(esmShimOptionsScript)
     body.appendChild(appScript)
-    body.appendChild(tailwindScript)
+    if (tailwindScript) body.appendChild(tailwindScript)
     
     return () => {
       if (!iframe || !iframe.contentDocument) return
       body.removeChild(div)
-      body.removeChild(esmShimOptionsScript)
       body.removeChild(appScript)
-      body.removeChild(tailwindScript)
+      if (tailwindScript) body.removeChild(tailwindScript)
     }
   }, [])
 
-  const load = useCallback(async (files) => {
+  const transformFiles = useCallback((files: Record<string, string>) => {
+    if (!resolveModule) {
+      return Promise.reject(new Error('devjar: resolveModule is required for the browser transformer'))
+    }
+
+    if (!transformWorkerRef.current) {
+      const worker = createTransformWorker()
+      worker.onmessage = ({ data }) => {
+        const request = transformRequestsRef.current.get(data.id)
+        if (!request) return
+        transformRequestsRef.current.delete(data.id)
+        if (data.error) {
+          const error = new Error(data.error.message)
+          if (data.error.stack) error.stack = data.error.stack
+          request.reject(error)
+        } else {
+          request.resolve(data.transformed)
+        }
+      }
+      worker.onerror = (event) => {
+        const error = new Error(event.message || 'devjar: transform worker failed')
+        for (const { reject } of transformRequestsRef.current.values()) reject(error)
+        transformRequestsRef.current.clear()
+      }
+      transformWorkerRef.current = worker
+    }
+
+    const id = ++transformRequestIdRef.current
+    const worker = transformWorkerRef.current!
+    return new Promise<Record<string, string>>((resolve, reject) => {
+      transformRequestsRef.current.set(id, { resolve, reject })
+      worker.postMessage({
+        id,
+        files,
+        moduleUrl: resolveModule('oxc-transform'),
+      })
+    })
+  }, [resolveModule])
+
+  const load = useCallback(async (files: Record<string, string>) => {
+    const loadId = ++loadIdRef.current
     if (!esModuleLexerInit) {
       await init
       esModuleLexerInit = true
     }
 
     if (files) {
-      // { 'react', 'react-dom' }
-      const overrideExternals =
-        new Set(Object.keys(files).filter(name => !isRelative(name) && name !== 'index.js'))
-
-      // Always share react as externals
-      overrideExternals.add('react')
-      overrideExternals.add('react-dom')
+      const localModules = new Set(Object.keys(files).map(getModuleKey))
 
       try {
+        const filesToTransform = Object.fromEntries(
+          Object.entries(files).filter(([filename, source]) => {
+            return !filename.endsWith('.css') && transformCacheRef.current.get(filename)?.source !== source
+          })
+        )
+        const newTransforms = Object.keys(filesToTransform).length
+          ? await transformFiles(filesToTransform)
+          : {}
+
+        if (loadId !== loadIdRef.current) return
+        for (const [filename, code] of Object.entries(newTransforms)) {
+          transformCacheRef.current.set(filename, { source: files[filename], code: code as string })
+        }
+        for (const filename of transformCacheRef.current.keys()) {
+          if (!(filename in files)) transformCacheRef.current.delete(filename)
+        }
+
         /**
          * transformedFiles
          * {
@@ -241,19 +362,28 @@ function useLiveCode({ getModuleUrl }: { getModuleUrl?: (name: string) => string
          *  '@mod1': '...',
          *  '@mod2': '...',
          */
+        const dependencies = {}
         const transformedFiles = Object.keys(files).reduce((res, filename) => {
           // 1. Remove ./
           // 2. For non css files, remove extension
           // e.g. './styles.css' -> '@styles.css'
           // e.g. './foo.js' -> '@foo'
-          const moduleKey = isRelative(filename) ? ('@' + filename.slice(2)) : filename
+          const moduleKey = getModuleKey(filename)
           
           if (filename.endsWith('.css')) {
             res[moduleKey] = files[filename]
+            dependencies[moduleKey] = []
           } else {
             // JS or TS files
-            const normalizedModuleKey = removeExtension(moduleKey)
-            res[normalizedModuleKey] = transformCode(files[filename], getModuleUrl, overrideExternals)
+            const transformed = replaceImports(
+              transformCacheRef.current.get(filename).code,
+              filename,
+              moduleKey,
+              resolveModule,
+              localModules
+            )
+            res[moduleKey] = transformed.code
+            dependencies[moduleKey] = transformed.dependencies
           }
           return res
         }, {})
@@ -261,17 +391,22 @@ function useLiveCode({ getModuleUrl }: { getModuleUrl?: (name: string) => string
         const iframe = iframeRef.current
         const script = appScriptRef.current
         if (iframe) {
+          const renderFiles = async () => {
+            await iframe.contentWindow.__render__(transformedFiles, dependencies)
+            if (loadId === loadIdRef.current) {
+              iframe.dispatchEvent(new CustomEvent('devjar:render'))
+            }
+          }
+
           const render = iframe.contentWindow.__render__
           if (render) {
-            render(transformedFiles)
+            await renderFiles()
           } else {
             // if render is not loaded yet, wait until it's loaded
             script.onload = () => {
-              iframe.contentWindow.__render__(transformedFiles)
-                .catch((err) => {
-                  setError(err)
-                })
-              
+              renderFiles().catch((err) => {
+                setError(err)
+              })
             }
           }
         }
@@ -282,7 +417,7 @@ function useLiveCode({ getModuleUrl }: { getModuleUrl?: (name: string) => string
       }
     }
     rerender({})
-  }, [])
+  }, [resolveModule, transformFiles])
 
   return { ref: iframeRef, error, load }
 }

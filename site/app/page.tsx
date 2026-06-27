@@ -4,185 +4,297 @@ import dedent from 'dedent'
 const codeSample = {
   'index.js': dedent`\
   import { useState } from 'react'
-  import Text from './text'
+  import { art } from './ascii'
   import './styles.css'
 
+  const site = {
+    name: 'Devjar',
+    cta: 'Wiggle',
+    accent: '#525252',
+  }
+
   export default function App() {
-    const [num, inc] = useState(1)
-    const [darkMode, setDarkMode] = useState(false)
-    const volume = num % 6
-    
+    const [refreshes, setRefreshes] = useState(0)
+
     return (
-      <div className={\`root \${darkMode ? 'dark' : ''}\`}>
-        <div className="theme-toggle">
-          <button
-            onClick={() => setDarkMode(!darkMode)}
-            className={\`toggle-button \${darkMode ? 'dark' : ''}\`}
-          >
-            <span className={\`toggle-slider \${darkMode ? 'dark' : ''}\`} />
-          </button>
-        </div>
-        <h2>
-          hello <Text />
-        </h2>
-        <div className='volume-section'>
-          <div className='volume-label'>Volume</div>
-          <div className='volume-indicator'>
-            {Array(5).fill(0).map((_, i) => (
-              <div 
-                key={i} 
-                className={\`volume-bar \${i < volume ? 'active' : ''}\`}
-              />
-            ))}
-          </div>
-        </div>
-        <button className='button' onClick={() => inc(num + 1)}>increase</button>
+      <div className="page" style={{ '--accent': site.accent }}>
+        <main>
+          <section className="copy">
+            <h1>{site.name}</h1>
+            <p className="eyebrow">React Live Preview in browser</p>
+            <button type="button" onClick={() => setRefreshes((count) => count + 1)}>
+              {site.cta}
+            </button>
+          </section>
+
+          <pre className={refreshes > 0 ? 'ascii is-shuffling' : 'ascii'} aria-label="Devjar preview">
+            <code key={refreshes}>
+              {art.map((line, index) => (
+                <span className="ascii-line" key={index}>{line}</span>
+              ))}
+            </code>
+          </pre>
+        </main>
       </div>
     )
   }`,
-  './text.js': dedent`\
-  import React from 'react'
+  './ascii.js': dedent`\
+  const copy = {
+    title: 'DEVJAR',
+    editorLabel: 'editor',
+    previewLabel: 'preview',
+    filename: 'index.js',
+    codeLine: 'const title = "Ship"',
+    renderLine: 'return <Demo />',
+    resultLabel: 'live result',
+    actionLabel: '[ Button ]',
+  }
 
-  export default function Text() {
-    return <b>devjar</b>
-  }`,
+  function fit(value, width) {
+    return String(value).slice(0, width)
+  }
+
+  function left(value, width) {
+    return fit(value, width).padEnd(width, ' ')
+  }
+
+  function center(value, width) {
+    const text = fit(value, width)
+    const before = Math.floor((width - text.length) / 2)
+    const after = width - text.length - before
+    return ' '.repeat(before) + text + ' '.repeat(after)
+  }
+
+  function codeLine(value) {
+    return '|  ' + left(value, 22) + '|  | '
+  }
+
+  function previewLine(value) {
+    return '|  |' + center(value, 18) + '|  |  | '
+  }
+
+  const art = [
+    center(copy.title, 30),
+    '  .------------------------.  ',
+    ' /  ' + left(copy.editorLabel, 6) + '        ' + left(copy.previewLabel, 7) + '  /| ',
+    '+------------------------+  | ',
+    '| ' + left(copy.filename, 23) + '|  | ',
+    '|                        |  | ',
+    codeLine(copy.codeLine),
+    codeLine(copy.renderLine),
+    '|                        |  | ',
+    '|  .------------------.  |  | ',
+    previewLine(copy.resultLabel),
+    previewLine(copy.actionLabel),
+    '|  |                  |  |  | ',
+    '|  +------------------+  | /  ',
+    '+------------------------+    ',
+  ]
+
+  export { art }`,
   './styles.css': dedent`\
-  .root {
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+    color: #171717;
+    background: #f7f7f7;
+    overflow-x: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  .page {
     display: flex;
     flex-direction: column;
+    min-height: 100vh;
+    padding: 18px;
+    overflow-x: hidden;
+    background: #f7f7f7;
+  }
+
+  main {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 0.82fr) minmax(240px, 1.18fr);
+    gap: 20px;
+    align-items: center;
+  }
+
+  .copy {
+    max-width: 360px;
+    min-width: 0;
+  }
+
+  .eyebrow {
+    margin: 0;
+    color: var(--accent);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  h1 {
+    margin: 0 0 10px;
+    font-size: clamp(2.25rem, 7vw, 4.25rem);
+    font-weight: 700;
+    line-height: 0.92;
+  }
+
+  p {
+    margin: 0;
+    color: #57534e;
+    font-size: 0.95rem;
+    line-height: 1.45;
+  }
+
+  button {
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: 100vh;
-    transition: background-color 0.2s ease-in-out;
-  }
-  .root.dark {
-    background-color: #111827;
-  }
-  .theme-toggle {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-  }
-  .toggle-button {
-    position: relative;
-    width: 3.5rem;
-    height: 1.75rem;
-    border-radius: 9999px;
-    border: none;
+    margin-top: 18px;
+    border: 1px solid #d4d4d4;
+    border-radius: 999px;
+    padding: 10px 16px;
+    background: #ffffff;
+    color: #171717;
+    font: inherit;
+    font-weight: 700;
+    line-height: 1.25;
+    height: calc(1.25em + 22px);
     cursor: pointer;
-    transition: background-color 0.2s ease-in-out;
-    background-color: #e5e7eb;
-    padding: 0;
+    transition: background 0.15s ease, border-color 0.15s ease;
   }
-  .toggle-button.dark {
-    background-color: #374151;
+
+  button:hover,
+  button:focus-visible {
+    border-color: #a3a3a3;
+    background: #f5f5f5;
   }
-  .toggle-slider {
-    position: absolute;
-    top: 0.125rem;
-    left: 0.125rem;
-    width: 1.5rem;
-    height: 1.5rem;
-    border-radius: 9999px;
-    background-color: white;
-    transition: transform 0.2s ease-in-out;
+
+  button:active {
+    border-color: #a3a3a3;
+    background: #eeeeee;
   }
-  .toggle-slider.dark {
-    transform: translateX(1.75rem);
-  }
-  h2 {
-    color: rgba(51, 65, 85);
-    font-weight: 300;
-    font-size: 2rem;
+
+  .ascii {
     margin: 0;
-  }
-  .root.dark h2 {
-    color: #f9fafb;
-  }
-  .title {
-    color: rgba(51, 65, 85);
-    font-weight: 300;
-    transition: color 0.2s ease-in-out;
-  }
-  .title:hover {
-    color: rgba(23, 119, 195, 0.8);
-  }
-  .volume-section {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
     display: flex;
-    flex-direction: column;
     align-items: center;
-    margin-bottom: 1rem;
+    justify-content: center;
+    padding: 18px;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    background: #fbfbfb;
+    color: #404040;
+    overflow: hidden;
   }
-  .volume-label {
-    font-size: 0.875rem;
-    color: rgba(107, 114, 128, 1);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-weight: 500;
+
+  .ascii code {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    font-family: SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: clamp(0.72rem, 1.45vw, 1rem);
+    font-weight: 400;
+    line-height: 1.34;
+    letter-spacing: 0;
+    white-space: pre;
+    tab-size: 2;
+    text-align: left;
+    font-variant-ligatures: none;
+    overflow: visible;
   }
-  .root.dark .volume-label {
-    color: #9ca3af;
+
+  .ascii-line {
+    display: block;
+    white-space: pre;
+    font: inherit;
   }
-  .volume-indicator {
-    display: flex;
-    gap: 0.5rem;
-    align-items: flex-end;
+
+  .ascii.is-shuffling .ascii-line:nth-child(7),
+  .ascii.is-shuffling .ascii-line:nth-child(8),
+  .ascii.is-shuffling .ascii-line:nth-child(11),
+  .ascii.is-shuffling .ascii-line:nth-child(12) {
+    animation: shuffle-line 0.58s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform, opacity;
   }
-  .volume-bar {
-    width: 0.5rem;
-    background: rgba(229, 231, 235, 1);
-    border-radius: 0.125rem;
-    transition: all 0.2s ease-in-out;
+
+  .ascii.is-shuffling .ascii-line:nth-child(8),
+  .ascii.is-shuffling .ascii-line:nth-child(12) {
+    animation-delay: 0.06s;
   }
-  .root.dark .volume-bar {
-    background: #4b5563;
+
+  @keyframes shuffle-line {
+    0% {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    22% {
+      opacity: 0.58;
+      transform: translateX(1ch);
+    }
+
+    44% {
+      opacity: 0.86;
+      transform: translateX(-0.72ch);
+    }
+
+    66% {
+      opacity: 0.7;
+      transform: translateX(0.38ch);
+    }
+
+    100% {
+      opacity: 1;
+      transform: translateX(0);
+    }
   }
-  .volume-bar:nth-child(1) {
-    height: 1rem;
+
+  .ascii::selection,
+  .ascii code::selection {
+    background: #e5e5e5;
+    color: #171717;
   }
-  .volume-bar:nth-child(2) {
-    height: 1.5rem;
-  }
-  .volume-bar:nth-child(3) {
-    height: 2rem;
-  }
-  .volume-bar:nth-child(4) {
-    height: 2.5rem;
-  }
-  .volume-bar:nth-child(5) {
-    height: 3rem;
-  }
-  .volume-bar.active {
-    background: rgba(51, 65, 85, 1);
-  }
-  .root.dark .volume-bar.active {
-    background: #60a5fa;
-  }
-  .button {
-    background: #fff;
-    border: 1px solid rgba(51, 65, 85, 1);
-    padding: 0.5rem 1.5rem;
-    border-radius: 0.375rem;
-    font-weight: 500;
-    color: rgba(51, 65, 85, 1);
-    cursor: pointer;
-    transition: all 0.2s ease-in-out;
-  }
-  .root.dark .button {
-    background: #374151;
-    border-color: #6b7280;
-    color: #f9fafb;
-  }
-  .button:hover {
-    background: rgba(51, 65, 85, 1);
-    color: #fff;
-  }
-  .root.dark .button:hover {
-    background: #4b5563;
-    color: #fff;
-  }
-  .button:active {
-    transform: scale(0.98);
+
+  @media (max-width: 760px) {
+    .page {
+      min-height: 100vh;
+      height: auto;
+      overflow: auto;
+      padding: 16px;
+    }
+
+    main {
+      grid-template-columns: 1fr;
+      gap: 18px;
+    }
+
+    .ascii {
+      height: auto;
+      min-height: 220px;
+    }
+
+    .ascii code {
+      font-size: clamp(0.68rem, 2.85vw, 0.9rem);
+    }
   }
   `,
 }

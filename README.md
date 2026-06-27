@@ -7,7 +7,7 @@
 
 devjar is a library that enables you to live test and share your code snippets and examples with others. devjar will generate a live code editor where you can run your code snippets and view the results in real-time based on the provided code content of your React app.
 
-**Notice:** devjar only works for browser runtime at the moment. It will always render the default export component in `index.js` as the app entry.
+**Notice:** devjar requires React 19 and only works for browser runtime at the moment. It will always render the default export component in `index.js` as the app entry.
 
 ## Install
 
@@ -24,8 +24,9 @@ pnpm add devjar
 **Props**
 
 * `files`: An object that specifies the files you want to include in your development environment.
-* `getModuleUrl`: A function that maps module names to CDN URLs.
+* `resolveModule`: A function that maps module specifiers to browser-loadable module URLs.
 * `onError`: Callback function of error event from the iframe sandbox. By default `console.log`.
+* `tailwindSrc`: Optional Tailwind browser script URL. Pass `false` to disable Tailwind injection.
 
 **Example**
 
@@ -42,8 +43,8 @@ function App() {
   return (
     <DevJar
       files={files}
-      getModuleUrl={(m) => {
-        return `${CDN_HOST}/${m}`
+      resolveModule={(specifier) => {
+        return `${CDN_HOST}/${specifier}`
       }}
     />
   )
@@ -57,7 +58,8 @@ A hook that provides lower-level control over the live code execution environmen
 **Parameters**
 
 * `options`
-  * `getModulePath(module)`: A function that receives the module name and returns the CDN url of each imported module path. For example, import React from 'react' will load React from skypack.dev/react.
+  * `resolveModule(specifier)`: A function that receives a module specifier and returns the browser-loadable URL. For example, import React from 'react' will load React from skypack.dev/react.
+  * `tailwindSrc`: Optional Tailwind browser script URL. Pass `false` to disable Tailwind injection.
 
 **Returns**
 
@@ -75,8 +77,8 @@ function Playground() {
   const { ref, error, load } = useLiveCode({
     // The CDN url of each imported module path in your code
     // e.g. `import React from 'react'` will load react from skypack.dev/react
-    getModulePath(modPath) {
-      return `https://cdn.skypack.dev/${modPath}`
+    resolveModule(specifier) {
+      return `https://cdn.skypack.dev/${specifier}`
     }
   })
 
@@ -105,77 +107,6 @@ function Playground() {
   )
 }
 ```
-
-## GLSL Shader Runtime
-
-### `useGL(options)`
-
-A hook that renders GLSL fragment shaders using WebGL. Perfect for creating interactive shader playgrounds and visualizations.
-
-**Parameters**
-
-* `options`
-  * `fragment`: The GLSL fragment shader source code as a string.
-  * `canvasRef`: A React ref to an HTML canvas element where the shader will be rendered.
-  * `onError`: Optional callback function that receives error messages (prefixed with `devjar:gl`).
-
-**Available Uniforms**
-
-The hook automatically provides these uniforms to your fragment shader:
-
-* `u_time`: `float` - Elapsed time in seconds since the renderer started
-* `u_resolution`: `vec2` - Canvas dimensions (width, height)
-* `u_mouse`: `vec2` - Normalized mouse position (0.0 to 1.0)
-
-**Example**
-
-```jsx
-import { useGL } from 'devjar'
-import { useRef, useState } from 'react'
-
-function ShaderPlayground() {
-  const canvasRef = useRef(null)
-  const [shaderCode, setShaderCode] = useState(`
-    precision mediump float;
-    
-    uniform vec2 u_resolution;
-    uniform float u_time;
-    uniform vec2 u_mouse;
-    
-    void main() {
-      vec2 st = gl_FragCoord.xy / u_resolution.xy;
-      vec3 color = vec3(st.x, st.y, abs(sin(u_time)));
-      gl_FragColor = vec4(color, 1.0);
-    }
-  `)
-  const [error, setError] = useState(null)
-
-  useGL({
-    fragment: shaderCode,
-    canvasRef,
-    onError: setError
-  })
-
-  return (
-    <div>
-      <textarea
-        value={shaderCode}
-        onChange={(e) => setShaderCode(e.target.value)}
-        style={{ width: '100%', height: '200px' }}
-      />
-      <canvas ref={canvasRef} style={{ width: '100%', height: '300px' }} />
-      {error && <pre style={{ color: 'red' }}>{error}</pre>}
-    </div>
-  )
-}
-```
-
-**Error Handling**
-
-All errors are prefixed with `devjar:gl` for easy identification:
-- `devjar:gl Shader compilation error: ...`
-- `devjar:gl Program linking error: ...`
-- `devjar:gl WebGL is not supported in your browser`
 
 ## License
 
