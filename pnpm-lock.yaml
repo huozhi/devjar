@@ -11,12 +11,6 @@ importers:
       es-module-lexer:
         specifier: 1.6.0
         version: 1.6.0
-      oxc-transform:
-        specifier: ^0.137.0
-        version: 0.137.0
-      react-refresh:
-        specifier: ^0.18.0
-        version: 0.18.0
     devDependencies:
       '@types/node':
         specifier: ^22.10.7
@@ -42,6 +36,9 @@ importers:
       next:
         specifier: 16.3.0-canary.69
         version: 16.3.0-canary.69(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      oxc-transform:
+        specifier: ^0.137.0
+        version: 0.137.0
       react:
         specifier: ^19.2.1
         version: 19.2.7
@@ -937,10 +934,6 @@ packages:
     peerDependencies:
       react: ^19.2.7
 
-  react-refresh@0.18.0:
-    resolution: {integrity: sha512-QgT5//D3jfjJb6Gsjxv0Slpj23ip+HtOpnNgnb2S5zU3CB26G/IDPGoy4RJB42wzFE46DRsstbW6tKHoKbhAxw==}
-    engines: {node: '>=0.10.0'}
-
   react@19.2.7:
     resolution: {integrity: sha512-HNe9WslTbXmFK8o8cmwgAeJFSBvt1bPdHCVKtaaV+WlAN36mpT4hcRpwbf3fY56ar2oIXzsBpOAiIRHAdY0OlQ==}
     engines: {node: '>=0.10.0'}
@@ -1707,8 +1700,6 @@ snapshots:
     dependencies:
       react: 19.2.7
       scheduler: 0.27.0
-
-  react-refresh@0.18.0: {}
 
   react@19.2.7: {}
 

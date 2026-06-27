@@ -29,9 +29,7 @@
     "react": "^19.0.0"
   },
   "dependencies": {
-    "es-module-lexer": "1.6.0",
-    "oxc-transform": "^0.137.0",
-    "react-refresh": "^0.18.0"
+    "es-module-lexer": "1.6.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.7",
@@ -42,6 +40,7 @@
     "dedent": "^1.7.0",
     "devjar": "link:",
     "next": "16.3.0-canary.69",
+    "oxc-transform": "^0.137.0",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "typescript": "^5.7.3"
