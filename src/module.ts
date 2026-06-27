@@ -12,28 +12,15 @@ async function createModule(
     return `${localImportPrefix}${encodeURIComponent(moduleKey)}__`
   }
 
-  function createScopedSpecifier(moduleKey: string) {
-    return `devjar-internal/${runtime.revision}/${encodeURIComponent(moduleKey)}`
-  }
-
-  function registerImportMap(imports: Record<string, string>) {
-    const script = document.createElement('script')
-    script.type = 'importmap'
-    script.textContent = JSON.stringify({ imports })
-    document.head.appendChild(script)
-    ;(runtime.importMaps ||= []).push(script)
-  }
-
   function createInlinedModule(code) {
     return `data:text/javascript;utf-8,${encodeURIComponent(code)}`
   }
 
-  function createCssModule(code: string, fileName: string) {
+  function createCssModule(code: string) {
     return `\
 const sheet = new CSSStyleSheet();
 sheet.replaceSync(${JSON.stringify(code)});
-export default sheet;
-//# sourceURL=devjar/${fileName}?v=${runtime.revision}`
+export default sheet;`
   }
 
   function rewriteLocalImports(code: string, specifiers: Record<string, string>) {
@@ -81,34 +68,44 @@ export default sheet;
     for (const moduleKey of importedModules) moduleKeys.add(moduleKey)
   }
 
-  const scopedSpecifiers: Record<string, string> = {}
-  for (const moduleKey of moduleKeys) {
-    scopedSpecifiers[moduleKey] = createScopedSpecifier(moduleKey)
-  }
-
-  const imports: Record<string, string> = {}
+  const moduleSources: Record<string, string> = {}
   for (const moduleKey of moduleKeys) {
     if (!(moduleKey in files)) {
-      imports[scopedSpecifiers[moduleKey]] = createInlinedModule(
-        `throw new Error(${JSON.stringify('devjar: Module not found: ' + moduleKey)})`
-      )
+      moduleSources[moduleKey] = `throw new Error(${JSON.stringify('devjar: Module not found: ' + moduleKey)})`
       delete runtime.urls[moduleKey]
       continue
     }
 
-    if (!runtime.urls[moduleKey] || invalidated.has(moduleKey)) {
-      const moduleCode = moduleKey.endsWith('.css')
-        ? createCssModule(files[moduleKey], moduleKey)
-        : rewriteLocalImports(
-            `${files[moduleKey]}\n//# sourceURL=devjar/${moduleKey}?v=${runtime.revision}`,
-            scopedSpecifiers
-          )
-      runtime.urls[moduleKey] = createInlinedModule(moduleCode)
-    }
-    imports[scopedSpecifiers[moduleKey]] = runtime.urls[moduleKey]
+    moduleSources[moduleKey] = moduleKey.endsWith('.css')
+      ? createCssModule(files[moduleKey])
+      : files[moduleKey]
   }
 
-  registerImportMap(imports)
+  const buildingUrls = new Set<string>()
+  const buildModuleUrl = (moduleKey: string): string => {
+    if (runtime.urls[moduleKey] && !invalidated.has(moduleKey)) return runtime.urls[moduleKey]
+    if (buildingUrls.has(moduleKey)) {
+      throw new Error('devjar: Circular local imports are not supported: ' + moduleKey)
+    }
+
+    buildingUrls.add(moduleKey)
+    const specifiers: Record<string, string> = {}
+    for (const imported of dependencies[moduleKey] || []) {
+      specifiers[imported] = buildModuleUrl(imported)
+    }
+
+    const moduleCode = moduleKey.endsWith('.css')
+      ? moduleSources[moduleKey]
+      : rewriteLocalImports(moduleSources[moduleKey], specifiers)
+
+    runtime.urls[moduleKey] = createInlinedModule(moduleCode)
+    buildingUrls.delete(moduleKey)
+    return runtime.urls[moduleKey]
+  }
+
+  for (const moduleKey of moduleKeys) {
+    buildModuleUrl(moduleKey)
+  }
 
   if (!runtime.refreshRuntime) {
     const refreshModule = await import(/* webpackIgnore: true */ /* @vite-ignore */ /* turbopackIgnore: true */ resolveModule('react-refresh/runtime'))
@@ -117,12 +114,11 @@ export default sheet;
     globalThis.__devjarRefreshRuntime = runtime.refreshRuntime
   }
 
-  const entrySpecifier = scopedSpecifiers['index']
-  if (!entrySpecifier) {
+  if (!runtime.urls['index']) {
     throw new Error('devjar: Module not found: index')
   }
 
-  const module = await import(/* webpackIgnore: true */ /* @vite-ignore */ /* turbopackIgnore: true */ entrySpecifier)
+  const module = await import(/* webpackIgnore: true */ /* @vite-ignore */ /* turbopackIgnore: true */ runtime.urls['index'])
   runtime.files = { ...files }
   return { module, changed: changedModules.size > 0 }
 }
