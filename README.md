@@ -24,7 +24,7 @@ pnpm add devjar
 **Props**
 
 * `files`: An object that specifies the files you want to include in your development environment.
-* `getModuleUrl`: A function that maps module names to CDN URLs.
+* `resolveModule`: A function that maps module specifiers to browser-loadable module URLs.
 * `onError`: Callback function of error event from the iframe sandbox. By default `console.log`.
 * `tailwindSrc`: Optional Tailwind browser script URL. Pass `false` to disable Tailwind injection.
 
@@ -43,8 +43,8 @@ function App() {
   return (
     <DevJar
       files={files}
-      getModuleUrl={(m) => {
-        return `${CDN_HOST}/${m}`
+      resolveModule={(specifier) => {
+        return `${CDN_HOST}/${specifier}`
       }}
     />
   )
@@ -58,7 +58,7 @@ A hook that provides lower-level control over the live code execution environmen
 **Parameters**
 
 * `options`
-  * `getModulePath(module)`: A function that receives the module name and returns the CDN url of each imported module path. For example, import React from 'react' will load React from skypack.dev/react.
+  * `resolveModule(specifier)`: A function that receives a module specifier and returns the browser-loadable URL. For example, import React from 'react' will load React from skypack.dev/react.
   * `tailwindSrc`: Optional Tailwind browser script URL. Pass `false` to disable Tailwind injection.
 
 **Returns**
@@ -77,8 +77,8 @@ function Playground() {
   const { ref, error, load } = useLiveCode({
     // The CDN url of each imported module path in your code
     // e.g. `import React from 'react'` will load react from skypack.dev/react
-    getModulePath(modPath) {
-      return `https://cdn.skypack.dev/${modPath}`
+    resolveModule(specifier) {
+      return `https://cdn.skypack.dev/${specifier}`
     }
   })
 

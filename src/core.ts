@@ -12,71 +12,11 @@ function createLocalImportPlaceholder(moduleKey: string) {
   return `${localImportPrefix}${encodeURIComponent(moduleKey)}__`
 }
 
-function transformWorkerMain() {
-  let oxc
-
-  function getLang(filename) {
-    if (/\.[cm]?tsx?$/.test(filename)) return 'tsx'
-    return 'jsx'
-  }
-
-  function getTransformErrorMessage(errors) {
-    if (!errors?.length) return ''
-
-    const error = errors.find(error => error.severity === 'Error')
-    if (!error) return ''
-
-    return error.codeframe || error.message || 'devjar: transform failed'
-  }
-
-  self.onmessage = async ({ data }) => {
-    const { id, moduleUrl, files } = data
-    try {
-      if (!oxc) {
-        oxc = await import(/* webpackIgnore: true */ /* @vite-ignore */ moduleUrl)
-      }
-
-      const transformed = {}
-      for (const [filename, source] of Object.entries(files)) {
-        const output = oxc.transformSync(filename, source, {
-          lang: getLang(filename),
-          sourceType: 'module',
-          target: 'es2022',
-          decorator: {
-            legacy: true,
-          },
-          jsx: {
-            runtime: 'automatic',
-            development: true,
-            refresh: true,
-          },
-          sourcemap: false,
-        })
-
-        const errorMessage = getTransformErrorMessage(output.errors)
-        if (errorMessage) throw new Error(errorMessage)
-
-        transformed[filename] = output.code
-      }
-      self.postMessage({ id, transformed })
-    } catch (error) {
-      self.postMessage({
-        id,
-        error: {
-          message: error?.message || String(error),
-          stack: error?.stack,
-        },
-      })
-    }
-  }
-}
-
 function createTransformWorker() {
-  const source = `(${transformWorkerMain.toString()})()`
-  const url = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }))
-  const worker = new Worker(url, { type: 'module', name: 'devjar-transform' })
-  URL.revokeObjectURL(url)
-  return worker
+  return new Worker(new URL('./transform-worker.js', import.meta.url), {
+    type: 'module',
+    name: 'devjar-transform',
+  })
 }
 
 function getModuleKey(filename: string) {
@@ -99,7 +39,7 @@ function resolveRelativeModule(importer: string, imported: string) {
   return imported.endsWith('.css') ? '@' + path : removeExtension('@' + path)
 }
 
-function replaceImports(source, filename, moduleKey, getModuleUrl, localModules) {
+function replaceImports(source, filename, moduleKey, resolveModule, localModules) {
   let code = ''
   let lastIndex = 0
   let hasReactImports = false
@@ -124,7 +64,7 @@ function replaceImports(source, filename, moduleKey, getModuleUrl, localModules)
       code += source.substring(ss, s)
       code += localModuleKey
         ? createLocalImportPlaceholder(localModuleKey)
-        : getModuleUrl(n)
+        : resolveModule(n)
       code += source.substring(e, se)
     }
     if (localModuleKey) dependencies.push(localModuleKey)
@@ -157,7 +97,7 @@ function replaceImports(source, filename, moduleKey, getModuleUrl, localModules)
   code += source.substring(lastIndex)
 
   if (!hasReactImports) {
-    code = `import React from ${JSON.stringify(getModuleUrl('react'))};\n${code}`
+    code = `import React from ${JSON.stringify(resolveModule('react'))};\n${code}`
   }
 
   code = `const $RefreshReg$ = (type, id) => globalThis.__devjarRefreshRuntime.register(type, ${JSON.stringify(moduleKey + ' ')} + id);\n` +
@@ -168,7 +108,7 @@ function replaceImports(source, filename, moduleKey, getModuleUrl, localModules)
 }
 
 // createRenderer is going to be stringified and executed in the iframe
-function createRenderer(createModule_, getModuleUrl) {
+function createRenderer(createModule_, resolveModule) {
   let reactRoot
   let ErrorBoundary
   let errorBoundary
@@ -176,9 +116,9 @@ function createRenderer(createModule_, getModuleUrl) {
   const moduleRuntime: any = {}
 
   async function render(files: Record<string, string>, dependencies: Record<string, string[]>) {
-    const result = await createModule_(files, { getModuleUrl, dependencies, runtime: moduleRuntime })
-    const ReactMod: typeof import('react') = await import(/* webpackIgnore: true */ getModuleUrl('react'))
-    const ReactDOMMod: typeof import('react-dom/client') = await import(/* webpackIgnore: true */ getModuleUrl('react-dom/client'))
+    const result = await createModule_(files, { resolveModule, dependencies, runtime: moduleRuntime })
+    const ReactMod: typeof import('react') = await import(/* webpackIgnore: true */ /* @vite-ignore */ /* turbopackIgnore: true */ resolveModule('react'))
+    const ReactDOMMod: typeof import('react-dom/client') = await import(/* webpackIgnore: true */ /* @vite-ignore */ /* turbopackIgnore: true */ resolveModule('react-dom/client'))
 
     const _jsx = ReactMod.createElement
     const root = document.getElementById('__reactRoot')
@@ -241,10 +181,10 @@ function createMainScript({ uid }) {
 const _createModule = ${createModule.toString()};
 const _createRenderer = ${createRenderer.toString()};
 
-const getModuleUrl = (m) => window.parent.__devjar__[globalThis.uid].getModuleUrl(m)
+const resolveModule = (specifier) => window.parent.__devjar__[globalThis.uid].resolveModule(specifier)
 
 globalThis.uid = ${JSON.stringify(uid)};
-globalThis.__render__ = _createRenderer(_createModule, getModuleUrl);
+globalThis.__render__ = _createRenderer(_createModule, resolveModule);
 `)
   return code
 }
@@ -274,10 +214,10 @@ function createScript(
 }
 
 function useLiveCode({
-  getModuleUrl,
+  resolveModule,
   tailwindSrc = defaultTailwindSrc,
 }: {
-  getModuleUrl?: (name: string) => string
+  resolveModule?: (specifier: string) => string
   tailwindSrc?: string | false
 }) {
   const iframeRef = useRef(null)
@@ -292,14 +232,14 @@ function useLiveCode({
   const loadIdRef = useRef(0)
   const uid = useId()
 
-  // Let getModuleUrl executed on parent window side since it might involve
+  // Let resolveModule execute on parent window side since it might involve
   // variables that iframe cannot access.
   useEffect(() => {
     if (!globalThis.__devjar__) {
       globalThis.__devjar__ = {};
     }
     globalThis.__devjar__[uid] = {
-      getModuleUrl,
+      resolveModule,
     }
 
     return () => {
@@ -307,7 +247,7 @@ function useLiveCode({
         delete globalThis.__devjar__[uid]
       }
     }
-  }, [getModuleUrl, uid])
+  }, [resolveModule, uid])
 
   useEffect(() => {
     return () => {
@@ -349,8 +289,8 @@ function useLiveCode({
   }, [])
 
   const transformFiles = useCallback((files: Record<string, string>) => {
-    if (!getModuleUrl) {
-      return Promise.reject(new Error('devjar: getModuleUrl is required for the browser transformer'))
+    if (!resolveModule) {
+      return Promise.reject(new Error('devjar: resolveModule is required for the browser transformer'))
     }
 
     if (!transformWorkerRef.current) {
@@ -382,10 +322,10 @@ function useLiveCode({
       worker.postMessage({
         id,
         files,
-        moduleUrl: getModuleUrl('oxc-transform'),
+        moduleUrl: resolveModule('oxc-transform'),
       })
     })
-  }, [getModuleUrl])
+  }, [resolveModule])
 
   const load = useCallback(async (files: Record<string, string>) => {
     const loadId = ++loadIdRef.current
@@ -439,7 +379,7 @@ function useLiveCode({
               transformCacheRef.current.get(filename).code,
               filename,
               moduleKey,
-              getModuleUrl,
+              resolveModule,
               localModules
             )
             res[moduleKey] = transformed.code
@@ -477,7 +417,7 @@ function useLiveCode({
       }
     }
     rerender({})
-  }, [getModuleUrl, transformFiles])
+  }, [resolveModule, transformFiles])
 
   return { ref: iframeRef, error, load }
 }

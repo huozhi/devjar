@@ -11,9 +11,9 @@ const REACT_DEV_MODULES = new Set([
   'react/jsx-dev-runtime',
 ])
 
-function getModuleUrl(moduleName: string) {
-  const url = `${CDN_HOST}/${moduleName}`
-  return REACT_DEV_MODULES.has(moduleName) ? `${url}?dev` : url
+function resolveModule(specifier: string) {
+  const url = `${CDN_HOST}/${specifier}`
+  return REACT_DEV_MODULES.has(specifier) ? `${url}?dev` : url
 }
 
 import { Editor } from 'codice'
@@ -294,7 +294,7 @@ export function Codesandbox({
           onError={(err) => {
             if (err) console.error(err)
           }}
-          getModuleUrl={getModuleUrl}
+          resolveModule={resolveModule}
         />
       </div>
       <div className="codesandbox-layout">

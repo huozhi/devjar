@@ -1,7 +1,7 @@
 async function createModule(
   files: Record<string, string>,
-  { getModuleUrl, dependencies = {}, runtime = {} }: {
-    getModuleUrl: (name: string) => string
+  { resolveModule, dependencies = {}, runtime = {} }: {
+    resolveModule: (specifier: string) => string
     dependencies?: Record<string, string[]>
     runtime?: any
   }
@@ -111,7 +111,7 @@ export default sheet;
   registerImportMap(imports)
 
   if (!runtime.refreshRuntime) {
-    const refreshModule = await import(/* webpackIgnore: true */ getModuleUrl('react-refresh/runtime'))
+    const refreshModule = await import(/* webpackIgnore: true */ /* @vite-ignore */ /* turbopackIgnore: true */ resolveModule('react-refresh/runtime'))
     runtime.refreshRuntime = refreshModule.default || refreshModule
     runtime.refreshRuntime.injectIntoGlobalHook(self)
     globalThis.__devjarRefreshRuntime = runtime.refreshRuntime
@@ -122,7 +122,7 @@ export default sheet;
     throw new Error('devjar: Module not found: index')
   }
 
-  const module = await import(/* webpackIgnore: true */ entrySpecifier)
+  const module = await import(/* webpackIgnore: true */ /* @vite-ignore */ /* turbopackIgnore: true */ entrySpecifier)
   runtime.files = { ...files }
   return { module, changed: changedModules.size > 0 }
 }

@@ -19,19 +19,21 @@
   ],
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "bunchee",
+    "build": "pnpm run build:lib && pnpm run build:worker",
+    "build:lib": "bunchee",
+    "build:worker": "bun build src/transform-worker.ts --outfile dist/transform-worker.js --target browser --format esm",
     "prepublishOnly": "pnpm run build",
     "build:site": "pnpm run build && next build ./site",
     "start": "next start ./site",
-    "dev": "node --run build && (node --run dev:lib & node --run dev:site & wait)",
+    "dev": "pnpm run build && (pnpm run dev:lib & pnpm run dev:worker & pnpm run dev:site & wait)",
     "dev:lib": "bunchee --watch",
+    "dev:worker": "bun build src/transform-worker.ts --outfile dist/transform-worker.js --target browser --format esm --watch",
     "dev:site": "next dev ./site"
   },
   "peerDependencies": {
     "react": "^19.0.0"
   },
   "dependencies": {
-    "dedent": "^1.7.0",
     "es-module-lexer": "1.6.0",
     "oxc-transform": "^0.137.0",
     "react-refresh": "^0.18.0"
@@ -40,8 +42,9 @@
     "@types/node": "^22.10.7",
     "@types/react": "^19.0.7",
     "@types/react-dom": "^19.0.3",
-    "bunchee": "^6.3.3",
+    "bunchee": "^6.11.0",
     "codice": "^1.6.0",
+    "dedent": "^1.7.0",
     "devjar": "link:",
     "next": "16.3.0-canary.69",
     "react": "^19.2.1",
