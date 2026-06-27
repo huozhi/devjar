@@ -23,7 +23,7 @@
     "prepublishOnly": "pnpm run build",
     "build:site": "pnpm run build && next build ./site",
     "start": "next start ./site",
-    "dev": "node --run dev:lib & node --run dev:site & wait",
+    "dev": "node --run build && (node --run dev:lib & node --run dev:site & wait)",
     "dev:lib": "bunchee --watch",
     "dev:site": "next dev ./site"
   },

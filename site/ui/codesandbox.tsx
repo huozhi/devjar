@@ -20,7 +20,7 @@ import { Editor } from 'codice'
 import { DevJar } from 'devjar'
 import FileIcon from './file-icon'
 import RootActions from './root-actions'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 const kebabCase = (str: string) => str.replace(/([a-z0-9]|(?=[A-Z]))([A-Z])/g, '$1-$2').toLowerCase()
 const removeExtension = (str: string) => str.replace(/\.[^/.]+$/, '')
@@ -39,6 +39,48 @@ function getDisplayName(filename: string): string {
   }
   return normalized + '.js'
 }
+
+const loaderChars = '░▒▓█▄▀■□▪▫'
+
+function loaderChar(index: number, frame: number) {
+  return loaderChars[(index * 17 + frame * 11) % loaderChars.length]
+}
+
+function scrambleText(text: string, frame: number) {
+  let index = 0
+  return text.replace(/\S/g, () => loaderChar(index++, frame))
+}
+
+function scrambleTemplate(template: string, frame: number) {
+  let index = 0
+  return template.replace(/x/g, () => loaderChar(index++, frame))
+}
+
+function renderLoaderCells(text: string, frame: number) {
+  return Array.from(scrambleText(text, frame), (char, index) => (
+    <span className={char === ' ' ? 'preview--loading-cell is-space' : 'preview--loading-cell'} key={index}>
+      {char === ' ' ? '\u00a0' : char}
+    </span>
+  ))
+}
+
+const previewFallbackArtTemplate = [
+  '           DEVJAR             ',
+  '  .------------------------.  ',
+  ' /  xxxxxx        xxxxxxx  /| ',
+  '+------------------------+  | ',
+  '| xxxxxxxx               |  | ',
+  '|                        |  | ',
+  '|  xxxxxxxxxxxxxxxxxx    |  | ',
+  '|  xxxxxxxxxxxxxx        |  | ',
+  '|                        |  | ',
+  '|  .------------------.  |  | ',
+  '|  |                  |  |  | ',
+  '|  |    xxxxxxxxxx    |  |  | ',
+  '|  |                  |  |  | ',
+  '|  +------------------+  | /  ',
+  '+------------------------+    ',
+]
 
 export function Codesandbox({
   files: initialFiles
@@ -60,6 +102,110 @@ export function Codesandbox({
   const [editingNewItem, setEditingNewItem] = useState<{ type: 'file' | 'folder'; tempId: string } | null>(null)
   const [newItemName, setNewItemName] = useState('')
   const [deletingItems, setDeletingItems] = useState<Set<string>>(new Set())
+  const previewRef = useRef<HTMLDivElement>(null)
+  const iframeRef = useRef<HTMLIFrameElement>(null)
+  const [previewHeight, setPreviewHeight] = useState(440)
+  const [previewReady, setPreviewReady] = useState(false)
+  const [loaderFrame, setLoaderFrame] = useState(0)
+
+  useEffect(() => {
+    if (previewReady) return
+    const interval = window.setInterval(() => {
+      setLoaderFrame((frame) => (frame + 1) % 997)
+    }, 120)
+
+    return () => window.clearInterval(interval)
+  }, [previewReady])
+
+  useEffect(() => {
+    const iframe = iframeRef.current
+    const preview = previewRef.current
+    if (!iframe || !preview) return
+
+    let resizeObserver: ResizeObserver | undefined
+    let frame = 0
+    let probeFrame = 0
+    let rendered = false
+
+    const updateHeight = () => {
+      frame = 0
+      const doc = iframe.contentDocument
+      if (!doc) return
+
+      const nextHeight = Math.ceil(Math.max(
+        doc.body?.scrollHeight || 0,
+        doc.body?.offsetHeight || 0,
+        doc.documentElement?.scrollHeight || 0,
+        doc.documentElement?.offsetHeight || 0,
+        440
+      ))
+
+      setPreviewHeight(nextHeight)
+    }
+
+    const scheduleUpdate = () => {
+      if (frame) cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(updateHeight)
+    }
+
+    const markReady = () => {
+      rendered = true
+      setPreviewReady(true)
+      scheduleUpdate()
+    }
+
+    const detectRenderedContent = () => {
+      if (rendered) return true
+
+      const doc = iframe.contentDocument
+      const root = doc?.getElementById('__reactRoot')
+      if (!root) return false
+
+      if (root.childElementCount > 0 || root.textContent?.trim()) {
+        markReady()
+        return true
+      }
+
+      return false
+    }
+
+    const probeReady = () => {
+      probeFrame = 0
+      if (detectRenderedContent()) return
+      probeFrame = requestAnimationFrame(probeReady)
+    }
+
+    const scheduleReadyProbe = () => {
+      if (!rendered && !probeFrame) {
+        probeFrame = requestAnimationFrame(probeReady)
+      }
+    }
+
+    const setupObserver = () => {
+      scheduleUpdate()
+      scheduleReadyProbe()
+      const doc = iframe.contentDocument
+      if (!doc || typeof ResizeObserver === 'undefined') return
+      resizeObserver?.disconnect()
+      resizeObserver = new ResizeObserver(scheduleUpdate)
+      resizeObserver.observe(doc.documentElement)
+      if (doc.body) resizeObserver.observe(doc.body)
+    }
+
+    iframe.addEventListener('load', setupObserver)
+    iframe.addEventListener('devjar:render', markReady)
+    window.addEventListener('resize', scheduleUpdate)
+    setupObserver()
+
+    return () => {
+      iframe.removeEventListener('load', setupObserver)
+      iframe.removeEventListener('devjar:render', markReady)
+      window.removeEventListener('resize', scheduleUpdate)
+      resizeObserver?.disconnect()
+      if (frame) cancelAnimationFrame(frame)
+      if (probeFrame) cancelAnimationFrame(probeFrame)
+    }
+  }, [])
 
   useEffect(() => {
     if (initialFiles !== files) {
@@ -117,6 +263,41 @@ export function Codesandbox({
 
   return (
     <div data-codesandbox="react">
+      <div className="preview" ref={previewRef} style={{ height: previewHeight }}>
+        <div className={previewReady ? 'preview--loading is-hidden' : 'preview--loading'} aria-hidden="true">
+          <div className="preview--loading-copy">
+            <h1>Devjar</h1>
+            <p className="preview--loading-kicker">
+              <span className="preview--loading-measure">
+                React Live Preview in browser
+                <span className="preview--loading-noise">{renderLoaderCells('React Live Preview in browser', loaderFrame)}</span>
+              </span>
+            </p>
+            <button className="preview--loading-button" type="button" tabIndex={-1}>
+              <span className="preview--loading-measure">
+                Wiggle
+                <span className="preview--loading-noise">{renderLoaderCells('Wiggle', loaderFrame + 2)}</span>
+              </span>
+            </button>
+          </div>
+          <pre className="preview--loading-art">
+            {previewFallbackArtTemplate.map((line, index) => (
+              <span key={index}>{scrambleTemplate(line, loaderFrame + index)}</span>
+            ))}
+          </pre>
+        </div>
+        <DevJar
+          className={'preview--result ' + (previewReady ? 'is-ready' : '')}
+          files={files}
+          ref={iframeRef}
+          scrolling="no"
+          onError={(err) => {
+            setError(err)
+          }}
+          getModuleUrl={getModuleUrl}
+        />
+        {error && <pre className="preview--error" dangerouslySetInnerHTML={{ __html: error.toString() }} />}
+      </div>
       <div className="codesandbox-layout">
         <div className="filetree">
           <div className="filetree-root">
@@ -353,17 +534,6 @@ export function Codesandbox({
               }
             }}
           />
-      </div>
-      <div className="preview">
-        <DevJar
-          className="preview--result"
-          files={files}
-          onError={(err) => {
-            setError(err)
-          }}
-          getModuleUrl={getModuleUrl}
-        />
-        {error && <pre className="preview--error" dangerouslySetInnerHTML={{ __html: error.toString() }} />}
       </div>
     </div>
   )

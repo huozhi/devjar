@@ -67,10 +67,10 @@ export default function GlPage() {
   return (
     <>
       <div className="playground-container">
-        <RuntimeNav active="gl" />
         <div className="playground-wrapper">
           <GlslSandbox initialCode={DEFAULT_SHADER} />
         </div>
+        <RuntimeNav active="gl" />
       </div>
       
       <div className="usage-section">
@@ -90,4 +90,3 @@ export default function GlPage() {
     </>
   )
 }
-

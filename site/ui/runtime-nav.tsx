@@ -2,29 +2,28 @@ import Link from 'next/link'
 
 export function RuntimeNav({ active }: { active: 'react' | 'gl' }) {
   return (
-    <div className="examples-section">
-      <div className="examples-label">Examples</div>
-      <div className="example-tabs">
+    <div className="runtime-nav">
+      <div className="runtime-label">Runtime</div>
+      <div className="runtime-tabs">
         {active === 'react' ? (
-          <button className="example-tab active">
-            React Runtime
+          <button type="button" className="runtime-tab active">
+            React
           </button>
         ) : (
-          <Link href="/" className="example-tab">
-            React Runtime
+          <Link href="/" className="runtime-tab">
+            React
           </Link>
         )}
         {active === 'gl' ? (
-          <button className="example-tab active">
-            GL Runtime
+          <button type="button" className="runtime-tab active">
+            GL
           </button>
         ) : (
-          <Link href="/gl" className="example-tab">
-            GL Runtime
+          <Link href="/gl" className="runtime-tab">
+            GL
           </Link>
         )}
       </div>
     </div>
   )
 }
-

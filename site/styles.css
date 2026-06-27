@@ -5,11 +5,23 @@ html {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
     'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans',
     'Helvetica Neue', sans-serif;
+  overflow-x: hidden;
 }
 html, body {
   margin: 0;
   padding: 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  max-width: 100%;
 }
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
 :root {
   --sh-class: #24292e;
   --sh-identifier: #354150;
@@ -32,19 +44,50 @@ a:hover {
 }
 
 main {
-  padding: 0 0.5rem;
+  padding: 0;
 }
 
 footer {
-  padding: 0 0.5rem;
+  margin-top: 3.5rem;
+  padding: 0 1rem 2rem;
   display: flex;
   justify-content: center;
 }
 
-footer > p {
-  max-width: 680px;
+footer nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.875rem;
+  flex-wrap: wrap;
+  max-width: 960px;
   width: 100%;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
   text-align: center;
+  color: #6b7280;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.footer-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.footer-label {
+  color: #a3a3a3;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.footer-divider {
+  width: 1px;
+  height: 1rem;
+  background: #e5e7eb;
 }
 
 .text-center {
@@ -70,48 +113,18 @@ footer > p {
 }
 
 
-.titles {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 1rem 0;
-  line-height: 1.4;
-  width: 100%;
-  max-width: 680px;
-  margin: 0 auto;
-  color: #404756;
-}
-
-.titles h1 {
-  font-size: 52px;
-  margin: 0;
-}
-
-.titles h3 {
-  font-size: 32px;
-  margin: 0;
-  padding: 8px 0;
-}
-
-.titles p {
-  font-size: 18px;
-  margin: 0;
-  padding: 8px 0;
-}
-
 .playground-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  min-height: calc(100vh - 300px);
+  justify-content: flex-start;
   width: 100%;
-  padding: 2rem 0;
+  padding: 0 0 2rem;
 }
 
 .playground-wrapper {
   width: 100%;
-  max-width: 960px;
+  max-width: none;
   margin: 0 auto;
 }
 
@@ -119,21 +132,25 @@ footer > p {
   max-width: 760px;
 }
 
-.examples-section {
-  position: sticky;
-  top: 0;
-  z-index: 100;
+footer a {
+  text-decoration: none;
+}
+
+footer a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.runtime-nav {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.75rem;
-  margin-bottom: 1.5rem;
-  padding: 1rem 0;
-  background-color: #fff;
-  border-bottom: 1px solid #e5e7eb;
+  margin-top: 1rem;
+  padding: 0.5rem 0;
 }
 
-.examples-label {
+.runtime-label {
   font-size: 11px;
   font-weight: 500;
   color: #9ca3af;
@@ -141,42 +158,50 @@ footer > p {
   letter-spacing: 0.5px;
 }
 
-.example-tabs {
+.runtime-tabs {
   display: flex;
-  gap: 0;
+  gap: 0.25rem;
   flex-wrap: wrap;
   justify-content: center;
+  margin-top: 1rem;
 }
 
-.example-tab {
-  padding: 10px 24px;
-  border: none;
-  background: none;
+.runtime-nav .runtime-tabs {
+  margin-top: 0;
+}
+
+.runtime-tab {
+  padding: 8px 18px;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  background: #fff;
   cursor: pointer;
-  font-size: 17px;
-  font-weight: 400;
+  font-size: 14px;
+  font-weight: 500;
   font-family: inherit;
   color: #374151;
-  transition: text-decoration 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease;
   text-decoration: none;
   display: inline-block;
 }
 
-.example-tab,
-.example-tab:link,
-.example-tab:visited {
+.runtime-tab,
+.runtime-tab:link,
+.runtime-tab:visited {
   font-family: inherit;
-  font-size: 17px;
-  font-weight: 400;
+  font-size: 14px;
+  font-weight: 500;
 }
 
-.example-tab:hover {
-  text-decoration: underline;
+.runtime-tab:hover {
+  border-color: #d1d5db;
+  background: #f9fafb;
 }
 
-.example-tab.active {
-  text-decoration: underline;
-  text-underline-offset: 4px;
+.runtime-tab.active {
+  border-color: #111827;
+  background: #111827;
+  color: #fff;
 }
 
 .usage-section {
@@ -352,21 +377,10 @@ footer > p {
     height: auto;
   }
   .preview {
-    min-height: 200px;
+    min-height: 260px;
     padding: 1rem 0.75rem;
   }
   .playground-wrapper {
     padding: 0 0.5rem;
-  }
-  .titles h1 {
-    font-size: 36px;
-  }
-
-  .titles h3 {
-    font-size: 24px;
-  }
-
-  .titles p {
-    font-size: 16px;
   }
 }

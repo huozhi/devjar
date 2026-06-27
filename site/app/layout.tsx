@@ -6,29 +6,30 @@ export default function RootLayout({ children }) {
       <head></head>
       <body>
         <main>
-          <div className="titles">
-            <h1>Devjar</h1>
-            <h3>Live React Component Previews in Browser</h3>
-            <p>
-              Devjar empowers you create interactive, real-time React code preview easier. Builtin <b>Tailwind</b> and{' '}
-              <b>CSS imports</b> for styling, creating demos that are stylish and eye-catching.
-            </p>
-            <br />
-
-            <p>
-              <a href="https://github.com/huozhi/devjar" target="_blank" rel="noopener noreferrer">
-                Source Code & Usage ↗
-              </a>
-            </p>
-          </div>
-
           {children}
         </main>
         <footer>
-          <p>
-            © {new Date().getFullYear()},{` `}
-            <a href={'https://github.com/huozhi'}>Huozhi</a>
-          </p>
+          <nav aria-label="Footer links">
+            <div className="footer-group">
+              <span className="footer-label">Project</span>
+              <a href="https://github.com/huozhi/devjar" target="_blank" rel="noopener noreferrer">
+                Devjar repo
+              </a>
+              <a href="https://github.com/huozhi/devjar/blob/main/API.md" target="_blank" rel="noopener noreferrer">
+                API
+              </a>
+            </div>
+            <span className="footer-divider" aria-hidden="true" />
+            <div className="footer-group">
+              <span className="footer-label">Author</span>
+              <a href="https://github.com/huozhi" target="_blank" rel="noopener noreferrer">
+                Huozhi
+              </a>
+              <a href="https://x.com/huozhi" target="_blank" rel="noopener noreferrer">
+                X
+              </a>
+            </div>
+          </nav>
         </footer>
       </body>
     </html>

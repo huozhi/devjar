@@ -442,17 +442,22 @@ function useLiveCode({ getModuleUrl }: { getModuleUrl?: (name: string) => string
         const iframe = iframeRef.current
         const script = appScriptRef.current
         if (iframe) {
+          const renderFiles = async () => {
+            await iframe.contentWindow.__render__(transformedFiles, dependencies)
+            if (loadId === loadIdRef.current) {
+              iframe.dispatchEvent(new CustomEvent('devjar:render'))
+            }
+          }
+
           const render = iframe.contentWindow.__render__
           if (render) {
-            await render(transformedFiles, dependencies)
+            await renderFiles()
           } else {
             // if render is not loaded yet, wait until it's loaded
             script.onload = () => {
-              iframe.contentWindow.__render__(transformedFiles, dependencies)
-                .catch((err) => {
-                  setError(err)
-                })
-              
+              renderFiles().catch((err) => {
+                setError(err)
+              })
             }
           }
         }
