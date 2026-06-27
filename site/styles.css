@@ -141,69 +141,6 @@ footer a:hover {
   text-underline-offset: 3px;
 }
 
-.runtime-nav {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-  margin-top: 1rem;
-  padding: 0.5rem 0;
-}
-
-.runtime-label {
-  font-size: 11px;
-  font-weight: 500;
-  color: #9ca3af;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.runtime-tabs {
-  display: flex;
-  gap: 0.25rem;
-  flex-wrap: wrap;
-  justify-content: center;
-  margin-top: 1rem;
-}
-
-.runtime-nav .runtime-tabs {
-  margin-top: 0;
-}
-
-.runtime-tab {
-  padding: 8px 18px;
-  border: 1px solid #e5e7eb;
-  border-radius: 999px;
-  background: #fff;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  font-family: inherit;
-  color: #374151;
-  transition: background 0.15s ease, border-color 0.15s ease;
-  text-decoration: none;
-  display: inline-block;
-}
-
-.runtime-tab,
-.runtime-tab:link,
-.runtime-tab:visited {
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.runtime-tab:hover {
-  border-color: #d1d5db;
-  background: #f9fafb;
-}
-
-.runtime-tab.active {
-  border-color: #111827;
-  background: #111827;
-  color: #fff;
-}
-
 .usage-section {
   width: 100%;
   max-width: 680px;

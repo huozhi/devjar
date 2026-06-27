@@ -11,7 +11,7 @@ on:
 jobs:
   install:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
 
     name: Node
     steps:
@@ -27,8 +27,14 @@ jobs:
           cache: 'pnpm'
           registry-url: 'https://registry.npmjs.org'
 
+      - name: Use Bun
+        uses: oven-sh/setup-bun@v2
+
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Build Site
+        run: pnpm run build:site
 
   release:
     runs-on: ubuntu-latest
@@ -50,6 +56,15 @@ jobs:
           cache: 'pnpm'
           registry-url: 'https://registry.npmjs.org'
 
+      - name: Use Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Package
+        run: pnpm run build
+
       - name: Determine tag
         id: determine_tag
         run: |
@@ -69,5 +84,4 @@ jobs:
         if: steps.determine_tag.outputs.tag == ''
         run: |
           echo "Publishing to latest"
-          pnpm install --frozen-lockfile
           pnpm publish --no-git-check
