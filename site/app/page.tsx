@@ -8,8 +8,8 @@ const codeSample = {
   import './styles.css'
 
   const site = {
-    name: 'Devjar',
-    cta: 'Wiggle',
+    name: 'DEVJAR',
+    cta: 'WIGGLE',
     accent: '#525252',
   }
 

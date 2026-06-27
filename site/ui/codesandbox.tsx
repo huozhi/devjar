@@ -266,7 +266,7 @@ export function Codesandbox({
       <div className="preview" ref={previewRef} style={{ height: previewHeight }}>
         <div className={previewReady ? 'preview--loading is-hidden' : 'preview--loading'} aria-hidden="true">
           <div className="preview--loading-copy">
-            <h1>Devjar</h1>
+            <h1>DEVJAR</h1>
             <p className="preview--loading-kicker">
               <span className="preview--loading-measure">
                 React Live Preview in browser
@@ -275,8 +275,8 @@ export function Codesandbox({
             </p>
             <button className="preview--loading-button" type="button" tabIndex={-1}>
               <span className="preview--loading-measure">
-                Wiggle
-                <span className="preview--loading-noise">{renderLoaderCells('Wiggle', loaderFrame + 2)}</span>
+                WIGGLE
+                <span className="preview--loading-noise">{renderLoaderCells('WIGGLE', loaderFrame + 2)}</span>
               </span>
             </button>
           </div>

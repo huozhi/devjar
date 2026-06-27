@@ -48,46 +48,42 @@ main {
 }
 
 footer {
-  margin-top: 3.5rem;
-  padding: 0 1rem 2rem;
+  margin-top: 4rem;
+  padding: 0 1rem 2.25rem;
   display: flex;
   justify-content: center;
 }
 
-footer nav {
+.site-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  max-width: 960px;
+  width: 100%;
+  padding-top: 1.125rem;
+  border-top: 1px solid #e7e5e4;
+  color: #737373;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.footer-links {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.875rem;
   flex-wrap: wrap;
-  max-width: 960px;
-  width: 100%;
-  padding-top: 1rem;
-  border-top: 1px solid #e5e7eb;
-  text-align: center;
-  color: #6b7280;
-  font-size: 0.875rem;
-  line-height: 1.5;
 }
 
-.footer-group {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.625rem;
+.site-footer a {
+  text-decoration: none;
 }
 
-.footer-label {
-  color: #a3a3a3;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.footer-divider {
-  width: 1px;
-  height: 1rem;
-  background: #e5e7eb;
+.footer-links a:hover {
+  color: #171717;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .text-center {
@@ -130,15 +126,6 @@ footer nav {
 
 .playground-wrapper:has([data-codesandbox="gl"]) {
   max-width: 760px;
-}
-
-footer a {
-  text-decoration: none;
-}
-
-footer a:hover {
-  text-decoration: underline;
-  text-underline-offset: 3px;
 }
 
 .usage-section {
@@ -225,9 +212,20 @@ footer a:hover {
 }
 
 @media (max-width: 640px) {
-  main,
-  footer {
+  main {
     padding: 0 0.5rem;
+  }
+  footer {
+    padding: 0 0.5rem 2rem;
+  }
+  .site-footer {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .footer-links {
+    justify-content: flex-start;
+    gap: 0.75rem;
   }
   [data-codesandbox] .codesandbox-layout {
     flex-direction: column;

@@ -9,21 +9,13 @@ export default function RootLayout({ children }) {
           {children}
         </main>
         <footer>
-          <nav aria-label="Footer links">
-            <div className="footer-group">
-              <span className="footer-label">Project</span>
+          <nav className="site-footer" aria-label="Footer links">
+            <div className="footer-links">
               <a href="https://github.com/huozhi/devjar" target="_blank" rel="noopener noreferrer">
-                Devjar repo
+                GitHub
               </a>
               <a href="https://github.com/huozhi/devjar/blob/main/API.md" target="_blank" rel="noopener noreferrer">
-                API
-              </a>
-            </div>
-            <span className="footer-divider" aria-hidden="true" />
-            <div className="footer-group">
-              <span className="footer-label">Author</span>
-              <a href="https://github.com/huozhi" target="_blank" rel="noopener noreferrer">
-                Huozhi
+                API.md
               </a>
               <a href="https://x.com/huozhi" target="_blank" rel="noopener noreferrer">
                 X
