@@ -97,7 +97,6 @@ export function Codesandbox({
   const [activeFile, setActiveFile] = useState<string | null>(() => getInitialActiveFile(initialFiles))
   const [activeFolder, setActiveFolder] = useState<string | null>(null)
   const [files, setFiles] = useState(initialFiles)
-  const [error, setError] = useState(null)
   const [folders, setFolders] = useState<string[]>([])
   const [editingNewItem, setEditingNewItem] = useState<{ type: 'file' | 'folder'; tempId: string } | null>(null)
   const [newItemName, setNewItemName] = useState('')
@@ -292,11 +291,10 @@ export function Codesandbox({
           ref={iframeRef}
           scrolling="no"
           onError={(err) => {
-            setError(err)
+            if (err) console.error(err)
           }}
           getModuleUrl={getModuleUrl}
         />
-        {error && <pre className="preview--error" dangerouslySetInnerHTML={{ __html: error.toString() }} />}
       </div>
       <div className="codesandbox-layout">
         <div className="filetree">

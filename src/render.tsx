@@ -7,12 +7,13 @@ export const DevJar = forwardRef<HTMLIFrameElement, {
   files: Record<string, string>
   getModuleUrl?: (name: string) => string
   onError?: (...data: any[]) => void
+  tailwindSrc?: string | false
 } & React.IframeHTMLAttributes<HTMLIFrameElement>>(function DevJar(
-  { files, getModuleUrl, onError = defaultOnError, ...props },
+  { files, getModuleUrl, onError = defaultOnError, tailwindSrc, ...props },
   forwardedRef
 ) {
   const onErrorRef = useRef(onError)
-  const { ref, error, load } = useLiveCode({ getModuleUrl })
+  const { ref, error, load } = useLiveCode({ getModuleUrl, tailwindSrc })
 
   useImperativeHandle(forwardedRef, () => ref.current!, [ref])
 

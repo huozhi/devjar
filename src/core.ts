@@ -6,6 +6,7 @@ let esModuleLexerInit
 const isRelative = s => s.startsWith('./')
 const removeExtension = (str: string) => str.replace(/\.[^/.]+$/, '')
 const localImportPrefix = '__DEVJAR_LOCAL_IMPORT__'
+const defaultTailwindSrc = 'https://unpkg.com/@tailwindcss/browser@4'
 
 function createLocalImportPlaceholder(moduleKey: string) {
   return `${localImportPrefix}${encodeURIComponent(moduleKey)}__`
@@ -272,7 +273,13 @@ function createScript(
   return script
 }
 
-function useLiveCode({ getModuleUrl }: { getModuleUrl?: (name: string) => string }) {
+function useLiveCode({
+  getModuleUrl,
+  tailwindSrc = defaultTailwindSrc,
+}: {
+  getModuleUrl?: (name: string) => string
+  tailwindSrc?: string | false
+}) {
   const iframeRef = useRef(null)
   const [error, setError] = useState()
   const rerender = useState({})[1]
@@ -324,18 +331,20 @@ function useLiveCode({ getModuleUrl }: { getModuleUrl?: (name: string) => string
     
     const appScriptContent = createMainScript({ uid })
     
-    const appScript = createScript(appScriptRef, { content: appScriptContent, type: 'module' })
-    const tailwindScript = createScript(tailwindcssScriptRef, { src: 'https://unpkg.com/@tailwindcss/browser@4' })
+    const appScript = createScript(appScriptRef, { content: appScriptContent })
+    const tailwindScript = tailwindSrc
+      ? createScript(tailwindcssScriptRef, { src: tailwindSrc })
+      : null
 
     body.appendChild(div)
     body.appendChild(appScript)
-    body.appendChild(tailwindScript)
+    if (tailwindScript) body.appendChild(tailwindScript)
     
     return () => {
       if (!iframe || !iframe.contentDocument) return
       body.removeChild(div)
       body.removeChild(appScript)
-      body.removeChild(tailwindScript)
+      if (tailwindScript) body.removeChild(tailwindScript)
     }
   }, [])
 

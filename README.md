@@ -26,6 +26,7 @@ pnpm add devjar
 * `files`: An object that specifies the files you want to include in your development environment.
 * `getModuleUrl`: A function that maps module names to CDN URLs.
 * `onError`: Callback function of error event from the iframe sandbox. By default `console.log`.
+* `tailwindSrc`: Optional Tailwind browser script URL. Pass `false` to disable Tailwind injection.
 
 **Example**
 
@@ -58,6 +59,7 @@ A hook that provides lower-level control over the live code execution environmen
 
 * `options`
   * `getModulePath(module)`: A function that receives the module name and returns the CDN url of each imported module path. For example, import React from 'react' will load React from skypack.dev/react.
+  * `tailwindSrc`: Optional Tailwind browser script URL. Pass `false` to disable Tailwind injection.
 
 **Returns**
 

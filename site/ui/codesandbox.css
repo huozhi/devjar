@@ -10,18 +10,6 @@ textarea:focus-visible {
   overflow: hidden;
   min-height: 320px;
 }
-.preview--error {
-  margin: 0;
-  padding: 8px;
-  font-size: 13px;
-  color: #f47067;
-  position: absolute;
-  top: 0;
-  right: 0;
-  left: 0;
-  bottom: 0;
-  z-index: 3;
-}
 .preview--result {
   font-family: Consolas, Monaco, monospace;
   border: none;
