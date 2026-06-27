@@ -1,4 +1,7 @@
 let oxc: any
+// Bun strips import-ignore comments, then Turbopack rewrites import(moduleUrl) to
+// an "unknown" context module. Keep this runtime import opaque to bundlers.
+const importModule = new Function('specifier', 'return import(specifier)') as (specifier: string) => Promise<any>
 
 function getLang(filename: string) {
   if (/\.[cm]?tsx?$/.test(filename)) return 'tsx'
@@ -22,7 +25,7 @@ self.onmessage = async ({ data }: MessageEvent<{
   const { id, moduleUrl, files } = data
   try {
     if (!oxc) {
-      oxc = await import(/* webpackIgnore: true */ /* @vite-ignore */ /* turbopackIgnore: true */ moduleUrl)
+      oxc = await importModule(moduleUrl)
     }
 
     const transformed: Record<string, string> = {}
