@@ -1,0 +1,54 @@
+name: Publish
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - name: Use Node 24
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
+
+      - name: Use Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Package
+        run: pnpm run build
+
+      - name: Determine npm tag
+        id: npm-tag
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF_NAME" =~ (alpha|beta|rc) ]]; then
+            echo "tag=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish to npm
+        run: npm publish --tag ${{ steps.npm-tag.outputs.tag }}

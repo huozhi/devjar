@@ -29,8 +29,8 @@ export default function RootLayout({ children }) {
 }
 
 export const metadata = {
-  title: 'Devjar',
-  description: 'Live React Component Previews in Browser',
+  title: 'devjar',
+  description: 'React Live Preview in Browser',
   authors: [{ name: '@huozhi' }],
   openGraph: {
     images: 'https://repository-images.githubusercontent.com/483779830/28347c03-774a-4766-b113-54041fad1e72',

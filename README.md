@@ -1,7 +1,7 @@
 # devjar
-> live code runtime for your react project in browser
+> react live preview in browser
 
-![image](https://repository-images.githubusercontent.com/483779830/55bf67ee-fcc6-4a12-ad0c-5221a5f78c26)
+![image](https://repository-images.githubusercontent.com/483779830/318964f4-18ae-4dd4-9940-0fe51ccc5abc)
 
 ## Introduction
 
@@ -110,4 +110,4 @@ function Playground() {
 
 ## License
 
-The MIT License (MIT).
+MIT
