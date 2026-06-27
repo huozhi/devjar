@@ -1,16 +1,3 @@
-// declare esmsInitOptions on global window
-
-declare global {
-  interface Window {
-    esmsInitOptions: {
-      shimMode: boolean
-      mapOverrides: boolean
-    }
-  }
-
-  function importShim(url: string): Promise<any>
-}
-
 async function createModule(
   files: Record<string, string>,
   { getModuleUrl, dependencies = {}, runtime = {} }: {
@@ -19,41 +6,46 @@ async function createModule(
     runtime?: any
   }
 ): Promise<{ module: any, changed: boolean }> {
+  const localImportPrefix = '__DEVJAR_LOCAL_IMPORT__'
 
-  async function setupImportMap() {
-    if (runtime.shim) return runtime.shim
-    window.esmsInitOptions = {
-      shimMode: true,
-      mapOverrides: true,
-    }
-    runtime.shim = import(/* webpackIgnore: true */ getModuleUrl('es-module-shims'))
-    await runtime.shim
+  function createLocalImportPlaceholder(moduleKey: string) {
+    return `${localImportPrefix}${encodeURIComponent(moduleKey)}__`
   }
 
-  function updateImportMap(imports: Record<string, string>) {
-    imports['react'] = getModuleUrl('react')
-    imports['react-dom'] = getModuleUrl('react-dom')
-    imports['react-dom/client'] = getModuleUrl('react-dom/client')
-    imports['react-refresh/runtime'] = getModuleUrl('react-refresh/runtime')
+  function createScopedSpecifier(moduleKey: string) {
+    return `devjar-internal/${runtime.revision}/${encodeURIComponent(moduleKey)}`
+  }
 
+  function registerImportMap(imports: Record<string, string>) {
     const script = document.createElement('script')
-    script.type = 'importmap-shim'
-    script.innerHTML = JSON.stringify({ imports })
-    document.body.appendChild(script)
-    if (runtime.currentImportMap) {
-      runtime.currentImportMap.parentNode.removeChild(runtime.currentImportMap)
-    }
-    runtime.currentImportMap = script
+    script.type = 'importmap'
+    script.textContent = JSON.stringify({ imports })
+    document.head.appendChild(script)
+    ;(runtime.importMaps ||= []).push(script)
   }
 
-
-  function createInlinedModule(code, type) {
-    if (type === 'css') return `data:text/css;utf-8,${encodeURIComponent(code)}`
-
+  function createInlinedModule(code) {
     return `data:text/javascript;utf-8,${encodeURIComponent(code)}`
   }
 
-  await setupImportMap()
+  function createCssModule(code: string, fileName: string) {
+    return `\
+const sheet = new CSSStyleSheet();
+sheet.replaceSync(${JSON.stringify(code)});
+export default sheet;
+//# sourceURL=devjar/${fileName}?v=${runtime.revision}`
+  }
+
+  function rewriteLocalImports(code: string, specifiers: Record<string, string>) {
+    let rewritten = code
+    for (const [moduleKey, specifier] of Object.entries(specifiers)) {
+      rewritten = rewritten
+        .split(createLocalImportPlaceholder(moduleKey))
+        .join(specifier)
+    }
+    return rewritten
+  }
+
   runtime.files ||= {}
   runtime.urls ||= {}
   runtime.revision = (runtime.revision || 0) + 1
@@ -84,45 +76,53 @@ async function createModule(
     }
   }
 
-  const imports = {}
-  for (const [fileName, code] of Object.entries(files)) {
-    if (!runtime.urls[fileName] || invalidated.has(fileName)) {
-      const versionedCode = fileName.endsWith('.css')
-        ? code
-        : `${code}\n//# sourceURL=devjar/${fileName}?v=${runtime.revision}`
-      runtime.urls[fileName] = createInlinedModule(
-        versionedCode,
-        fileName.endsWith('.css') ? 'css' : 'js'
-      )
-    }
-    imports[fileName] = runtime.urls[fileName]
+  const moduleKeys = new Set(Object.keys(files))
+  for (const importedModules of Object.values(dependencies)) {
+    for (const moduleKey of importedModules) moduleKeys.add(moduleKey)
   }
 
-  for (const fileName of Object.keys(runtime.files)) {
-    if (!(fileName in files)) {
-      imports[fileName] = createInlinedModule(
-        `throw new Error(${JSON.stringify('devjar: Module not found: ' + fileName)})`,
-        'js'
-      )
-      delete runtime.urls[fileName]
-    }
+  const scopedSpecifiers: Record<string, string> = {}
+  for (const moduleKey of moduleKeys) {
+    scopedSpecifiers[moduleKey] = createScopedSpecifier(moduleKey)
   }
 
-  updateImportMap(imports)
+  const imports: Record<string, string> = {}
+  for (const moduleKey of moduleKeys) {
+    if (!(moduleKey in files)) {
+      imports[scopedSpecifiers[moduleKey]] = createInlinedModule(
+        `throw new Error(${JSON.stringify('devjar: Module not found: ' + moduleKey)})`
+      )
+      delete runtime.urls[moduleKey]
+      continue
+    }
+
+    if (!runtime.urls[moduleKey] || invalidated.has(moduleKey)) {
+      const moduleCode = moduleKey.endsWith('.css')
+        ? createCssModule(files[moduleKey], moduleKey)
+        : rewriteLocalImports(
+            `${files[moduleKey]}\n//# sourceURL=devjar/${moduleKey}?v=${runtime.revision}`,
+            scopedSpecifiers
+          )
+      runtime.urls[moduleKey] = createInlinedModule(moduleCode)
+    }
+    imports[scopedSpecifiers[moduleKey]] = runtime.urls[moduleKey]
+  }
+
+  registerImportMap(imports)
 
   if (!runtime.refreshRuntime) {
-    const refreshModule = await self.importShim('react-refresh/runtime')
+    const refreshModule = await import(/* webpackIgnore: true */ getModuleUrl('react-refresh/runtime'))
     runtime.refreshRuntime = refreshModule.default || refreshModule
     runtime.refreshRuntime.injectIntoGlobalHook(self)
     globalThis.__devjarRefreshRuntime = runtime.refreshRuntime
   }
 
-  const entryUrl = imports['index']
-  if (!entryUrl) {
+  const entrySpecifier = scopedSpecifiers['index']
+  if (!entrySpecifier) {
     throw new Error('devjar: Module not found: index')
   }
 
-  const module = await self.importShim(entryUrl)
+  const module = await import(/* webpackIgnore: true */ entrySpecifier)
   runtime.files = { ...files }
   return { module, changed: changedModules.size > 0 }
 }

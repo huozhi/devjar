@@ -33,7 +33,6 @@
   "dependencies": {
     "dedent": "^1.7.0",
     "es-module-lexer": "1.6.0",
-    "es-module-shims": "2.0.3",
     "oxc-transform": "^0.137.0",
     "react-refresh": "^0.18.0"
   },

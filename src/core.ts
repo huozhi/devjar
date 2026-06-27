@@ -5,6 +5,11 @@ import { init, parse } from 'es-module-lexer'
 let esModuleLexerInit
 const isRelative = s => s.startsWith('./')
 const removeExtension = (str: string) => str.replace(/\.[^/.]+$/, '')
+const localImportPrefix = '__DEVJAR_LOCAL_IMPORT__'
+
+function createLocalImportPlaceholder(moduleKey: string) {
+  return `${localImportPrefix}${encodeURIComponent(moduleKey)}__`
+}
 
 function transformWorkerMain() {
   let oxc
@@ -93,7 +98,7 @@ function resolveRelativeModule(importer: string, imported: string) {
   return imported.endsWith('.css') ? '@' + path : removeExtension('@' + path)
 }
 
-function replaceImports(source, filename, moduleKey, getModuleUrl, externals) {
+function replaceImports(source, filename, moduleKey, getModuleUrl, localModules) {
   let code = ''
   let lastIndex = 0
   let hasReactImports = false
@@ -106,22 +111,22 @@ function replaceImports(source, filename, moduleKey, getModuleUrl, externals) {
     if (!n) return
     code += source.slice(lastIndex, ss) // content from last import to beginning of this line 
 
-    const relativeModuleKey = isRelative(n)
+    const localModuleKey = isRelative(n)
       ? resolveRelativeModule(filename, n)
-      : undefined
+      : localModules.has(n) ? n : undefined
 
     // handle imports
-    if (relativeModuleKey && n.endsWith('.css')) {
+    if (localModuleKey && localModuleKey.endsWith('.css')) {
       // Map './styles.css' -> '@styles.css', and collect it
-      cssImports.push(relativeModuleKey)
+      cssImports.push(localModuleKey)
     } else {
       code += source.substring(ss, s)
-      code += isRelative(n)
-          ? relativeModuleKey
-          : externals.has(n) ? n : getModuleUrl(n)
+      code += localModuleKey
+        ? createLocalImportPlaceholder(localModuleKey)
+        : getModuleUrl(n)
       code += source.substring(e, se)
     }
-    if (relativeModuleKey) dependencies.push(relativeModuleKey)
+    if (localModuleKey) dependencies.push(localModuleKey)
     lastIndex = se
 
     if (n === 'react') {
@@ -135,7 +140,7 @@ function replaceImports(source, filename, moduleKey, getModuleUrl, externals) {
 
   if (cssImports.length) {
     cssImports.forEach((cssPath, index) => {
-      code += `\nimport __devjarSheet${index} from "${cssPath}" with { type: "css" };\n`
+      code += `\nimport __devjarSheet${index} from "${createLocalImportPlaceholder(cssPath)}";\n`
     })
     code += `globalThis.__devjarStyleSheets ||= new Map();\n`
     cssImports.forEach((cssPath, index) => {
@@ -151,7 +156,7 @@ function replaceImports(source, filename, moduleKey, getModuleUrl, externals) {
   code += source.substring(lastIndex)
 
   if (!hasReactImports) {
-    code = `import React from 'react';\n${code}`
+    code = `import React from ${JSON.stringify(getModuleUrl('react'))};\n${code}`
   }
 
   code = `const $RefreshReg$ = (type, id) => globalThis.__devjarRefreshRuntime.register(type, ${JSON.stringify(moduleKey + ' ')} + id);\n` +
@@ -171,8 +176,8 @@ function createRenderer(createModule_, getModuleUrl) {
 
   async function render(files: Record<string, string>, dependencies: Record<string, string[]>) {
     const result = await createModule_(files, { getModuleUrl, dependencies, runtime: moduleRuntime })
-    const ReactMod: typeof import('react') = await self.importShim('react')
-    const ReactDOMMod: typeof import('react-dom/client') = await self.importShim('react-dom/client')
+    const ReactMod: typeof import('react') = await import(/* webpackIgnore: true */ getModuleUrl('react'))
+    const ReactDOMMod: typeof import('react-dom/client') = await import(/* webpackIgnore: true */ getModuleUrl('react-dom/client'))
 
     const _jsx = ReactMod.createElement
     const root = document.getElementById('__reactRoot')
@@ -243,14 +248,6 @@ globalThis.__render__ = _createRenderer(_createModule, getModuleUrl);
   return code
 }
 
-function createEsShimOptionsScript() {
-  return `\
-window.esmsInitOptions = {
-  polyfillEnable: ['css-modules', 'json-modules'],
-  onerror: console.error,
-}`
-}
-
 function useScript() {
   return useRef(typeof window !== 'undefined' ? document.createElement('script') : null)
 }
@@ -280,7 +277,6 @@ function useLiveCode({ getModuleUrl }: { getModuleUrl?: (name: string) => string
   const [error, setError] = useState()
   const rerender = useState({})[1]
   const appScriptRef = useScript()
-  const esShimOptionsScriptRef = useScript()
   const tailwindcssScriptRef = useScript()
   const transformWorkerRef = useRef<Worker | undefined>(undefined)
   const transformCacheRef = useRef(new Map<string, { source: string, code: string }>())
@@ -327,21 +323,17 @@ function useLiveCode({ getModuleUrl }: { getModuleUrl?: (name: string) => string
     div.id = '__reactRoot'
     
     const appScriptContent = createMainScript({ uid })
-    const scriptOptionsContent = createEsShimOptionsScript()
     
-    const esmShimOptionsScript = createScript(esShimOptionsScriptRef, { content: scriptOptionsContent })
     const appScript = createScript(appScriptRef, { content: appScriptContent, type: 'module' })
     const tailwindScript = createScript(tailwindcssScriptRef, { src: 'https://unpkg.com/@tailwindcss/browser@4' })
 
     body.appendChild(div)
-    body.appendChild(esmShimOptionsScript)
     body.appendChild(appScript)
     body.appendChild(tailwindScript)
     
     return () => {
       if (!iframe || !iframe.contentDocument) return
       body.removeChild(div)
-      body.removeChild(esmShimOptionsScript)
       body.removeChild(appScript)
       body.removeChild(tailwindScript)
     }
@@ -394,14 +386,7 @@ function useLiveCode({ getModuleUrl }: { getModuleUrl?: (name: string) => string
     }
 
     if (files) {
-      // { 'react', 'react-dom' }
-      const overrideExternals =
-        new Set(Object.keys(files).filter(name => !isRelative(name) && name !== 'index.js'))
-
-      // Always share react as externals
-      overrideExternals.add('react')
-      overrideExternals.add('react-dom')
-      overrideExternals.add('react-refresh/runtime')
+      const localModules = new Set(Object.keys(files).map(getModuleKey))
 
       try {
         const filesToTransform = Object.fromEntries(
@@ -446,7 +431,7 @@ function useLiveCode({ getModuleUrl }: { getModuleUrl?: (name: string) => string
               filename,
               moduleKey,
               getModuleUrl,
-              overrideExternals
+              localModules
             )
             res[moduleKey] = transformed.code
             dependencies[moduleKey] = transformed.dependencies

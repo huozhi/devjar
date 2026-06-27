@@ -14,9 +14,6 @@ importers:
       es-module-lexer:
         specifier: 1.6.0
         version: 1.6.0
-      es-module-shims:
-        specifier: 2.0.3
-        version: 2.0.3
       oxc-transform:
         specifier: ^0.137.0
         version: 0.137.0
@@ -751,9 +748,6 @@ packages:
 
   es-module-lexer@1.6.0:
     resolution: {integrity: sha512-qqnD1yMU6tk/jnaMosogGySTZP8YtUgAffA9nMN+E/rjxcfRQ6IEk7IiozUjgxKoFHBGjTLnrHB/YC45r/59EQ==}
-
-  es-module-shims@2.0.3:
-    resolution: {integrity: sha512-s2pl2DJQZRXRR5peNZj0hl6d/oUFw7J6gMBiQ8jvjjX4ZR7JrkhFqeLSvlw5ARdnd5I9KBxEvtrtSC/bbqwnmw==}
 
   escalade@3.2.0:
     resolution: {integrity: sha512-WUj2qlxaQtO4g6Pq5c29GTcWGDyd8itL8zTlipgECz3JesAiiOKotd8JU6otB3PACgG6xkJUyVhboMS+bje/jA==}
@@ -1596,8 +1590,6 @@ snapshots:
   emoji-regex@8.0.0: {}
 
   es-module-lexer@1.6.0: {}
-
-  es-module-shims@2.0.3: {}
 
   escalade@3.2.0: {}
 
