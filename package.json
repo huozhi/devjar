@@ -1,6 +1,6 @@
 {
   "name": "devjar",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "type": "module",
   "exports": {
     ".": {
@@ -48,7 +48,6 @@
     "oxc-transform": "^0.137.0",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
-
     "typescript": "npm:@typescript/typescript6@^6.0.0",
     "typescript-7": "npm:typescript@rc"
   },
