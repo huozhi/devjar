@@ -20,13 +20,13 @@
   "scripts": {
     "build": "pnpm run build:lib && pnpm run build:worker",
     "build:lib": "bunchee",
-    "build:worker": "bun build src/transform-worker.ts --outfile dist/transform-worker.js --target browser --format esm",
+    "build:worker": "bun build src/transform-worker.ts --outfile dist/transform-worker.js --target browser --format esm --footer \"export {}\"",
     "prepublishOnly": "pnpm run build",
     "build:site": "pnpm run build && next build ./site",
     "start": "next start ./site",
     "dev": "pnpm run build && (pnpm run dev:lib & pnpm run dev:worker & pnpm run dev:site & wait)",
     "dev:lib": "bunchee --watch",
-    "dev:worker": "bun build src/transform-worker.ts --outfile dist/transform-worker.js --target browser --format esm --watch",
+    "dev:worker": "bun build src/transform-worker.ts --outfile dist/transform-worker.js --target browser --format esm --footer \"export {}\" --watch",
     "dev:site": "next dev ./site"
   },
   "peerDependencies": {

@@ -1,7 +1,24 @@
+<p align="center">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="devjar-logo-title" width="112" height="112">
+    <title id="devjar-logo-title">devjar</title>
+    <rect width="64" height="64" rx="8" fill="#fafafa"/>
+    <g fill="none" stroke="#262626" stroke-linecap="square" stroke-linejoin="miter">
+      <path d="M22 12h20m-22 5h24" stroke-width="3"/>
+      <path d="M22 18v7l-6 6v19l4 4h24l4-4V31l-6-6v-7" stroke-width="3"/>
+      <path d="M48 33h3v19l-5 5H23v-3" stroke-width="2" stroke-dasharray="5 4"/>
+      <path d="m24 35 5 5-5 5m10 0h7" stroke-width="3"/>
+    </g>
+  </svg>
+</p>
+
 # devjar
 > react live preview in browser
 
-![image](https://repository-images.githubusercontent.com/483779830/318964f4-18ae-4dd4-9940-0fe51ccc5abc)
+## Demo
+
+<video src="https://github.com/user-attachments/assets/e4d11123-2e78-4e0d-a78d-4b5d2fff9c1e" controls width="100%">
+  <a href="https://github.com/user-attachments/assets/e4d11123-2e78-4e0d-a78d-4b5d2fff9c1e">Watch the devjar demo</a>
+</video>
 
 ## Introduction
 
