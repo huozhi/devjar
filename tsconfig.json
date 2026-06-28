@@ -5,5 +5,8 @@
     "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
     "jsx": "react-jsx",
-  }
+    "strict": true,
+    "noEmit": true
+  },
+  "include": ["src"]
 }
