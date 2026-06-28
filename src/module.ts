@@ -17,10 +17,6 @@ export interface ModuleNamespace {
   [exportName: string]: unknown
 }
 
-declare global {
-  var __devjarRefreshRuntime: RefreshRuntime | undefined
-}
-
 async function createModule(
   files: Record<string, string>,
   { resolveModule, dependencies = {}, runtime = {} }: {
@@ -148,7 +144,11 @@ export default sheet;`
     }
     runtime.refreshRuntime = refreshRuntime
     runtime.refreshRuntime.injectIntoGlobalHook(self)
-    globalThis.__devjarRefreshRuntime = runtime.refreshRuntime
+    Object.defineProperty(globalThis, '__devjarRefreshRuntime', {
+      configurable: true,
+      value: runtime.refreshRuntime,
+      writable: true,
+    })
   }
 
   if (!runtimeUrls['index']) {
