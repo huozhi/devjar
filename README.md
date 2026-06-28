@@ -1,6 +1,5 @@
 <p align="center">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="devjar-logo-title" width="112" height="112">
-    <title id="devjar-logo-title">devjar</title>
     <rect width="64" height="64" rx="8" fill="#fafafa"/>
     <g fill="none" stroke="#262626" stroke-linecap="square" stroke-linejoin="miter">
       <path d="M22 12h20m-22 5h24" stroke-width="3"/>
