@@ -1,7 +1,9 @@
 import { useEffect, useImperativeHandle, useRef } from 'react'
 import { useLiveCode } from './core'
 
-const defaultOnError = typeof window !== 'undefined' ? console.error : (() => {})
+const defaultOnError: (error: unknown) => void = typeof window !== 'undefined'
+  ? console.error
+  : () => {}
 
 export function DevJar({
   files,
@@ -13,7 +15,7 @@ export function DevJar({
 }: {
   files: Record<string, string>
   resolveModule?: (specifier: string) => string
-  onError?: (...data: any[]) => void
+  onError?: (error: unknown) => void
   tailwindSrc?: string | false
   ref?: React.Ref<HTMLIFrameElement>
 } & React.IframeHTMLAttributes<HTMLIFrameElement>) {

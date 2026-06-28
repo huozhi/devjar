@@ -39,6 +39,7 @@
     "@types/node": "^22.10.7",
     "@types/react": "^19.0.7",
     "@types/react-dom": "^19.0.3",
+    "@typescript/native-preview": "7.0.0-dev.20260627.2",
     "bunchee": "^6.11.0",
     "codice": "^1.6.0",
     "dedent": "^1.7.0",
@@ -47,7 +48,9 @@
     "oxc-transform": "^0.137.0",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
-    "typescript": "^5.7.3"
+
+    "typescript": "npm:@typescript/typescript6@^6.0.0",
+    "typescript-7": "npm:typescript@rc"
   },
   "packageManager": "pnpm@11.9.0"
 }
