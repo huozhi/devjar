@@ -3,13 +3,22 @@ import type { OxcError } from 'oxc-transform'
 type OxcTransform = Pick<typeof import('oxc-transform'), 'transformSync'>
 
 let oxc: OxcTransform | undefined
-// Bun strips import-ignore comments, then Turbopack rewrites import(moduleUrl) to
-// an "unknown" context module. Keep this runtime import opaque to bundlers.
+// Keep the local runtime import opaque so this worker can install its message
+// handler before the WASI module begins its asynchronous initialization.
 const dynamicImport = new Function('specifier', 'return import(specifier)')
+const workerUrl = new URL(globalThis.location.href)
+const bindingUrl = workerUrl.searchParams.get('binding')
+const wasmUrl = workerUrl.searchParams.get('wasm')
+const wasiWorkerUrl = workerUrl.searchParams.get('wasiWorker')
 
-function importModule(specifier: string): Promise<unknown> {
-  return dynamicImport(specifier)
+if (!bindingUrl || !wasmUrl || !wasiWorkerUrl) {
+  throw new Error('devjar: transform worker asset URLs are required')
 }
+
+Object.assign(globalThis, {
+  __devjarOxcWasmUrl: wasmUrl,
+  __devjarOxcWasiWorkerUrl: wasiWorkerUrl,
+})
 
 function isOxcTransform(value: unknown): value is OxcTransform {
   return typeof value === 'object'
@@ -34,15 +43,14 @@ function getTransformErrorMessage(errors: OxcError[] | undefined) {
 
 self.onmessage = async ({ data }: MessageEvent<{
   id: number
-  moduleUrl: string
   files: Record<string, string>
 }>) => {
-  const { id, moduleUrl, files } = data
+  const { id, files } = data
   try {
     if (!oxc) {
-      const module = await importModule(moduleUrl)
+      const module = await dynamicImport(bindingUrl)
       if (!isOxcTransform(module)) {
-        throw new Error('devjar: Invalid oxc-transform module')
+        throw new Error('devjar: Invalid Oxc transform module')
       }
       oxc = module
     }

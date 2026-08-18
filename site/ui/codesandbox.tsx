@@ -16,7 +16,7 @@ function resolveModule(specifier: string) {
   return REACT_DEV_MODULES.has(specifier) ? `${url}?dev` : url
 }
 
-import { Editor } from 'codice'
+import { Editor } from '@sugar-high/react'
 import { DevJar } from 'devjar'
 import FileIcon from './file-icon'
 import RootActions from './root-actions'
