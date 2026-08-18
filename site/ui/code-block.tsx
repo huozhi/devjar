@@ -1,14 +1,11 @@
-import { Code } from 'codice'
+import { highlight } from 'sugar-high'
 
 export function CodeBlock({ code }: { code: string }) {
   return (
     <div className="code-block">
-      <Code
-        fontSize={13}
-      >
-        {code}
-      </Code>
+      <pre>
+        <code dangerouslySetInnerHTML={{ __html: highlight(code, { lang: 'typescript' }) }} />
+      </pre>
     </div>
   )
 }
-

@@ -32,8 +32,6 @@ body::-webkit-scrollbar {
   --sh-jsxliterals: #24292e;
   --sh-entity: #424d5b;
   --sh-property: #83898f;
-
-  --codice-caret-color: #333;
 }
 
 a, a:focus, a:visited {
@@ -177,17 +175,23 @@ footer {
     2px 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-.code-block .editor {
-  min-height: auto;
+.code-block pre {
+  margin: 0;
+  padding: 16px;
   max-height: 400px;
   overflow-y: auto;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
-.code-block .editor textarea,
-.code-block .editor [contenteditable] {
-  pointer-events: none;
+.code-block code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
   user-select: text;
-  cursor: text;
+}
+
+.code-block .sh__line {
+  display: block;
 }
 
 .playground {

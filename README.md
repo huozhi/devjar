@@ -17,6 +17,27 @@ devjar is a library that enables you to live test and share your code snippets a
 
 **Notice:** devjar requires React 19 and only works for browser runtime at the moment. It will always render the default export component in `index.js` as the app entry.
 
+Devjar packages its browser transformer, WASM binary, and helper worker as lazy
+runtime assets. Compatible bundlers emit these files automatically; applications
+do not need to copy them into a public directory.
+
+The Oxc transformer uses shared WebAssembly memory, so the page must be
+cross-origin isolated. For example, configure these response headers in Next.js:
+
+```js
+const nextConfig = {
+  async headers() {
+    return [{
+      source: '/:path*',
+      headers: [
+        { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+        { key: 'Cross-Origin-Embedder-Policy', value: 'credentialless' },
+      ],
+    }]
+  },
+}
+```
+
 ## Install
 
 ```sh
@@ -35,6 +56,7 @@ pnpm add devjar
 * `resolveModule`: A function that maps module specifiers to browser-loadable module URLs.
 * `onError`: Callback function of error event from the iframe sandbox. By default `console.log`.
 * `tailwindSrc`: Optional Tailwind browser script URL. Pass `false` to disable Tailwind injection.
+* `transformWorkerUrl`: Optional custom URL for the packaged transform worker.
 
 **Example**
 
@@ -68,6 +90,7 @@ A hook that provides lower-level control over the live code execution environmen
 * `options`
   * `resolveModule(specifier)`: A function that receives a module specifier and returns the browser-loadable URL. For example, import React from 'react' will load React from skypack.dev/react.
   * `tailwindSrc`: Optional Tailwind browser script URL. Pass `false` to disable Tailwind injection.
+  * `transformWorkerUrl`: Optional custom URL for the packaged transform worker.
 
 **Returns**
 

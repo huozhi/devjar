@@ -36,8 +36,25 @@ function createLocalImportPlaceholder(moduleKey: string) {
   return `${localImportPrefix}${encodeURIComponent(moduleKey)}__`
 }
 
-function createTransformWorker() {
-  return new Worker(new URL('./transform-worker.js', import.meta.url), {
+function createTransformWorker(transformWorkerUrl?: string | URL) {
+  const workerUrl = new URL(
+    transformWorkerUrl ?? new URL('./transform-worker.js', import.meta.url),
+    globalThis.location.href,
+  )
+  workerUrl.searchParams.set(
+    'binding',
+    new URL('./transform.wasi-browser.js', import.meta.url).href,
+  )
+  workerUrl.searchParams.set(
+    'wasm',
+    new URL('./transform.wasm32-wasi.wasm', import.meta.url).href,
+  )
+  workerUrl.searchParams.set(
+    'wasiWorker',
+    new URL('./wasi-worker-browser.js', import.meta.url).href,
+  )
+
+  return new Worker(workerUrl, {
     type: 'module',
     name: 'devjar-transform',
   })
@@ -291,9 +308,11 @@ function createScript(
 function useLiveCode({
   resolveModule,
   tailwindSrc = defaultTailwindSrc,
+  transformWorkerUrl,
 }: {
   resolveModule?: (specifier: string) => string
   tailwindSrc?: string | false
+  transformWorkerUrl?: string | URL
 }) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
   const [error, setError] = useState<unknown>()
@@ -372,7 +391,7 @@ function useLiveCode({
     }
 
     if (!transformWorkerRef.current) {
-      const worker = createTransformWorker()
+      const worker = createTransformWorker(transformWorkerUrl)
       worker.onmessage = ({ data }: MessageEvent<TransformWorkerResponse>) => {
         const request = transformRequestsRef.current.get(data.id)
         if (!request) return
@@ -400,10 +419,9 @@ function useLiveCode({
       worker.postMessage({
         id,
         files,
-        moduleUrl: resolveModule('oxc-transform'),
       })
     })
-  }, [resolveModule])
+  }, [resolveModule, transformWorkerUrl])
 
   const load = useCallback(async (files: Record<string, string>) => {
     const loadId = ++loadIdRef.current
