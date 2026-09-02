@@ -486,6 +486,7 @@ async function copyRuntimeAssets(destination: string) {
   await mkdir(destination, { recursive: true })
   const assets = [
     ['index.js', 'runtime.js'],
+    ['_cdn.js', '_cdn.js'],
     ['client.js', 'client.js'],
     ['transform-worker.js', 'transform-worker.js'],
     ['transform.wasi-browser.js', 'transform.wasi-browser.js'],

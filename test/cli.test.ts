@@ -158,6 +158,7 @@ describe('production build', () => {
     expect(manifest.routes['/'].liveReload).toBe(false)
     expect(manifest.cdn).toBe('https://modules.example.test')
     expect(await readFile(join(buildRoot, '__devjar/client.js'), 'utf8')).toContain('__devjar/project')
+    expect(await readFile(join(buildRoot, '__devjar/_cdn.js'), 'utf8')).toContain('createEsmShResolver')
     expect(await readFile(join(buildRoot, 'api/projects.json'), 'utf8')).toContain('Mobile refresh')
     expect(await readFile(join(buildRoot, 'public/mark.svg'), 'utf8')).toContain('<svg')
   })

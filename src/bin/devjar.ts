@@ -17,7 +17,7 @@ Commands:
 
 Options:
   --cdn <url>      ESM-compatible module CDN (dev and build)
-  --host <host>    Host to listen on (dev and start; default: 127.0.0.1)
+  --host <host>    Host to listen on (dev and start; default: localhost)
   --port <port>    Port to listen on (dev and start; default: 3000)
   -o, --out-dir   Build output relative to the project root (default: dist)
   -v, --version    Show the installed version
@@ -104,29 +104,31 @@ async function run() {
       outDir: outDir || 'dist',
       cdn,
     })
-    console.log(`Devjar built ${result.routes.length} routes`)
-    console.log(result.outDir)
+    console.log('Devjar build complete')
+    console.log(`  Output: ${result.outDir}`)
+    console.log(`  Routes: ${result.routes.length}`)
     return
   }
 
   const server = command === 'start'
     ? await startBuiltServer({
         root: root || join(process.cwd(), 'dist'),
-        host: host || '127.0.0.1',
+        host: host || 'localhost',
         port: port ?? 3000,
       })
     : await startDevServer({
         root: root || process.cwd(),
-        host: host || '127.0.0.1',
+        host: host || 'localhost',
         port: port ?? 3000,
         cdn,
       })
   const browserHost = server.host === '0.0.0.0' || server.host === '::'
-    ? '127.0.0.1'
+    ? 'localhost'
     : server.host.includes(':') ? `[${server.host}]` : server.host
-  const url = `http://${browserHost}:${server.port}`
-  console.log(command === 'start' ? `Devjar serving build ${server.root}` : `Devjar serving ${server.root}`)
-  console.log(url)
+  const url = `http://${browserHost}:${server.port}/`
+  console.log(command === 'start' ? 'Devjar production server ready' : 'Devjar development server ready')
+  console.log(`  Local:   ${url}`)
+  console.log(command === 'start' ? `  Build:   ${server.root}` : `  Project: ${server.root}`)
 
   let shuttingDown = false
   async function close(signal: string) {

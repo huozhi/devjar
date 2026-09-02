@@ -9,17 +9,17 @@ const links = [
 
 export function Shell({ page, children }: { page: string, children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-[#f4f5f2] text-stone-950">
-      <header className="border-b border-stone-200 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <a className="flex items-center gap-3 font-semibold" href="/">
-            <img alt="Northstar" className="size-8" src="/mark.svg" />
-            Northstar
+    <div className="min-h-screen bg-[#efeee8] text-stone-950">
+      <header className="border-b-2 border-stone-950 bg-[#d9ff54]">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
+          <a className="flex items-center gap-3 font-black uppercase tracking-tight text-stone-950" href="/">
+            <img alt="Northstar" className="size-7 border-2 border-stone-950" src="/mark.svg" />
+            Northstar / Ops
           </a>
-          <nav className="flex items-center gap-1">
+          <nav className="flex items-center gap-2">
             {links.map(({ href, label, icon: Icon }) => (
               <a
-                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${page === href ? 'bg-stone-900 text-white' : 'text-stone-500 hover:bg-stone-100 hover:text-stone-950'}`}
+                className={`flex items-center gap-2 border-2 border-stone-950 px-2.5 py-2 text-xs font-bold uppercase tracking-wider ${page === href ? 'bg-stone-950 text-white' : 'bg-[#d9ff54] text-stone-950 hover:bg-white'}`}
                 href={href}
                 key={href}
               >
@@ -30,7 +30,7 @@ export function Shell({ page, children }: { page: string, children: ReactNode })
           </nav>
         </div>
       </header>
-      <main className="mx-auto max-w-6xl px-6 py-10">{children}</main>
+      <main className="mx-auto max-w-5xl px-4 py-7 sm:px-6 sm:py-9">{children}</main>
     </div>
   )
 }
