@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import { spawn } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
 import { buildProject, startBuiltServer, startDevServer } from '../cli'
 
@@ -20,13 +19,12 @@ Options:
   --host <host>    Host to listen on (dev and start; default: 127.0.0.1)
   --port <port>    Port to listen on (dev and start; default: 3000)
   -o, --out-dir   Build output relative to the project root (default: .devjar)
-  --open           Open the server in a browser
   -v, --version    Show the installed version
   -h, --help       Show this help
 
 Examples:
   devjar
-  devjar dev examples/dashboard --open
+  devjar dev examples/dashboard
   devjar build examples/dashboard
   devjar start examples/dashboard/.devjar`)
 }
@@ -49,17 +47,6 @@ async function version() {
     } catch {}
   }
   return 'unknown'
-}
-
-function openBrowser(url: string) {
-  const command = process.platform === 'darwin'
-    ? ['open', url]
-    : process.platform === 'win32'
-      ? ['rundll32', 'url.dll,FileProtocolHandler', url]
-      : ['xdg-open', url]
-  const child = spawn(command[0], command.slice(1), { detached: true, stdio: 'ignore' })
-  child.on('error', () => {})
-  child.unref()
 }
 
 function friendlyError(error: unknown) {
@@ -87,7 +74,6 @@ async function run() {
   let port: number | undefined
   let cdn: string | undefined
   let outDir: string | undefined
-  let shouldOpen = false
 
   for (let index = 0; index < args.length; index++) {
     const arg = args[index]
@@ -95,7 +81,6 @@ async function run() {
     else if (arg === '--port' || arg === '-p') port = Number(valueAfter(args, index++))
     else if (arg === '--cdn') cdn = valueAfter(args, index++)
     else if (arg === '--out-dir' || arg === '-o') outDir = valueAfter(args, index++)
-    else if (arg === '--open') shouldOpen = true
     else if (arg.startsWith('-')) throw new Error(`Unknown option: ${arg}`)
     else if (!root) root = arg
     else throw new Error(`Unexpected argument: ${arg}`)
@@ -104,8 +89,8 @@ async function run() {
   if (port !== undefined && (!Number.isInteger(port) || port < 0 || port > 65535)) {
     throw new Error(`Invalid port: ${port}`)
   }
-  if (command === 'build' && (host || port !== undefined || shouldOpen)) {
-    throw new Error('build does not accept --host, --port, or --open')
+  if (command === 'build' && (host || port !== undefined)) {
+    throw new Error('build does not accept --host or --port')
   }
   if (command === 'start' && (cdn || outDir)) {
     throw new Error('start does not accept --cdn or --out-dir; configure these when building')
@@ -128,7 +113,6 @@ async function run() {
   const url = `http://${browserHost}:${server.port}`
   console.log(command === 'start' ? `Devjar serving build ${server.root}` : `Devjar serving ${server.root}`)
   console.log(url)
-  if (shouldOpen) openBrowser(url)
 
   let shuttingDown = false
   async function close(signal: string) {

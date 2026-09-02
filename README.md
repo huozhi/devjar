@@ -100,14 +100,14 @@ The repository includes two runnable examples:
 
 ```sh
 devjar dev examples/basic
-devjar dev examples/dashboard --open
+devjar dev examples/dashboard
 ```
 
 The dashboard demonstrates page navigation, shared components, a CDN-loaded
 icon package, Tailwind, static API data, and a public SVG asset.
 
 ```sh
-devjar dev [root] --host 127.0.0.1 --port 3000 --open
+devjar dev [root] --host 127.0.0.1 --port 3000
 ```
 
 ## Demo
