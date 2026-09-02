@@ -5,6 +5,12 @@ import { buildProject, startBuiltServer, startDevServer } from '../cli'
 
 type Command = 'dev' | 'build' | 'start'
 
+const useColor = Boolean(process.stdout.isTTY && !process.env.NO_COLOR)
+
+function style(code: number, value: string) {
+  return useColor ? `\u001b[${code}m${value}\u001b[0m` : value
+}
+
 function help() {
   console.log(`devjar [command] [root] [options]
 
@@ -104,9 +110,10 @@ async function run() {
       outDir: outDir || 'dist',
       cdn,
     })
-    console.log('Devjar build complete')
-    console.log(`  Output: ${result.outDir}`)
-    console.log(`  Routes: ${result.routes.length}`)
+    console.log(style(1, 'Devjar build complete'))
+    console.log('')
+    console.log(`Output  ${style(36, result.outDir)}`)
+    console.log(`Routes  ${result.routes.length}`)
     return
   }
 
@@ -126,9 +133,9 @@ async function run() {
     ? 'localhost'
     : server.host.includes(':') ? `[${server.host}]` : server.host
   const url = `http://${browserHost}:${server.port}/`
-  console.log(command === 'start' ? 'Devjar production server ready' : 'Devjar development server ready')
-  console.log(`  Local:   ${url}`)
-  console.log(command === 'start' ? `  Build:   ${server.root}` : `  Project: ${server.root}`)
+  console.log(style(1, command === 'start' ? 'Devjar production server ready' : 'Devjar development server ready'))
+  console.log('')
+  console.log(`Local  ${style(36, url)}`)
 
   let shuttingDown = false
   async function close(signal: string) {

@@ -61,8 +61,8 @@ if (
   build.exitCode !== 0
   || !usedDefaultOutput
   || !buildOutput.includes('Devjar build complete')
-  || !buildOutput.includes('  Output: ')
-  || !buildOutput.includes('  Routes: 2')
+  || !buildOutput.includes('Output  ')
+  || !buildOutput.includes('Routes  2')
 ) {
   throw new Error('The packaged CLI did not report a completed build in dist')
 }
