@@ -24,30 +24,27 @@ Result:
 - The public `<DevJar>` implementation and exports are unchanged.
 - Manual dashboard measurements on 2026-09-02: 1,074 ms client start to first render in a fresh browser context, 5.4 ms `/` to `/projects`, and 124 ms file-change to render. These are local reference points, not stable CI thresholds.
 
-## 4. Compile Tailwind on the server
+## 4. Preload and cache Tailwind from the CDN
 
 Status: complete
 
-- Remove `@tailwindcss/browser` from the CLI runtime.
-- Compile one stylesheet on the server and update it incrementally during development.
-- Emit ordinary CSS in production builds.
+- Keep Tailwind out of Devjar's package dependencies.
+- Resolve the browser runtime version from the project's Tailwind dependency.
+- Preload the CDN resource and let standard browser caching reuse it.
 
 Done when:
 
-- CLI pages make no request for the Tailwind browser runtime.
+- Devjar does not install a Tailwind compiler or platform-specific scanner.
+- The Tailwind request starts before the application client.
 - Tailwind class edits update without a full page reload.
-- Production output contains compiled CSS.
+- Development and production use the same cached CDN runtime.
 
 Result:
 
-- The CLI compiles Tailwind with a persistent server-side compiler and candidate scanner.
-- Development serves and refreshes `/__devjar/tailwind.css`; the browser no longer loads `@tailwindcss/browser`.
-- Production emits an ordinary `__devjar/tailwind.css` file.
-- Controlled dashboard comparison against `main` on 2026-09-02:
-  - Three isolated Chromium profiles: median navigation-to-render improved from 446 ms to 334 ms (25%), client-start-to-render improved from 376 ms to 185 ms (51%), and the Tailwind resource improved from 102 ms remote to 2.6 ms local.
-  - Five warm-cache Chromium runs: median navigation-to-render improved from 37.3 ms to 32.9 ms (12%).
-  - Seven warm server starts: median startup regressed from 1.7 ms to 9.8 ms, an 8.1 ms one-time cost.
-  - Adding new Tailwind candidates reached the updated render in 203 ms without a page reload.
+- Devjar has no Tailwind package dependency; projects select the matching `@tailwindcss/browser` version through their existing Tailwind dependency.
+- The generated HTML preloads the CDN script and executes it before the application client.
+- Manual dashboard measurements on 2026-09-03: an isolated first request took 169 ms, while the cached reload reported 0 ms and 0 transferred bytes for the Tailwind resource.
+- Adding new Tailwind candidates reached the updated render in 223 ms without a page reload.
 
 ## 5. Use module-based routing
 

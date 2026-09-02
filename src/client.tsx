@@ -53,25 +53,10 @@ function hideError() {
   errorRoot.textContent = ''
 }
 
-function reloadTailwindStylesheet() {
-  const stylesheet = document.querySelector<HTMLLinkElement>('link[data-devjar-tailwind]')
-  if (!stylesheet) return Promise.resolve()
-
-  return new Promise<void>(resolvePromise => {
-    const ready = () => resolvePromise()
-    stylesheet.addEventListener('load', ready, { once: true })
-    stylesheet.addEventListener('error', ready, { once: true })
-    stylesheet.href = `/__devjar/tailwind.css?v=${loadRevision}`
-  })
-}
-
-async function load(route: string, reloadTailwind: boolean) {
+async function load(route: string) {
   const revision = ++loadRevision
   try {
-    const [project] = await Promise.all([
-      getProject(route),
-      reloadTailwind ? reloadTailwindStylesheet() : Promise.resolve(),
-    ])
+    const project = await getProject(route)
     if (revision !== loadRevision) return project
 
     moduleResolver = createEsmShResolver(project.dependencies, project.cdn)
@@ -121,20 +106,20 @@ function navigate(event: MouseEvent) {
 
   event.preventDefault()
   history.pushState(null, '', url.pathname + url.search + url.hash)
-  void load(url.pathname, false).catch(() => {})
+  void load(url.pathname).catch(() => {})
 }
 
 async function start() {
   document.addEventListener('click', navigate)
   addEventListener('popstate', () => {
-    void load(location.pathname, false).catch(() => {})
+    void load(location.pathname).catch(() => {})
   })
 
-  const project = await load(location.pathname, false)
+  const project = await load(location.pathname)
   if (project.liveReload) {
     const events = new EventSource('/__devjar/events')
     events.addEventListener('change', () => {
-      void load(location.pathname, true).catch(() => {})
+      void load(location.pathname).catch(() => {})
     })
   }
 }
