@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { watch } from 'node:fs'
 import { transformSync } from 'oxc-transform'
 import { CDN_HOST, createEsmShResolver, normalizeCdnHost } from './_cdn'
+import { getTailwindBrowserUrl } from './tailwind'
 import { getTransformErrorMessage, getTransformOptions } from './_transform'
 
 const sourceExtensions = ['.tsx', '.ts', '.jsx', '.js']
@@ -212,15 +213,16 @@ export async function loadProject(
   }
 
   const dependencies = packageDependencies(packageJson)
+  const cdn = projectCdn(packageJson, options.cdn)
 
   return {
     files,
     dependencies,
-    cdn: projectCdn(packageJson, options.cdn),
+    cdn,
     liveReload: options.liveReload,
     page: projectPath,
     route,
-    tailwind: 'tailwindcss' in dependencies || '@tailwindcss/browser' in dependencies,
+    tailwind: Boolean(getTailwindBrowserUrl(dependencies, cdn)),
   }
 }
 
@@ -253,9 +255,16 @@ function html(dependencies: Record<string, string>, cdn: string) {
     'es-module-lexer': resolveRuntimeModule('es-module-lexer'),
     devjar: '/__devjar/runtime.js',
   }
+  const tailwindUrl = getTailwindBrowserUrl(dependencies, cdn)
+  const tailwindPreload = tailwindUrl
+    ? `<link rel="modulepreload" href="${tailwindUrl}">`
+    : ''
+  const tailwindScript = tailwindUrl
+    ? `<script data-devjar-tailwind type="module" src="${tailwindUrl}"></script>`
+    : ''
   return `<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Devjar</title><script type="importmap">${JSON.stringify({ imports })}</script>
+<title>Devjar</title>${tailwindPreload}<script type="importmap">${JSON.stringify({ imports })}</script>
 <style>html,body,#root,#__reactRoot{width:100%;min-height:100%;margin:0}.devjar-error{box-sizing:border-box;position:fixed;z-index:10;inset:auto 16px 16px;padding:14px 16px;border:1px solid #ffb4ab;border-radius:8px;background:#330a08;color:#ffdad6;font:13px/1.5 ui-monospace,monospace;white-space:pre-wrap}</style>
 </head><body><div id="root"></div><pre id="__devjarError" class="devjar-error" hidden></pre><script>
 const errorRoot = document.getElementById('__devjarError')
@@ -265,7 +274,7 @@ const showBootstrapError = value => {
 }
 addEventListener('error', event => showBootstrapError(event.message || 'A browser module failed to load'))
 addEventListener('unhandledrejection', event => showBootstrapError(event.reason?.stack || event.reason || 'An asynchronous module failed'))
-</script><script type="module" src="/__devjar/client.js"></script></body></html>`
+</script>${tailwindScript}<script type="module" src="/__devjar/client.js"></script></body></html>`
 }
 
 const contentTypes: Record<string, string> = {

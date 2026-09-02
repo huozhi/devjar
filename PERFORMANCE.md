@@ -24,23 +24,31 @@ Result:
 - The public `<DevJar>` implementation and exports are unchanged.
 - Manual dashboard measurements on 2026-09-02: 1,074 ms client start to first render in a fresh browser context, 5.4 ms `/` to `/projects`, and 124 ms file-change to render. These are local reference points, not stable CI thresholds.
 
-## 4. Compile Tailwind on the server
+## 4. Preload and cache Tailwind from the CDN
 
-Status: next
+Status: complete
 
-- Remove `@tailwindcss/browser` from the CLI runtime.
-- Compile one stylesheet on the server and update it incrementally during development.
-- Emit ordinary CSS in production builds.
+- Keep Tailwind out of Devjar's package dependencies.
+- Resolve the browser runtime version from the project's Tailwind dependency and load it from the configured module CDN.
+- Preload the CDN resource and let standard browser caching reuse it.
 
 Done when:
 
-- CLI pages make no request for the Tailwind browser runtime.
+- Devjar does not install a Tailwind compiler or platform-specific scanner.
+- The Tailwind request starts before the application client.
 - Tailwind class edits update without a full page reload.
-- Production output contains compiled CSS.
+- Development and production use the same cached CDN runtime.
+
+Result:
+
+- Devjar has no Tailwind package dependency; projects select the matching `@tailwindcss/browser` version through their existing Tailwind dependency and configured module CDN.
+- The generated HTML preloads the CDN script and executes it before the application client.
+- Manual dashboard measurements on 2026-09-03: a cached esm.sh reload transferred 0 bytes; its entry module took 0.8 ms and bundled module took 0 ms.
+- Adding new Tailwind candidates reached the updated render in 221 ms without a page reload.
 
 ## 5. Use module-based routing
 
-Status: queued
+Status: next
 
 - Generate a route manifest whose entries load page modules.
 - Keep one React root alive across navigation.

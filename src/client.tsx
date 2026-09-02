@@ -10,10 +10,7 @@ type Project = {
   cdn: string
   liveReload: boolean
   page: string
-  tailwind: boolean
 }
-
-const tailwindSrc = 'https://unpkg.com/@tailwindcss/browser@4'
 
 function getRoot(id: string) {
   const root = document.getElementById(id)
@@ -32,7 +29,6 @@ let loadRevision = 0
 let moduleResolver = (_specifier: string): string => {
   throw new Error('Devjar module resolution is not initialized')
 }
-let tailwindReady: Promise<void> | undefined
 const render = createRenderer(createModule, specifier => moduleResolver(specifier))
 
 async function getProject(route: string): Promise<Project> {
@@ -57,21 +53,6 @@ function hideError() {
   errorRoot.textContent = ''
 }
 
-function loadTailwind(enabled: boolean) {
-  if (!enabled) return Promise.resolve()
-  if (tailwindReady) return tailwindReady
-
-  tailwindReady = new Promise<void>(resolvePromise => {
-    const script = document.createElement('script')
-    const ready = () => resolvePromise()
-    script.src = tailwindSrc
-    script.addEventListener('load', ready, { once: true })
-    script.addEventListener('error', ready, { once: true })
-    document.head.appendChild(script)
-  })
-  return tailwindReady
-}
-
 async function load(route: string) {
   const revision = ++loadRevision
   try {
@@ -80,7 +61,6 @@ async function load(route: string) {
 
     moduleResolver = createEsmShResolver(project.dependencies, project.cdn)
     const linked = await linkModules(project.files, moduleResolver)
-    await loadTailwind(project.tailwind)
     if (revision !== loadRevision) return project
 
     await render(linked.files, linked.dependencies)

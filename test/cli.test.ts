@@ -6,6 +6,7 @@ import { init, parse } from 'es-module-lexer'
 import { buildProject, loadProject, startBuiltServer, startDevServer } from '../src/cli'
 import { CDN_HOST, createEsmShResolver } from '../src/_cdn'
 import { replaceImports } from '../src/core'
+import { getTailwindBrowserUrl } from '../src/tailwind'
 
 const root = resolve(import.meta.dir, '../examples/basic')
 const dashboardRoot = resolve(import.meta.dir, '../examples/dashboard')
@@ -73,6 +74,16 @@ describe('project loading', () => {
     const notFound = await loadProject(dashboardRoot, '/missing', liveProjectOptions)
     expect(notFound.page).toBe('pages/404.tsx')
   })
+
+  test('uses the project Tailwind version for the cached browser runtime', () => {
+    expect(getTailwindBrowserUrl(
+      { tailwindcss: '^4.1.0' },
+      'https://modules.example.test/',
+    )).toBe(
+      'https://modules.example.test/@tailwindcss/browser@%5E4.1.0',
+    )
+    expect(getTailwindBrowserUrl({}, CDN_HOST)).toBeUndefined()
+  })
 })
 
 describe('dev server', () => {
@@ -93,11 +104,13 @@ describe('dev server', () => {
     expect(shell.headers.get('cross-origin-embedder-policy')).toBeNull()
     const shellSource = await shell.text()
     expect(shellSource).toContain('/__devjar/client.js')
+    expect(shellSource).toContain('data-devjar-tailwind')
+    expect(shellSource).toContain('https://esm.sh/@tailwindcss/browser@%5E4.1.0')
     expect(shellSource).toContain('Devjar could not start')
     expect(shellSource).toContain(`Devjar could not start:\\n\\n`)
     expect(shellSource).not.toContain('<iframe')
     expect(await (await fetch(`${base}/about`, { method: 'HEAD' })).text()).toBe('')
-    const bootstrap = shellSource.match(/<script>\n([\s\S]+)<\/script><script type="module"/)?.[1]
+    const bootstrap = shellSource.match(/<script>\n([\s\S]+?)<\/script>/)?.[1]
     expect(() => new Function(bootstrap || '')).not.toThrow()
 
     const project = await fetch(`${base}/__devjar/project?route=%2Fabout`)
@@ -110,6 +123,7 @@ describe('dev server', () => {
     expect(client).toContain('createRenderer(createModule')
     expect(client).toContain('linkModules(project.files, moduleResolver)')
     expect(client).not.toContain('createElement("iframe")')
+    expect(client).not.toContain('@tailwindcss/browser')
     expect(client).toContain('project.liveReload')
     expect(client).toContain('popstate')
     expect(client).toContain('history.pushState')
@@ -160,6 +174,7 @@ describe('production build', () => {
     expect(manifest.routes['/'].liveReload).toBe(false)
     expect(manifest.cdn).toBe('https://modules.example.test')
     expect(await readFile(join(buildRoot, '__devjar/client.js'), 'utf8')).toContain('__devjar/project')
+    expect(await readFile(join(buildRoot, 'index.html'), 'utf8')).toContain('data-devjar-tailwind')
     expect(await readFile(join(buildRoot, '__devjar/_cdn.js'), 'utf8')).toContain('createEsmShResolver')
     expect(await readFile(join(buildRoot, 'api/projects.json'), 'utf8')).toContain('Mobile refresh')
     expect(await readFile(join(buildRoot, 'public/mark.svg'), 'utf8')).toContain('<svg')
