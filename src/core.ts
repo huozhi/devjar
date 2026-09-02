@@ -310,11 +310,13 @@ function useLiveCode({
   resolveModule: customResolveModule,
   dependencies,
   transform = true,
+  tailwind = true,
   transformWorkerUrl,
 }: {
   resolveModule?: (specifier: string) => string
   dependencies?: Record<string, string>
   transform?: boolean
+  tailwind?: boolean
   transformWorkerUrl?: string | URL
 }) {
   const resolveModule = useMemo(
@@ -377,25 +379,29 @@ function useLiveCode({
     const appScriptContent = createMainScript({ uid })
     
     const appScript = createScript(appScriptRef, { content: appScriptContent })
-    const tailwindScript = createScript(tailwindcssScriptRef, { src: tailwindSrc })
+    const tailwindScript = tailwind
+      ? createScript(tailwindcssScriptRef, { src: tailwindSrc })
+      : null
 
     let resolveTailwind: (() => void) | undefined
-    tailwindReadyRef.current = new Promise<void>((resolve) => {
-      const ready = () => resolve()
-      resolveTailwind = ready
-      tailwindScript.addEventListener('load', ready, { once: true })
-      tailwindScript.addEventListener('error', ready, { once: true })
-    })
+    tailwindReadyRef.current = tailwindScript
+      ? new Promise<void>((resolve) => {
+          const ready = () => resolve()
+          resolveTailwind = ready
+          tailwindScript.addEventListener('load', ready, { once: true })
+          tailwindScript.addEventListener('error', ready, { once: true })
+        })
+      : Promise.resolve()
 
     body.appendChild(div)
-    body.appendChild(tailwindScript)
+    if (tailwindScript) body.appendChild(tailwindScript)
     body.appendChild(appScript)
     
     return () => {
       if (!iframe || !iframe.contentDocument) return
       body.removeChild(div)
       body.removeChild(appScript)
-      body.removeChild(tailwindScript)
+      if (tailwindScript) body.removeChild(tailwindScript)
       resolveTailwind?.()
     }
   }, [])

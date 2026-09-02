@@ -20,6 +20,7 @@ type Project = {
   dependencies: Record<string, string>
   page: string
   route: string
+  tailwind: boolean
 }
 
 export type DevServerOptions = {
@@ -136,14 +137,17 @@ export async function loadProject(root: string, route: string): Promise<Project>
     files[filename] = output.code
   }
 
+  const dependencies = {
+    ...packageJson.devDependencies,
+    ...packageJson.dependencies,
+  }
+
   return {
     files,
-    dependencies: {
-      ...packageJson.devDependencies,
-      ...packageJson.dependencies,
-    },
+    dependencies,
     page: projectPath,
     route,
+    tailwind: 'tailwindcss' in dependencies || '@tailwindcss/browser' in dependencies,
   }
 }
 

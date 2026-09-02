@@ -58,7 +58,8 @@ Files below `public/` are served from `/`. JSON and text files below `api/`
 are available at their corresponding `/api/` URLs. Executable API routes are
 not supported.
 
-Tailwind CSS v4 utilities are available automatically in every CLI prototype.
+The embedded browser runtime loads Tailwind automatically. For CLI projects,
+add `tailwindcss` or `@tailwindcss/browser` to `package.json` to enable it.
 
 ```sh
 devjar [root] --host 127.0.0.1 --port 3000

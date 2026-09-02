@@ -1,8 +1,6 @@
-html { color-scheme: dark; }
-
 body {
   margin: 0;
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-family: ui-sans-serif, system-ui, sans-serif;
 }
 
 a {
@@ -17,7 +15,6 @@ a:hover {
 }
 
 a:focus-visible {
-  border-radius: 0.2rem;
-  outline: 2px solid currentColor;
+  outline: 2px solid #404040;
   outline-offset: 3px;
 }

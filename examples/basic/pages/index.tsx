@@ -1,46 +1,42 @@
-import { Activity, Clock3, Layers3 } from 'lucide-react'
-import { Card } from '../components/card'
 import { Shell } from '../components/shell'
 import '../styles.css'
 
 export default function Home() {
+  const posts = [
+    {
+      title: 'Start with the smallest useful version',
+      date: 'August 18, 2026',
+      excerpt: 'A few notes on reducing an idea until the interesting part is easy to see.',
+    },
+    {
+      title: 'Software made from ordinary files',
+      date: 'August 7, 2026',
+      excerpt: 'Why simple folders and readable conventions remain a good interface for tools.',
+    },
+    {
+      title: 'The value of disposable prototypes',
+      date: 'July 29, 2026',
+      excerpt: 'The best prototype is often the one you are comfortable replacing tomorrow.',
+    },
+  ]
+
   return (
     <Shell page="home">
-      <section className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
-        <div className="max-w-2xl">
-          <span className="inline-flex items-center rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs font-medium text-cyan-200">Prototype environment online</span>
-          <h1 className="mt-5 text-5xl font-semibold tracking-tight text-white sm:text-6xl">
-            Ship the idea,<br /><span className="bg-gradient-to-r from-cyan-300 to-violet-400 bg-clip-text text-transparent">skip the setup.</span>
-          </h1>
-          <p className="mt-5 max-w-xl text-lg leading-8 text-slate-400">File-based pages, instant updates, and CDN dependencies in one tiny development server.</p>
-        </div>
-        <a href="/about" className="inline-flex items-center justify-center rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-white/10 transition hover:-translate-y-0.5 hover:bg-cyan-100">Explore the runtime →</a>
+      <section className="max-w-2xl">
+        <p className="text-sm text-neutral-500">Notes on software and small tools</p>
+        <h1 className="mt-3 font-serif text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">Writing things down while building them.</h1>
+        <p className="mt-5 text-lg leading-8 text-neutral-600">A quiet collection of observations from making software, prototypes, and tools for the web.</p>
       </section>
 
-      <section className="mt-12 grid gap-4 md:grid-cols-3">
-        <Card icon={Activity} label="Refresh latency" value="42 ms" detail="↓ 18% from last session" />
-        <Card icon={Layers3} label="Loaded modules" value="12" detail="All packages from CDN" />
-        <Card icon={Clock3} label="Setup time" value="0 min" detail="No node_modules required" />
-      </section>
-
-      <section className="mt-6 grid gap-6 rounded-2xl border border-white/10 bg-white/[0.03] p-6 lg:grid-cols-[1.2fr_0.8fr]">
-        <div>
-          <p className="text-sm font-medium text-slate-400">Recent activity</p>
-          <div className="mt-5 space-y-4">
-            {['pages/index.tsx rendered', 'lucide-react resolved from CDN', 'styles.css updated'].map((item, index) => (
-              <div className="flex items-center gap-3" key={item}>
-                <span className={`h-2 w-2 rounded-full ${index === 0 ? 'bg-emerald-300' : 'bg-slate-600'}`} />
-                <span className="text-sm text-slate-300">{item}</span>
-                <span className="ml-auto text-xs text-slate-600">{index === 0 ? 'now' : `${index * 4}m`}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="rounded-xl border border-white/10 bg-slate-950 p-5 font-mono text-sm text-slate-400">
-          <p><span className="text-violet-300">$</span> npx devjar</p>
-          <p className="mt-3 text-emerald-300">✓ Ready on localhost:3000</p>
-          <p className="mt-1 text-slate-600">Watching pages and components…</p>
-        </div>
+      <section className="mt-14 divide-y divide-neutral-200 border-y border-neutral-200">
+        {posts.map(post => (
+          <article className="py-8" key={post.title}>
+            <p className="text-sm text-neutral-500">{post.date}</p>
+            <h2 className="mt-2 font-serif text-2xl font-semibold tracking-tight"><a href="/about" className="hover:text-neutral-600">{post.title}</a></h2>
+            <p className="mt-3 max-w-2xl leading-7 text-neutral-600">{post.excerpt}</p>
+            <a href="/about" className="mt-4 inline-block text-sm font-medium underline decoration-neutral-300 underline-offset-4 hover:decoration-neutral-700">Read note</a>
+          </article>
+        ))}
       </section>
     </Shell>
   )

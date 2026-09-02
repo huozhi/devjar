@@ -31,14 +31,14 @@ describe('project loading', () => {
     const project = await loadProject(root, '/')
     expect(project.page).toBe('pages/index.tsx')
     expect(Object.keys(project.files).sort()).toEqual([
-      './components/card.tsx',
       './components/shell.tsx',
       './pages/index.tsx',
       './styles.css',
       'index.tsx',
     ])
+    expect(project.tailwind).toBe(true)
     expect(project.files['index.tsx']).toContain('./pages/index.tsx')
-    expect(project.files['./components/card.tsx']).not.toContain('ReactNode')
+    expect(project.files['./components/shell.tsx']).not.toContain('ReactNode')
   })
 
   test('loads a second page route', async () => {
@@ -73,6 +73,7 @@ describe('dev server', () => {
     expect(client).not.toContain('function dependencyUrl')
     expect(client).toContain('dependencies: project.dependencies')
     expect(client).toContain('transform: false')
+    expect(client).toContain('tailwind: project.tailwind')
     expect(client).toContain('popstate')
     expect(client).toContain('history.pushState')
 
