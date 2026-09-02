@@ -29,7 +29,7 @@ Result:
 Status: complete
 
 - Keep Tailwind out of Devjar's package dependencies.
-- Resolve the browser runtime version from the project's Tailwind dependency.
+- Resolve the browser runtime version from the project's Tailwind dependency and load it from the configured module CDN.
 - Preload the CDN resource and let standard browser caching reuse it.
 
 Done when:
@@ -41,10 +41,10 @@ Done when:
 
 Result:
 
-- Devjar has no Tailwind package dependency; projects select the matching `@tailwindcss/browser` version through their existing Tailwind dependency.
+- Devjar has no Tailwind package dependency; projects select the matching `@tailwindcss/browser` version through their existing Tailwind dependency and configured module CDN.
 - The generated HTML preloads the CDN script and executes it before the application client.
-- Manual dashboard measurements on 2026-09-03: an isolated first request took 169 ms, while the cached reload reported 0 ms and 0 transferred bytes for the Tailwind resource.
-- Adding new Tailwind candidates reached the updated render in 223 ms without a page reload.
+- Manual dashboard measurements on 2026-09-03: a cached esm.sh reload transferred 0 bytes; its entry module took 0.8 ms and bundled module took 0 ms.
+- Adding new Tailwind candidates reached the updated render in 221 ms without a page reload.
 
 ## 5. Use module-based routing
 

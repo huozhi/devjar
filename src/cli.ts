@@ -213,15 +213,16 @@ export async function loadProject(
   }
 
   const dependencies = packageDependencies(packageJson)
+  const cdn = projectCdn(packageJson, options.cdn)
 
   return {
     files,
     dependencies,
-    cdn: projectCdn(packageJson, options.cdn),
+    cdn,
     liveReload: options.liveReload,
     page: projectPath,
     route,
-    tailwind: Boolean(getTailwindBrowserUrl(dependencies)),
+    tailwind: Boolean(getTailwindBrowserUrl(dependencies, cdn)),
   }
 }
 
@@ -254,12 +255,12 @@ function html(dependencies: Record<string, string>, cdn: string) {
     'es-module-lexer': resolveRuntimeModule('es-module-lexer'),
     devjar: '/__devjar/runtime.js',
   }
-  const tailwindUrl = getTailwindBrowserUrl(dependencies)
+  const tailwindUrl = getTailwindBrowserUrl(dependencies, cdn)
   const tailwindPreload = tailwindUrl
-    ? `<link rel="preload" as="script" href="${tailwindUrl}">`
+    ? `<link rel="modulepreload" href="${tailwindUrl}">`
     : ''
   const tailwindScript = tailwindUrl
-    ? `<script data-devjar-tailwind src="${tailwindUrl}"></script>`
+    ? `<script data-devjar-tailwind type="module" src="${tailwindUrl}"></script>`
     : ''
   return `<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">

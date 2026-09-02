@@ -76,10 +76,13 @@ describe('project loading', () => {
   })
 
   test('uses the project Tailwind version for the cached browser runtime', () => {
-    expect(getTailwindBrowserUrl({ tailwindcss: '^4.1.0' })).toBe(
-      'https://unpkg.com/@tailwindcss/browser@%5E4.1.0',
+    expect(getTailwindBrowserUrl(
+      { tailwindcss: '^4.1.0' },
+      'https://modules.example.test/',
+    )).toBe(
+      'https://modules.example.test/@tailwindcss/browser@%5E4.1.0',
     )
-    expect(getTailwindBrowserUrl({})).toBeUndefined()
+    expect(getTailwindBrowserUrl({}, CDN_HOST)).toBeUndefined()
   })
 })
 
@@ -102,7 +105,7 @@ describe('dev server', () => {
     const shellSource = await shell.text()
     expect(shellSource).toContain('/__devjar/client.js')
     expect(shellSource).toContain('data-devjar-tailwind')
-    expect(shellSource).toContain('https://unpkg.com/@tailwindcss/browser@%5E4.1.0')
+    expect(shellSource).toContain('https://esm.sh/@tailwindcss/browser@%5E4.1.0')
     expect(shellSource).toContain('Devjar could not start')
     expect(shellSource).toContain(`Devjar could not start:\\n\\n`)
     expect(shellSource).not.toContain('<iframe')
