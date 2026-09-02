@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import { buildProject, startBuiltServer, startDevServer } from '../cli'
 
 type Command = 'dev' | 'build' | 'start'
@@ -98,15 +99,28 @@ async function run() {
   if (command === 'dev' && outDir) throw new Error('dev does not accept --out-dir')
 
   if (command === 'build') {
-    const result = await buildProject({ root, outDir, cdn })
+    const result = await buildProject({
+      root: root || process.cwd(),
+      outDir: outDir || '.devjar',
+      cdn,
+    })
     console.log(`Devjar built ${result.routes.length} routes`)
     console.log(result.outDir)
     return
   }
 
   const server = command === 'start'
-    ? await startBuiltServer({ root, host, port })
-    : await startDevServer({ root, host, port, cdn })
+    ? await startBuiltServer({
+        root: root || join(process.cwd(), '.devjar'),
+        host: host || '127.0.0.1',
+        port: port ?? 3000,
+      })
+    : await startDevServer({
+        root: root || process.cwd(),
+        host: host || '127.0.0.1',
+        port: port ?? 3000,
+        cdn,
+      })
   const browserHost = server.host === '0.0.0.0' || server.host === '::'
     ? '127.0.0.1'
     : server.host.includes(':') ? `[${server.host}]` : server.host

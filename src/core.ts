@@ -2,7 +2,7 @@ import { useEffect, useCallback, useState, useId, useMemo, useRef } from 'react'
 import { createModule } from './module'
 import type { ModuleRuntime } from './module'
 import { init, parse } from 'es-module-lexer'
-import { createEsmShResolver } from './_cdn'
+import { CDN_HOST, createEsmShResolver } from './_cdn'
 
 type ResolveModule = (specifier: string) => string
 type RenderFunction = (
@@ -320,7 +320,7 @@ function useLiveCode({
   transformWorkerUrl?: string | URL
 }) {
   const resolveModule = useMemo(
-    () => customResolveModule || createEsmShResolver(dependencies),
+    () => customResolveModule || createEsmShResolver(dependencies || {}, CDN_HOST),
     [customResolveModule, dependencies]
   )
   const iframeRef = useRef<HTMLIFrameElement | null>(null)

@@ -37,22 +37,27 @@ type BuiltManifest = {
 }
 
 export type DevServerOptions = {
-  root?: string
-  host?: string
-  port?: number
-  cdn?: string
+  root: string
+  host: string
+  port: number
+  cdn: string | undefined
 }
 
 export type BuildOptions = {
-  root?: string
-  outDir?: string
-  cdn?: string
+  root: string
+  outDir: string
+  cdn: string | undefined
 }
 
 export type StartServerOptions = {
-  root?: string
-  host?: string
-  port?: number
+  root: string
+  host: string
+  port: number
+}
+
+export type LoadProjectOptions = {
+  cdn: string | undefined
+  liveReload: boolean
 }
 
 function isInside(root: string, path: string) {
@@ -181,14 +186,14 @@ function packageDependencies(packageJson: PackageJson) {
   }
 }
 
-function projectCdn(packageJson: PackageJson, override?: string) {
+function projectCdn(packageJson: PackageJson, override: string | undefined) {
   return normalizeCdnHost(override || packageJson.devjar?.cdn || CDN_HOST)
 }
 
 export async function loadProject(
   root: string,
   route: string,
-  options: { cdn?: string, liveReload?: boolean } = {},
+  options: LoadProjectOptions,
 ): Promise<Project> {
   root = await realpath(root)
   const page = await resolvePage(root, route)
@@ -212,7 +217,7 @@ export async function loadProject(
     files,
     dependencies,
     cdn: projectCdn(packageJson, options.cdn),
-    liveReload: options.liveReload ?? true,
+    liveReload: options.liveReload,
     page: projectPath,
     route,
     tailwind: 'tailwindcss' in dependencies || '@tailwindcss/browser' in dependencies,
@@ -286,7 +291,7 @@ async function serveFile(
   response: ServerResponse,
   root: string,
   requestPath: string,
-  allowed?: Set<string>,
+  allowed: Set<string> | undefined,
 ) {
   const path = resolve(root, `.${normalize('/' + requestPath)}`)
   if (!isInside(root, path) || (allowed && !allowed.has(extname(path)))) return false
@@ -305,10 +310,10 @@ async function serveFile(
   return true
 }
 
-export async function startDevServer(options: DevServerOptions = {}) {
-  const root = await realpath(resolve(options.root || process.cwd()))
-  const host = options.host || '127.0.0.1'
-  const port = options.port ?? 3000
+export async function startDevServer(options: DevServerOptions) {
+  const root = await realpath(resolve(options.root))
+  const host = options.host
+  const port = options.port
   const events = new Set<ServerResponse>()
   const assetsRoot = await runtimeRoot()
 
@@ -345,7 +350,7 @@ export async function startDevServer(options: DevServerOptions = {}) {
       if (url.pathname === '/__devjar/project') {
         const route = url.searchParams.get('route') || '/'
         try {
-          const project = await loadProject(root, route, { cdn: options.cdn })
+          const project = await loadProject(root, route, { cdn: options.cdn, liveReload: true })
           send(request, response, 200, 'application/json; charset=utf-8', JSON.stringify(project))
         } catch (error) {
           send(request, response, 404, 'application/json; charset=utf-8', JSON.stringify({ error: error instanceof Error ? error.message : String(error) }))
@@ -353,11 +358,11 @@ export async function startDevServer(options: DevServerOptions = {}) {
         return
       }
       if (url.pathname === '/__devjar/runtime.js') {
-        if (!await serveFile(request, response, assetsRoot, 'index.js')) send(request, response, 500, 'text/plain', 'Devjar runtime is missing')
+        if (!await serveFile(request, response, assetsRoot, 'index.js', undefined)) send(request, response, 500, 'text/plain', 'Devjar runtime is missing')
         return
       }
       if (url.pathname.startsWith('/__devjar/')) {
-        if (!await serveFile(request, response, assetsRoot, url.pathname.slice('/__devjar/'.length))) send(request, response, 404, 'text/plain', 'Not found')
+        if (!await serveFile(request, response, assetsRoot, url.pathname.slice('/__devjar/'.length), undefined)) send(request, response, 404, 'text/plain', 'Not found')
         return
       }
       if (url.pathname.startsWith('/api/')) {
@@ -366,7 +371,7 @@ export async function startDevServer(options: DevServerOptions = {}) {
         }
         return
       }
-      if (await serveFile(request, response, join(root, 'public'), url.pathname.slice(1))) return
+      if (await serveFile(request, response, join(root, 'public'), url.pathname.slice(1), undefined)) return
       const packageJson = await readPackage(root)
       send(
         request,
@@ -494,9 +499,9 @@ async function copyRuntimeAssets(destination: string) {
   }
 }
 
-export async function buildProject(options: BuildOptions = {}) {
-  const root = await realpath(resolve(options.root || process.cwd()))
-  const outDir = resolve(root, options.outDir || '.devjar')
+export async function buildProject(options: BuildOptions) {
+  const root = await realpath(resolve(options.root))
+  const outDir = resolve(root, options.outDir)
   const outputBoundary = await existingDirectory(outDir)
   if (outDir === root || !isInside(root, outDir) || !isInside(root, outputBoundary)) {
     throw new Error('The build output must be a directory inside the project root')
@@ -532,14 +537,14 @@ export async function buildProject(options: BuildOptions = {}) {
   return { root, outDir, routes: Object.keys(routes) }
 }
 
-export async function startBuiltServer(options: StartServerOptions = {}) {
-  const requestedRoot = resolve(options.root || join(process.cwd(), '.devjar'))
+export async function startBuiltServer(options: StartServerOptions) {
+  const requestedRoot = resolve(options.root)
   if (!await directoryExists(requestedRoot)) {
     throw new Error(`Devjar build directory not found: ${requestedRoot}`)
   }
   const root = await realpath(requestedRoot)
-  const host = options.host || '127.0.0.1'
-  const port = options.port ?? 3000
+  const host = options.host
+  const port = options.port
   const manifest = JSON.parse(await readFile(join(root, 'manifest.json'), 'utf8')) as BuiltManifest
   if (manifest.version !== 1) throw new Error(`Unsupported Devjar build version: ${manifest.version}`)
   const shell = await readFile(join(root, 'index.html'), 'utf8')
@@ -560,7 +565,7 @@ export async function startBuiltServer(options: StartServerOptions = {}) {
         return
       }
       if (url.pathname.startsWith('/__devjar/')) {
-        if (!await serveFile(request, response, join(root, '__devjar'), url.pathname.slice('/__devjar/'.length))) {
+        if (!await serveFile(request, response, join(root, '__devjar'), url.pathname.slice('/__devjar/'.length), undefined)) {
           send(request, response, 404, 'text/plain; charset=utf-8', 'Not found')
         }
         return
@@ -571,7 +576,7 @@ export async function startBuiltServer(options: StartServerOptions = {}) {
         }
         return
       }
-      if (await serveFile(request, response, join(root, 'public'), url.pathname.slice(1))) return
+      if (await serveFile(request, response, join(root, 'public'), url.pathname.slice(1), undefined)) return
       send(request, response, 200, 'text/html; charset=utf-8', shell)
     } catch (error) {
       send(request, response, 500, 'text/plain; charset=utf-8', error instanceof Error ? error.stack || error.message : String(error))

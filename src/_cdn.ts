@@ -11,7 +11,7 @@ function packageName(specifier: string) {
   return specifier.split('/')[0]
 }
 
-export function normalizeCdnHost(cdn = CDN_HOST) {
+export function normalizeCdnHost(cdn: string) {
   const url = new URL(cdn)
   if (url.protocol !== 'http:' && url.protocol !== 'https:') {
     throw new Error(`Module CDN must use http or https: ${cdn}`)
@@ -20,8 +20,8 @@ export function normalizeCdnHost(cdn = CDN_HOST) {
 }
 
 export function createEsmShResolver(
-  dependencies: Record<string, string> = {},
-  cdn = CDN_HOST,
+  dependencies: Record<string, string>,
+  cdn: string,
 ) {
   const host = normalizeCdnHost(cdn)
   return (specifier: string) => {

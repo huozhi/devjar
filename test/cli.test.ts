@@ -4,11 +4,12 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { init, parse } from 'es-module-lexer'
 import { buildProject, loadProject, startBuiltServer, startDevServer } from '../src/cli'
-import { createEsmShResolver } from '../src/_cdn'
+import { CDN_HOST, createEsmShResolver } from '../src/_cdn'
 import { replaceImports } from '../src/core'
 
 const root = resolve(import.meta.dir, '../examples/basic')
 const dashboardRoot = resolve(import.meta.dir, '../examples/dashboard')
+const liveProjectOptions = { cdn: undefined, liveReload: true }
 
 describe('project loading', () => {
   test('keeps parent-directory imports in the local module graph', async () => {
@@ -25,13 +26,16 @@ describe('project loading', () => {
   })
 
   test('shares the runtime CDN resolver', () => {
-    const resolveModule = createEsmShResolver({ react: '19.1.0', '@scope/pkg': '^2.0.0' })
+    const resolveModule = createEsmShResolver(
+      { react: '19.1.0', '@scope/pkg': '^2.0.0' },
+      CDN_HOST,
+    )
     expect(resolveModule('react/jsx-runtime')).toBe('https://esm.sh/react@19.1.0/jsx-runtime?dev')
     expect(resolveModule('@scope/pkg/subpath')).toBe('https://esm.sh/@scope/pkg@%5E2.0.0/subpath')
   })
 
   test('loads a page and its local dependency graph', async () => {
-    const project = await loadProject(root, '/')
+    const project = await loadProject(root, '/', liveProjectOptions)
     expect(project.page).toBe('pages/index.tsx')
     expect(Object.keys(project.files).sort()).toEqual([
       './components/shell.tsx',
@@ -45,12 +49,15 @@ describe('project loading', () => {
   })
 
   test('loads a second page route', async () => {
-    const project = await loadProject(root, '/about')
+    const project = await loadProject(root, '/about', liveProjectOptions)
     expect(project.page).toBe('pages/about.tsx')
   })
 
   test('uses a custom module CDN', async () => {
-    const project = await loadProject(root, '/', { cdn: 'https://modules.example.test/' })
+    const project = await loadProject(root, '/', {
+      cdn: 'https://modules.example.test/',
+      liveReload: true,
+    })
     expect(project.cdn).toBe('https://modules.example.test')
     expect(createEsmShResolver(project.dependencies, project.cdn)('react')).toBe(
       'https://modules.example.test/react@19.2.0?dev',
@@ -58,12 +65,12 @@ describe('project loading', () => {
   })
 
   test('loads the hosted dashboard example and its 404 page', async () => {
-    const project = await loadProject(dashboardRoot, '/')
+    const project = await loadProject(dashboardRoot, '/', liveProjectOptions)
     expect(project.dependencies['lucide-react']).toBe('0.542.0')
     expect(project.files['./components/project-card.tsx']).toBeDefined()
     expect(project.files['./lib/projects.ts']).toBeDefined()
 
-    const notFound = await loadProject(dashboardRoot, '/missing')
+    const notFound = await loadProject(dashboardRoot, '/missing', liveProjectOptions)
     expect(notFound.page).toBe('pages/404.tsx')
   })
 })
@@ -73,7 +80,12 @@ describe('dev server', () => {
   afterAll(async () => server?.close())
 
   test('serves pages, static APIs, public files, and runtime assets', async () => {
-    server = await startDevServer({ root, port: 0 })
+    server = await startDevServer({
+      root,
+      host: '127.0.0.1',
+      port: 0,
+      cdn: undefined,
+    })
     const base = `http://${server.host}:${server.port}`
 
     const shell = await fetch(`${base}/about`)
@@ -129,6 +141,7 @@ describe('production build', () => {
     await cp(dashboardRoot, projectRoot, { recursive: true })
     const result = await buildProject({
       root: projectRoot,
+      outDir: '.devjar',
       cdn: 'https://modules.example.test/',
     })
     buildRoot = result.outDir
@@ -150,13 +163,17 @@ describe('production build', () => {
   })
 
   test('refuses to clean an output directory outside the project', async () => {
-    await expect(buildProject({ root: projectRoot, outDir: '../outside' })).rejects.toThrow(
+    await expect(buildProject({
+      root: projectRoot,
+      outDir: '../outside',
+      cdn: undefined,
+    })).rejects.toThrow(
       'The build output must be a directory inside the project root',
     )
   })
 
   test('serves prebuilt projects without development events', async () => {
-    server = await startBuiltServer({ root: buildRoot, port: 0 })
+    server = await startBuiltServer({ root: buildRoot, host: '127.0.0.1', port: 0 })
     const base = `http://${server.host}:${server.port}`
 
     const shell = await (await fetch(`${base}/projects`)).text()
