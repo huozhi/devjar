@@ -4,6 +4,12 @@ import { fileURLToPath } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const entry = join(root, 'src/client.tsx')
+const inputs = [
+  entry,
+  join(root, 'src/_cdn.ts'),
+  join(root, 'src/core.ts'),
+  join(root, 'src/module.ts'),
+]
 
 async function buildClient() {
   const result = await Bun.build({
@@ -12,7 +18,7 @@ async function buildClient() {
     naming: 'client.js',
     target: 'browser',
     format: 'esm',
-    external: ['devjar', 'react', 'react-dom'],
+    external: ['react', 'react-dom'],
   })
 
   if (!result.success) {
@@ -29,15 +35,17 @@ await buildClient()
 
 if (process.argv.includes('--watch')) {
   let building = false
-  watch(entry, async () => {
-    if (building) return
-    building = true
-    try {
-      await buildClient()
-    } catch (error) {
-      console.error(error)
-    } finally {
-      building = false
-    }
-  })
+  for (const input of inputs) {
+    watch(input, async () => {
+      if (building) return
+      building = true
+      try {
+        await buildClient()
+      } catch (error) {
+        console.error(error)
+      } finally {
+        building = false
+      }
+    })
+  }
 }
