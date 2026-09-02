@@ -1,7 +1,8 @@
-import { useEffect, useCallback, useState, useId, useRef } from 'react'
+import { useEffect, useCallback, useState, useId, useMemo, useRef } from 'react'
 import { createModule } from './module'
 import type { ModuleRuntime } from './module'
 import { init, parse } from 'es-module-lexer'
+import { createEsmShResolver } from './_cdn'
 
 type ResolveModule = (specifier: string) => string
 type RenderFunction = (
@@ -27,10 +28,10 @@ type TransformWorkerResponse = {
 }
 
 let esModuleLexerInit = false
-const isRelative = (specifier: string) => specifier.startsWith('./')
+const isRelative = (specifier: string) => specifier.startsWith('./') || specifier.startsWith('../')
 const removeExtension = (str: string) => str.replace(/\.[^/.]+$/, '')
 const localImportPrefix = '__DEVJAR_LOCAL_IMPORT__'
-const defaultTailwindSrc = 'https://unpkg.com/@tailwindcss/browser@4'
+const tailwindSrc = 'https://unpkg.com/@tailwindcss/browser@4'
 
 function createLocalImportPlaceholder(moduleKey: string) {
   return `${localImportPrefix}${encodeURIComponent(moduleKey)}__`
@@ -306,19 +307,28 @@ function createScript(
 }
 
 function useLiveCode({
-  resolveModule,
-  tailwindSrc = defaultTailwindSrc,
+  resolveModule: customResolveModule,
+  dependencies,
+  transform = true,
+  tailwind = true,
   transformWorkerUrl,
 }: {
   resolveModule?: (specifier: string) => string
-  tailwindSrc?: string | false
+  dependencies?: Record<string, string>
+  transform?: boolean
+  tailwind?: boolean
   transformWorkerUrl?: string | URL
 }) {
+  const resolveModule = useMemo(
+    () => customResolveModule || createEsmShResolver(dependencies),
+    [customResolveModule, dependencies]
+  )
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
   const [error, setError] = useState<unknown>()
   const rerender = useState({})[1]
   const appScriptRef = useScript()
   const tailwindcssScriptRef = useScript()
+  const tailwindReadyRef = useRef<Promise<void>>(Promise.resolve())
   const transformWorkerRef = useRef<Worker | undefined>(undefined)
   const transformCacheRef = useRef(new Map<string, { source: string, code: string }>())
   const transformRequestsRef = useRef(new Map<number, {
@@ -369,27 +379,34 @@ function useLiveCode({
     const appScriptContent = createMainScript({ uid })
     
     const appScript = createScript(appScriptRef, { content: appScriptContent })
-    const tailwindScript = tailwindSrc
+    const tailwindScript = tailwind
       ? createScript(tailwindcssScriptRef, { src: tailwindSrc })
       : null
 
+    let resolveTailwind: (() => void) | undefined
+    tailwindReadyRef.current = tailwindScript
+      ? new Promise<void>((resolve) => {
+          const ready = () => resolve()
+          resolveTailwind = ready
+          tailwindScript.addEventListener('load', ready, { once: true })
+          tailwindScript.addEventListener('error', ready, { once: true })
+        })
+      : Promise.resolve()
+
     body.appendChild(div)
-    body.appendChild(appScript)
     if (tailwindScript) body.appendChild(tailwindScript)
+    body.appendChild(appScript)
     
     return () => {
       if (!iframe || !iframe.contentDocument) return
       body.removeChild(div)
       body.removeChild(appScript)
       if (tailwindScript) body.removeChild(tailwindScript)
+      resolveTailwind?.()
     }
   }, [])
 
   const transformFiles = useCallback((files: Record<string, string>) => {
-    if (!resolveModule) {
-      return Promise.reject(new Error('devjar: resolveModule is required for the browser transformer'))
-    }
-
     if (!transformWorkerRef.current) {
       const worker = createTransformWorker(transformWorkerUrl)
       worker.onmessage = ({ data }: MessageEvent<TransformWorkerResponse>) => {
@@ -431,11 +448,6 @@ function useLiveCode({
     }
 
     if (files) {
-      if (!resolveModule) {
-        setError(new Error('devjar: resolveModule is required'))
-        rerender({})
-        return
-      }
       const resolveModuleForLoad = resolveModule
       const localModules = new Set(Object.keys(files).map(getModuleKey))
 
@@ -446,7 +458,7 @@ function useLiveCode({
           })
         )
         const newTransforms = Object.keys(filesToTransform).length
-          ? await transformFiles(filesToTransform)
+          ? transform ? await transformFiles(filesToTransform) : filesToTransform
           : {}
 
         if (loadId !== loadIdRef.current) return
@@ -500,6 +512,7 @@ function useLiveCode({
           const contentWindow = iframe.contentWindow
           if (!contentWindow) throw new Error('devjar: iframe window is unavailable')
           const renderFiles = async () => {
+            await tailwindReadyRef.current
             const render = contentWindow.__render__
             if (!render) throw new Error('devjar: renderer was not initialized')
             await render(transformedFiles, dependencies)
@@ -528,12 +541,13 @@ function useLiveCode({
       }
     }
     rerender({})
-  }, [resolveModule, transformFiles])
+  }, [resolveModule, transform, transformFiles])
 
   return { ref: iframeRef, error, load }
 }
 
 export { 
   createModule,
+  replaceImports,
   useLiveCode,
 }

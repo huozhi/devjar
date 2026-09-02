@@ -36,9 +36,9 @@ export function Preview() {
 Props:
 
 - `files: Record<string, string>`: files available to the runtime. `index.js` is the entry file.
-- `resolveModule?: (specifier: string) => string`: maps bare imports such as `react` or `lucide-react` to browser-loadable module URLs.
+- `dependencies?: Record<string, string>`: package versions loaded from esm.sh when no custom resolver is supplied.
+- `resolveModule?: (specifier: string) => string`: overrides the default CDN resolver for bare imports.
 - `onError?: (...data: any[]) => void`: receives runtime or transform errors.
-- `tailwindSrc?: string | false`: Tailwind browser script URL injected into the iframe. Defaults to `https://unpkg.com/@tailwindcss/browser@4`; pass `false` to disable it.
 
 File keys can include relative modules and CSS:
 
@@ -75,8 +75,8 @@ export function Preview({ files }) {
 
 Options:
 
-- `resolveModule?: (specifier: string) => string`: maps bare imports to browser-loadable module URLs.
-- `tailwindSrc?: string | false`: Tailwind browser script URL injected into the iframe. Defaults to `https://unpkg.com/@tailwindcss/browser@4`; pass `false` to disable it.
+- `dependencies?: Record<string, string>`: package versions loaded from esm.sh.
+- `resolveModule?: (specifier: string) => string`: overrides the default CDN resolver.
 
 Returns:
 

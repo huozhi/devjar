@@ -3,7 +3,67 @@
 </p>
 
 # devjar
-> react live preview in browser
+> turn a folder of React pages into a prototype
+
+## CLI
+
+Devjar serves local React pages while loading package dependencies from a CDN.
+The project does not need a bundler configuration or a local `node_modules`
+directory.
+
+```text
+my-prototype/
+├── package.json
+├── pages/
+│   ├── index.tsx
+│   └── about.tsx
+├── components/
+│   └── card.tsx
+├── api/
+│   ├── status.json
+│   └── message.txt
+└── public/
+    └── logo.svg
+```
+
+```sh
+npx devjar
+```
+
+The pages directory maps directly to URLs:
+
+| File | URL |
+| --- | --- |
+| `pages/index.tsx` | `/` |
+| `pages/about.tsx` | `/about` |
+| `pages/docs/index.tsx` | `/docs` |
+| `pages/docs/start.tsx` | `/docs/start` |
+| `pages/404.tsx` | unmatched routes |
+
+Pages can import local JavaScript, TypeScript, JSX, TSX, and CSS files. Bare
+imports are loaded from esm.sh using versions in `dependencies` or
+`devDependencies`:
+
+```json
+{
+  "dependencies": {
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "lucide-react": "0.542.0"
+  }
+}
+```
+
+Files below `public/` are served from `/`. JSON and text files below `api/`
+are available at their corresponding `/api/` URLs. Executable API routes are
+not supported.
+
+The embedded browser runtime loads Tailwind automatically. For CLI projects,
+add `tailwindcss` or `@tailwindcss/browser` to `package.json` to enable it.
+
+```sh
+devjar [root] --host 127.0.0.1 --port 3000
+```
 
 ## Demo
 
@@ -53,9 +113,9 @@ pnpm add devjar
 **Props**
 
 * `files`: An object that specifies the files you want to include in your development environment.
-* `resolveModule`: A function that maps module specifiers to browser-loadable module URLs.
+* `dependencies`: Optional package name/version map. Packages load from esm.sh.
+* `resolveModule`: Optional override that maps module specifiers to browser-loadable module URLs.
 * `onError`: Callback function of error event from the iframe sandbox. By default `console.log`.
-* `tailwindSrc`: Optional Tailwind browser script URL. Pass `false` to disable Tailwind injection.
 * `transformWorkerUrl`: Optional custom URL for the packaged transform worker.
 
 **Example**
@@ -89,7 +149,6 @@ A hook that provides lower-level control over the live code execution environmen
 
 * `options`
   * `resolveModule(specifier)`: A function that receives a module specifier and returns the browser-loadable URL. For example, import React from 'react' will load React from skypack.dev/react.
-  * `tailwindSrc`: Optional Tailwind browser script URL. Pass `false` to disable Tailwind injection.
   * `transformWorkerUrl`: Optional custom URL for the packaged transform worker.
 
 **Returns**

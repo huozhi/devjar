@@ -8,21 +8,25 @@ const defaultOnError: (error: unknown) => void = typeof window !== 'undefined'
 export function DevJar({
   files,
   resolveModule,
+  dependencies,
+  transform,
+  tailwind,
   onError = defaultOnError,
-  tailwindSrc,
   transformWorkerUrl,
   ref: forwardedRef,
   ...props
 }: {
   files: Record<string, string>
   resolveModule?: (specifier: string) => string
+  dependencies?: Record<string, string>
+  transform?: boolean
+  tailwind?: boolean
   onError?: (error: unknown) => void
-  tailwindSrc?: string | false
   transformWorkerUrl?: string | URL
   ref?: React.Ref<HTMLIFrameElement>
 } & React.IframeHTMLAttributes<HTMLIFrameElement>) {
   const onErrorRef = useRef(onError)
-  const { ref, error, load } = useLiveCode({ resolveModule, tailwindSrc, transformWorkerUrl })
+  const { ref, error, load } = useLiveCode({ resolveModule, dependencies, transform, tailwind, transformWorkerUrl })
 
   useImperativeHandle(forwardedRef, () => ref.current!, [ref])
 

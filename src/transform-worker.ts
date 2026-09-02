@@ -1,4 +1,4 @@
-import type { OxcError } from 'oxc-transform'
+import { getTransformErrorMessage, getTransformOptions } from './_transform'
 
 type OxcTransform = Pick<typeof import('oxc-transform'), 'transformSync'>
 
@@ -27,20 +27,6 @@ function isOxcTransform(value: unknown): value is OxcTransform {
     && typeof value.transformSync === 'function'
 }
 
-function getLang(filename: string) {
-  if (/\.[cm]?tsx?$/.test(filename)) return 'tsx'
-  return 'jsx'
-}
-
-function getTransformErrorMessage(errors: OxcError[] | undefined) {
-  if (!errors?.length) return ''
-
-  const error = errors.find(error => error.severity === 'Error')
-  if (!error) return ''
-
-  return error.codeframe || error.message || 'devjar: transform failed'
-}
-
 self.onmessage = async ({ data }: MessageEvent<{
   id: number
   files: Record<string, string>
@@ -57,20 +43,7 @@ self.onmessage = async ({ data }: MessageEvent<{
 
     const transformed: Record<string, string> = {}
     for (const [filename, source] of Object.entries(files)) {
-      const output = oxc.transformSync(filename, source, {
-        lang: getLang(filename),
-        sourceType: 'module',
-        target: 'es2022',
-        decorator: {
-          legacy: true,
-        },
-        jsx: {
-          runtime: 'automatic',
-          development: true,
-          refresh: true,
-        },
-        sourcemap: false,
-      })
+      const output = oxc.transformSync(filename, source, getTransformOptions(filename))
 
       const errorMessage = getTransformErrorMessage(output.errors)
       if (errorMessage) throw new Error(errorMessage)
