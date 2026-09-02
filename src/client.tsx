@@ -1,15 +1,32 @@
-import { createEsmShResolver } from './_cdn'
-import { createRenderer, linkModules } from './core'
-import { createModule } from './module'
+import React, { Component, type ElementType, type ReactNode } from 'react'
+import { createRoot } from 'react-dom/client'
 
 performance.mark('devjar:client-start')
 
-type Project = {
-  files: Record<string, string>
-  dependencies: Record<string, string>
-  cdn: string
-  liveReload: boolean
+type RouteEntry = {
+  module: string
   page: string
+}
+
+type RouteManifest = {
+  version: 2
+  liveReload: boolean
+  revision: number
+  routes: Record<string, RouteEntry>
+  notFound: RouteEntry | undefined
+}
+
+type RouteModule = {
+  default?: unknown
+}
+
+type ErrorBoundaryProps = {
+  children?: ReactNode
+  revision: number
+}
+
+type ErrorBoundaryState = {
+  error: unknown
 }
 
 function getRoot(id: string) {
@@ -20,22 +37,77 @@ function getRoot(id: string) {
 
 const hostRoot = getRoot('root')
 const errorRoot = getRoot('__devjarError')
-
 const appRoot = document.createElement('div')
 appRoot.id = '__reactRoot'
 hostRoot.appendChild(appRoot)
+const reactRoot = createRoot(appRoot)
+
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  state: ErrorBoundaryState = { error: null }
+
+  static getDerivedStateFromError(error: unknown) {
+    return { error }
+  }
+
+  componentDidUpdate(previousProps: ErrorBoundaryProps) {
+    if (previousProps.revision !== this.props.revision && this.state.error) {
+      this.setState({ error: null })
+    }
+  }
+
+  render() {
+    if (this.state.error) {
+      const message = this.state.error instanceof Error
+        ? this.state.error.message
+        : String(this.state.error)
+      return React.createElement('div', null, message)
+    }
+    return this.props.children
+  }
+}
 
 let loadRevision = 0
-let moduleResolver = (_specifier: string): string => {
-  throw new Error('Devjar module resolution is not initialized')
-}
-const render = createRenderer(createModule, specifier => moduleResolver(specifier))
+let renderRevision = 0
+let routeManifest: RouteManifest
+const routeModules = new Map<string, Promise<RouteModule>>()
 
-async function getProject(route: string): Promise<Project> {
-  const response = await fetch('/__devjar/project?route=' + encodeURIComponent(route))
+function normalizeRoute(route: string) {
+  const cleanRoute = route.replace(/^\/+|\/+$/g, '')
+  return cleanRoute ? `/${cleanRoute}` : '/'
+}
+
+async function getRouteManifest(revision: number) {
+  const url = new URL('/__devjar/routes.json', location.origin)
+  if (revision) url.searchParams.set('v', String(revision))
+  const response = await fetch(url)
   const data = await response.json()
-  if (!response.ok) throw new Error(data.error || 'Unable to load project')
-  return data
+  if (!response.ok) throw new Error(data.error || 'Unable to load routes')
+  if (data.version !== 2) throw new Error(`Unsupported Devjar route manifest: ${data.version}`)
+  return data as RouteManifest
+}
+
+function getRouteEntry(route: string) {
+  return routeManifest.routes[normalizeRoute(route)] || routeManifest.notFound
+}
+
+function importRoute(entry: RouteEntry) {
+  let promise = routeModules.get(entry.module)
+  if (!promise) {
+    promise = import(/* webpackIgnore: true */ /* @vite-ignore */ entry.module) as Promise<RouteModule>
+    routeModules.set(entry.module, promise)
+    promise.catch(() => routeModules.delete(entry.module))
+  }
+  return promise
+}
+
+function preloadRoute(route: string) {
+  const entry = getRouteEntry(route)
+  if (!entry || routeModules.has(entry.module)) return
+  const preload = document.createElement('link')
+  preload.rel = 'modulepreload'
+  preload.href = entry.module
+  document.head.appendChild(preload)
+  void importRoute(entry).catch(() => {})
 }
 
 function errorMessage(error: unknown) {
@@ -53,35 +125,56 @@ function hideError() {
   errorRoot.textContent = ''
 }
 
+function isElementType(value: unknown): value is ElementType {
+  return typeof value === 'string'
+    || typeof value === 'function'
+    || (typeof value === 'object' && value !== null)
+}
+
 async function load(route: string) {
   const revision = ++loadRevision
   try {
-    const project = await getProject(route)
-    if (revision !== loadRevision) return project
-
-    moduleResolver = createEsmShResolver(project.dependencies, project.cdn)
-    const linked = await linkModules(project.files, moduleResolver)
-    if (revision !== loadRevision) return project
-
-    await render(linked.files, linked.dependencies)
-    if (revision === loadRevision) {
-      document.title = project.page
-      hideError()
-      if (!performance.getEntriesByName('devjar:first-render').length) {
-        performance.mark('devjar:first-render')
-        performance.measure(
-          'devjar:first-render',
-          'devjar:client-start',
-          'devjar:first-render',
-        )
-      }
-      dispatchEvent(new CustomEvent('devjar:render'))
+    const entry = getRouteEntry(route)
+    if (!entry) throw new Error(`No page found for ${normalizeRoute(route)}`)
+    const module = await importRoute(entry)
+    if (revision !== loadRevision) return
+    if (!isElementType(module.default)) {
+      throw new Error(`Devjar page ${entry.page} must have a default React component export`)
     }
-    return project
+
+    renderRevision++
+    reactRoot.render(React.createElement(
+      ErrorBoundary,
+      { revision: renderRevision },
+      React.createElement(module.default),
+    ))
+    document.title = entry.page
+    hideError()
+    if (!performance.getEntriesByName('devjar:first-render').length) {
+      performance.mark('devjar:first-render')
+      performance.measure(
+        'devjar:first-render',
+        'devjar:client-start',
+        'devjar:first-render',
+      )
+    }
+    dispatchEvent(new CustomEvent('devjar:render'))
   } catch (error) {
     if (revision === loadRevision) showError(error)
     throw error
   }
+}
+
+function routeAnchor(target: EventTarget | null) {
+  const anchor = target instanceof Element
+    ? target.closest<HTMLAnchorElement>('a[href]')
+    : null
+  if (!anchor) return
+  const url = new URL(anchor.href, location.href)
+  if (url.origin !== location.origin) return
+  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/__devjar/')) return
+  if (/\.[^/]+$/.test(url.pathname)) return
+  return { anchor, url }
 }
 
 function shouldNavigate(event: MouseEvent, anchor: HTMLAnchorElement) {
@@ -92,36 +185,43 @@ function shouldNavigate(event: MouseEvent, anchor: HTMLAnchorElement) {
 }
 
 function navigate(event: MouseEvent) {
-  const target = event.target
-  const anchor = target instanceof Element
-    ? target.closest<HTMLAnchorElement>('a[href]')
-    : null
-  if (!anchor || !shouldNavigate(event, anchor)) return
-
-  const url = new URL(anchor.href, location.href)
-  if (url.origin !== location.origin) return
-  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/__devjar/')) return
-  if (/\.[^/]+$/.test(url.pathname)) return
-  if (url.pathname === location.pathname && url.search === location.search && url.hash) return
+  const route = routeAnchor(event.target)
+  if (!route || !shouldNavigate(event, route.anchor)) return
+  if (route.url.pathname === location.pathname
+    && route.url.search === location.search
+    && route.url.hash) return
 
   event.preventDefault()
-  history.pushState(null, '', url.pathname + url.search + url.hash)
-  void load(url.pathname).catch(() => {})
+  history.pushState(null, '', route.url.pathname + route.url.search + route.url.hash)
+  void load(route.url.pathname).catch(() => {})
+}
+
+function preloadNavigation(event: Event) {
+  const route = routeAnchor(event.target)
+  if (route) preloadRoute(route.url.pathname)
 }
 
 async function start() {
+  routeManifest = await getRouteManifest(0)
   document.addEventListener('click', navigate)
+  document.addEventListener('pointerover', preloadNavigation)
+  document.addEventListener('focusin', preloadNavigation)
   addEventListener('popstate', () => {
     void load(location.pathname).catch(() => {})
   })
 
-  const project = await load(location.pathname)
-  if (project.liveReload) {
+  await load(location.pathname)
+  if (routeManifest.liveReload) {
     const events = new EventSource('/__devjar/events')
-    events.addEventListener('change', () => {
-      void load(location.pathname).catch(() => {})
+    events.addEventListener('change', event => {
+      void (async () => {
+        const change = JSON.parse((event as MessageEvent).data) as { revision: number }
+        routeModules.clear()
+        routeManifest = await getRouteManifest(change.revision)
+        await load(location.pathname)
+      })().catch(showError)
     })
   }
 }
 
-void start().catch(() => {})
+void start().catch(showError)

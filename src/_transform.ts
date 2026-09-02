@@ -1,6 +1,6 @@
 import type { OxcError, TransformOptions } from 'oxc-transform'
 
-export function getTransformOptions(filename: string): TransformOptions {
+export function getTransformOptions(filename: string, refresh: boolean): TransformOptions {
   return {
     lang: /\.[cm]?tsx?$/.test(filename) ? 'tsx' : 'jsx',
     sourceType: 'module',
@@ -11,7 +11,7 @@ export function getTransformOptions(filename: string): TransformOptions {
     jsx: {
       runtime: 'automatic',
       development: true,
-      refresh: true,
+      refresh,
     },
     sourcemap: false,
   }

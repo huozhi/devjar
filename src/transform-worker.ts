@@ -43,7 +43,7 @@ self.onmessage = async ({ data }: MessageEvent<{
 
     const transformed: Record<string, string> = {}
     for (const [filename, source] of Object.entries(files)) {
-      const output = oxc.transformSync(filename, source, getTransformOptions(filename))
+      const output = oxc.transformSync(filename, source, getTransformOptions(filename, true))
 
       const errorMessage = getTransformErrorMessage(output.errors)
       if (errorMessage) throw new Error(errorMessage)

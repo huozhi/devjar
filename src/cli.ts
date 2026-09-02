@@ -5,6 +5,7 @@ import { dirname, extname, join, normalize, relative, resolve, sep } from 'node:
 import { fileURLToPath } from 'node:url'
 import { watch } from 'node:fs'
 import { transformSync } from 'oxc-transform'
+import { init, parse } from 'es-module-lexer'
 import { CDN_HOST, createEsmShResolver, normalizeCdnHost } from './_cdn'
 import { getTailwindBrowserUrl } from './tailwind'
 import { getTransformErrorMessage, getTransformOptions } from './_transform'
@@ -19,22 +20,17 @@ type PackageJson = {
   }
 }
 
-type Project = {
-  files: Record<string, string>
-  dependencies: Record<string, string>
-  cdn: string
-  liveReload: boolean
+type RouteEntry = {
+  module: string
   page: string
-  route: string
-  tailwind: boolean
 }
 
-type BuiltManifest = {
-  version: 1
-  dependencies: Record<string, string>
-  cdn: string
-  routes: Record<string, Project>
-  notFound?: Project
+type RouteManifest = {
+  version: 2
+  liveReload: boolean
+  revision: number
+  routes: Record<string, RouteEntry>
+  notFound: RouteEntry | undefined
 }
 
 export type DevServerOptions = {
@@ -56,9 +52,10 @@ export type StartServerOptions = {
   port: number
 }
 
-export type LoadProjectOptions = {
-  cdn: string | undefined
+export type LoadRouteManifestOptions = {
   liveReload: boolean
+  revision: number
+  moduleUrl: (projectPath: string) => string
 }
 
 function isInside(root: string, path: string) {
@@ -151,26 +148,6 @@ async function collectFiles(root: string, entry: string) {
   return files
 }
 
-function routeCandidates(route: string) {
-  const cleanRoute = normalizeRoute(route).slice(1)
-  const base = cleanRoute || 'index'
-  const candidates = sourceExtensions.flatMap(extension => [
-    `${base}${extension}`,
-    `${base}/index${extension}`,
-  ])
-  if (cleanRoute) candidates.push(...sourceExtensions.map(extension => `404${extension}`))
-  return candidates
-}
-
-async function resolvePage(root: string, route: string) {
-  const pagesRoot = join(root, 'pages')
-  for (const candidate of routeCandidates(route)) {
-    const path = resolve(pagesRoot, candidate)
-    if (!isInside(pagesRoot, path)) continue
-    if (await fileExists(path)) return path
-  }
-}
-
 async function readPackage(root: string): Promise<PackageJson> {
   try {
     return JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
@@ -191,39 +168,125 @@ function projectCdn(packageJson: PackageJson, override: string | undefined) {
   return normalizeCdnHost(override || packageJson.devjar?.cdn || CDN_HOST)
 }
 
-export async function loadProject(
+export async function loadRouteManifest(
   root: string,
-  route: string,
-  options: LoadProjectOptions,
-): Promise<Project> {
+  options: LoadRouteManifestOptions,
+): Promise<RouteManifest> {
   root = await realpath(root)
-  const page = await resolvePage(root, route)
-  if (!page) throw new Error(`No page found for /${route.replace(/^\/+/, '')}`)
-  const packageJson = await readPackage(root)
-  const projectPath = relative(root, page).split(sep).join('/')
-  const files = await collectFiles(root, page)
-  files['index.tsx'] = `export { default } from ${JSON.stringify(`./${projectPath}`)}\n`
-
-  for (const [filename, source] of Object.entries(files)) {
-    if (filename.endsWith('.css')) continue
-    const output = transformSync(filename, source, getTransformOptions(filename))
-    const error = getTransformErrorMessage(output.errors)
-    if (error) throw new Error(error)
-    files[filename] = output.code
+  const discovered = await discoverRoutes(root)
+  const routes: Record<string, RouteEntry> = {}
+  for (const [route, page] of discovered.routes) {
+    const projectPath = relative(root, page).split(sep).join('/')
+    routes[route] = { module: options.moduleUrl(projectPath), page: projectPath }
   }
 
-  const dependencies = packageDependencies(packageJson)
-  const cdn = projectCdn(packageJson, options.cdn)
+  const notFoundPath = discovered.notFound
+    ? relative(root, discovered.notFound).split(sep).join('/')
+    : undefined
 
   return {
-    files,
-    dependencies,
-    cdn,
+    version: 2,
     liveReload: options.liveReload,
-    page: projectPath,
-    route,
-    tailwind: Boolean(getTailwindBrowserUrl(dependencies, cdn)),
+    revision: options.revision,
+    routes,
+    notFound: notFoundPath
+      ? { module: options.moduleUrl(notFoundPath), page: notFoundPath }
+      : undefined,
   }
+}
+
+function devModuleUrl(projectPath: string, revision: number) {
+  const parameters = new URLSearchParams({ path: projectPath })
+  if (revision) parameters.set('v', String(revision))
+  return `/__devjar/module?${parameters}`
+}
+
+function moduleAssetName(projectPath: string) {
+  return `${Buffer.from(projectPath).toString('base64url')}.js`
+}
+
+function builtModuleUrl(projectPath: string) {
+  return `/__devjar/modules/${moduleAssetName(projectPath)}`
+}
+
+function cssModule(source: string, projectPath: string) {
+  return `const sheet = new CSSStyleSheet()
+sheet.replaceSync(${JSON.stringify(source)})
+globalThis.__devjarStyleSheets ||= new Map()
+const previous = globalThis.__devjarStyleSheets.get(${JSON.stringify(projectPath)})
+const sheets = [...document.adoptedStyleSheets]
+const index = sheets.indexOf(previous)
+if (index < 0) sheets.push(sheet)
+else sheets[index] = sheet
+document.adoptedStyleSheets = sheets
+globalThis.__devjarStyleSheets.set(${JSON.stringify(projectPath)}, sheet)
+export default sheet
+`
+}
+
+async function resolveProjectSource(root: string, projectPath: string) {
+  const requestedPath = resolve(root, projectPath)
+  if (!isInside(root, requestedPath)) {
+    throw new Error(`Local module escapes the project root: ${projectPath}`)
+  }
+  const sourcePath = await findSourceFile(requestedPath)
+  if (!sourcePath) throw new Error(`Module not found: ${projectPath}`)
+  const canonicalPath = await realpath(sourcePath)
+  if (!isInside(root, canonicalPath)) {
+    throw new Error(`Local module escapes the project root: ${projectPath}`)
+  }
+  return canonicalPath
+}
+
+export async function compileProjectModule(
+  root: string,
+  projectPath: string,
+  dependencies: Record<string, string>,
+  cdn: string,
+  moduleUrl: (projectPath: string) => string,
+) {
+  const sourcePath = await resolveProjectSource(root, projectPath)
+  const canonicalProjectPath = relative(root, sourcePath).split(sep).join('/')
+  const source = await readFile(sourcePath, 'utf8')
+  if (extname(sourcePath) === '.css') return cssModule(source, canonicalProjectPath)
+
+  const output = transformSync(
+    canonicalProjectPath,
+    source,
+    getTransformOptions(canonicalProjectPath, false),
+  )
+  const error = getTransformErrorMessage(output.errors)
+  if (error) throw new Error(error)
+
+  await init
+  const [imports] = parse(output.code)
+  const replacements: Array<{ start: number, end: number, value: string }> = []
+  const resolveModule = createEsmShResolver(dependencies, cdn)
+  for (const imported of imports) {
+    if (!imported.n) continue
+    let value: string
+    if (imported.n.startsWith('./') || imported.n.startsWith('../')) {
+      const importedPath = await resolveProjectSource(
+        root,
+        relative(root, resolve(sourcePath, '..', imported.n)),
+      )
+      const importedProjectPath = relative(root, importedPath).split(sep).join('/')
+      value = moduleUrl(importedProjectPath)
+    } else {
+      value = resolveModule(imported.n)
+    }
+    replacements.push({
+      start: imported.s,
+      end: imported.e,
+      value: imported.d >= 0 ? JSON.stringify(value) : value,
+    })
+  }
+
+  let code = output.code
+  for (const replacement of replacements.reverse()) {
+    code = code.slice(0, replacement.start) + replacement.value + code.slice(replacement.end)
+  }
+  return code
 }
 
 function send(
@@ -325,6 +388,7 @@ export async function startDevServer(options: DevServerOptions) {
   const port = options.port
   const events = new Set<ServerResponse>()
   const assetsRoot = await runtimeRoot()
+  let revision = 0
 
   if (!(await fileExists(join(root, 'pages/index.tsx')))
     && !(await fileExists(join(root, 'pages/index.ts')))
@@ -356,13 +420,40 @@ export async function startDevServer(options: DevServerOptions) {
         request.on('close', () => events.delete(response))
         return
       }
-      if (url.pathname === '/__devjar/project') {
-        const route = url.searchParams.get('route') || '/'
+      if (url.pathname === '/__devjar/routes.json') {
         try {
-          const project = await loadProject(root, route, { cdn: options.cdn, liveReload: true })
-          send(request, response, 200, 'application/json; charset=utf-8', JSON.stringify(project))
+          const manifest = await loadRouteManifest(root, {
+            liveReload: true,
+            revision,
+            moduleUrl: projectPath => devModuleUrl(projectPath, revision),
+          })
+          send(request, response, 200, 'application/json; charset=utf-8', JSON.stringify(manifest))
         } catch (error) {
-          send(request, response, 404, 'application/json; charset=utf-8', JSON.stringify({ error: error instanceof Error ? error.message : String(error) }))
+          send(request, response, 500, 'application/json; charset=utf-8', JSON.stringify({ error: error instanceof Error ? error.message : String(error) }))
+        }
+        return
+      }
+      if (url.pathname === '/__devjar/module') {
+        const projectPath = url.searchParams.get('path')
+        if (!projectPath) {
+          send(request, response, 400, 'text/plain; charset=utf-8', 'Module path is required')
+          return
+        }
+        try {
+          const moduleRevision = Number(url.searchParams.get('v')) || 0
+          const packageJson = await readPackage(root)
+          const dependencies = packageDependencies(packageJson)
+          const cdn = projectCdn(packageJson, options.cdn)
+          const code = await compileProjectModule(
+            root,
+            projectPath,
+            dependencies,
+            cdn,
+            importedPath => devModuleUrl(importedPath, moduleRevision),
+          )
+          send(request, response, 200, 'text/javascript; charset=utf-8', code)
+        } catch (error) {
+          send(request, response, 404, 'text/javascript; charset=utf-8', `throw new Error(${JSON.stringify(error instanceof Error ? error.message : String(error))})`)
         }
         return
       }
@@ -399,7 +490,10 @@ export async function startDevServer(options: DevServerOptions) {
     if (!filename || /(?:^|[/\\])(?:\.git|node_modules|dist)(?:[/\\]|$)/.test(filename)) return
     clearTimeout(timer)
     timer = setTimeout(() => {
-      for (const response of events) response.write('event: change\ndata: {}\n\n')
+      revision++
+      for (const response of events) {
+        response.write(`event: change\ndata: ${JSON.stringify({ revision })}\n\n`)
+      }
     }, 40)
   })
 
@@ -521,30 +615,41 @@ export async function buildProject(options: BuildOptions) {
   const dependencies = packageDependencies(packageJson)
   const cdn = projectCdn(packageJson, options.cdn)
   const discovered = await discoverRoutes(root)
-  const routes: Record<string, Project> = {}
-  let notFound: Project | undefined
-
-  for (const route of discovered.routes.keys()) {
-    const project = await loadProject(root, route, { cdn, liveReload: false })
-    routes[route] = project
-    if (discovered.notFound && resolve(root, project.page) === discovered.notFound) notFound = project
+  const manifest = await loadRouteManifest(root, {
+    liveReload: false,
+    revision: 0,
+    moduleUrl: builtModuleUrl,
+  })
+  const projectPaths = new Set<string>()
+  for (const page of discovered.routes.values()) {
+    const files = await collectFiles(root, page)
+    for (const projectPath of Object.keys(files)) projectPaths.add(projectPath.slice(2))
   }
-  if (discovered.notFound && !notFound) {
-    notFound = await loadProject(root, '/__devjar_not_found__', { cdn, liveReload: false })
-  }
 
-  const manifest: BuiltManifest = { version: 1, dependencies, cdn, routes, notFound }
   await rm(outDir, { recursive: true, force: true })
   await mkdir(outDir, { recursive: true })
   await writeFile(join(outDir, 'manifest.json'), JSON.stringify(manifest))
   await writeFile(join(outDir, 'index.html'), html(dependencies, cdn))
   await copyRuntimeAssets(join(outDir, '__devjar'))
+  const modulesRoot = join(outDir, '__devjar/modules')
+  await mkdir(modulesRoot, { recursive: true })
+  for (const projectPath of projectPaths) {
+    const code = await compileProjectModule(
+      root,
+      projectPath,
+      dependencies,
+      cdn,
+      builtModuleUrl,
+    )
+    await writeFile(join(modulesRoot, moduleAssetName(projectPath)), code)
+  }
+  await writeFile(join(outDir, '__devjar/routes.json'), JSON.stringify(manifest))
   if (await directoryExists(join(root, 'public'))) {
     await cp(join(root, 'public'), join(outDir, 'public'), { recursive: true })
   }
   await copyApiFiles(join(root, 'api'), join(outDir, 'api'))
 
-  return { root, outDir, routes: Object.keys(routes) }
+  return { root, outDir, routes: Object.keys(manifest.routes) }
 }
 
 export async function startBuiltServer(options: StartServerOptions) {
@@ -555,8 +660,8 @@ export async function startBuiltServer(options: StartServerOptions) {
   const root = await realpath(requestedRoot)
   const host = options.host
   const port = options.port
-  const manifest = JSON.parse(await readFile(join(root, 'manifest.json'), 'utf8')) as BuiltManifest
-  if (manifest.version !== 1) throw new Error(`Unsupported Devjar build version: ${manifest.version}`)
+  const manifest = JSON.parse(await readFile(join(root, 'manifest.json'), 'utf8')) as RouteManifest
+  if (manifest.version !== 2) throw new Error(`Unsupported Devjar build version: ${manifest.version}`)
   const shell = await readFile(join(root, 'index.html'), 'utf8')
 
   const server = createServer(async (request, response) => {
@@ -565,13 +670,6 @@ export async function startBuiltServer(options: StartServerOptions) {
       if (request.method !== 'GET' && request.method !== 'HEAD') {
         response.writeHead(405, { Allow: 'GET, HEAD' })
         response.end(request.method === 'HEAD' ? undefined : 'Method not allowed')
-        return
-      }
-      if (url.pathname === '/__devjar/project') {
-        const route = normalizeRoute(url.searchParams.get('route') || '/')
-        const project = manifest.routes[route] || manifest.notFound
-        if (project) send(request, response, 200, 'application/json; charset=utf-8', JSON.stringify(project))
-        else send(request, response, 404, 'application/json; charset=utf-8', JSON.stringify({ error: `No page found for ${route}` }))
         return
       }
       if (url.pathname.startsWith('/__devjar/')) {
