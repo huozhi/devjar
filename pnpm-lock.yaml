@@ -11,6 +11,9 @@ importers:
       es-module-lexer:
         specifier: 1.6.0
         version: 1.6.0
+      oxc-transform:
+        specifier: ^0.144.0
+        version: 0.144.0
     devDependencies:
       '@oxc-transform/binding-wasm32-wasi':
         specifier: 0.144.0
@@ -42,9 +45,6 @@ importers:
       next:
         specifier: 16.3.1
         version: 16.3.1(@types/node@22.20.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      oxc-transform:
-        specifier: ^0.144.0
-        version: 0.144.0
       react:
         specifier: ^19.2.1
         version: 19.2.7

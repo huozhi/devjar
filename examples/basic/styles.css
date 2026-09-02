@@ -1,0 +1,23 @@
+body { font: 16px/1.5 system-ui; margin: 3rem; }
+
+a {
+  color: #2563eb;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+
+a:visited {
+  color: #7c3aed;
+}
+
+a:hover {
+  color: #1d4ed8;
+  text-decoration-thickness: 2px;
+}
+
+a:focus-visible {
+  border-radius: 0.2rem;
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}

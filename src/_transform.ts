@@ -1,0 +1,24 @@
+import type { OxcError, TransformOptions } from 'oxc-transform'
+
+export function getTransformOptions(filename: string): TransformOptions {
+  return {
+    lang: /\.[cm]?tsx?$/.test(filename) ? 'tsx' : 'jsx',
+    sourceType: 'module',
+    target: 'es2022',
+    decorator: {
+      legacy: true,
+    },
+    jsx: {
+      runtime: 'automatic',
+      development: true,
+      refresh: true,
+    },
+    sourcemap: false,
+  }
+}
+
+export function getTransformErrorMessage(errors: OxcError[] | undefined) {
+  if (!errors?.length) return ''
+  const error = errors.find(error => error.severity === 'Error')
+  return error?.codeframe || error?.message || ''
+}

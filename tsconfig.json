@@ -5,6 +5,7 @@
     "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
     "jsx": "react-jsx",
+    "types": ["node"],
     "strict": true,
     "noEmit": true
   },

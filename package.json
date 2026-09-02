@@ -8,6 +8,9 @@
       "default": "./dist/index.js"
     }
   },
+  "bin": {
+    "devjar": "./dist/bin.js"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -18,22 +21,27 @@
   ],
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "pnpm run build:lib && pnpm run build:worker",
+    "build": "pnpm run build:lib && pnpm run build:client && pnpm run build:worker",
     "build:lib": "bunchee",
+    "build:client": "bun scripts/build-client.ts",
     "build:worker": "bun scripts/build-workers.ts",
     "prepublishOnly": "pnpm run build",
     "build:site": "pnpm run build && next build ./site",
     "start": "next start ./site",
-    "dev": "pnpm run build && (pnpm run dev:lib & pnpm run dev:worker & pnpm run dev:site & wait)",
+    "dev": "pnpm run build && (pnpm run dev:lib & pnpm run dev:client & pnpm run dev:worker & pnpm run dev:site & wait)",
     "dev:lib": "bunchee --watch",
+    "dev:client": "bun scripts/build-client.ts --watch",
     "dev:worker": "bun --watch scripts/build-workers.ts",
-    "dev:site": "next dev ./site"
+    "dev:site": "next dev ./site",
+    "dev:cli": "node ./dist/bin.js",
+    "test": "bun test"
   },
   "peerDependencies": {
     "react": "^19.0.0"
   },
   "dependencies": {
-    "es-module-lexer": "1.6.0"
+    "es-module-lexer": "1.6.0",
+    "oxc-transform": "^0.144.0"
   },
   "devDependencies": {
     "@oxc-transform/binding-wasm32-wasi": "0.144.0",
@@ -46,7 +54,6 @@
     "dedent": "^1.7.0",
     "devjar": "link:",
     "next": "16.3.1",
-    "oxc-transform": "^0.144.0",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "sugar-high": "2.0.1",
