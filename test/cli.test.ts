@@ -28,6 +28,23 @@ function loadTestRouteManifest(projectRoot: string) {
   })
 }
 
+async function readChangeEvent(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+) {
+  const decoder = new TextDecoder()
+  let buffer = ''
+  while (true) {
+    const result = await reader.read()
+    if (result.done) throw new Error('Development event stream closed')
+    buffer += decoder.decode(result.value, { stream: true })
+    for (const block of buffer.split('\n\n')) {
+      if (!block.includes('event: change')) continue
+      const data = block.split('\n').find(line => line.startsWith('data: '))
+      if (data) return JSON.parse(data.slice('data: '.length))
+    }
+  }
+}
+
 describe('project loading', () => {
   test('keeps parent-directory imports in the local module graph', async () => {
     await init
@@ -73,8 +90,9 @@ describe('project loading', () => {
       { react: '19.2.0' },
       'https://modules.example.test/',
       testModuleUrl,
+      false,
     )
-    expect(code).toContain('https://modules.example.test/react@19.2.0/jsx-dev-runtime?dev')
+    expect(code.code).toContain('https://modules.example.test/react@19.2.0/jsx-dev-runtime?dev')
   })
 
   test('loads the hosted dashboard example and its 404 page', async () => {
@@ -109,8 +127,9 @@ describe('project loading', () => {
         {},
         CDN_HOST,
         testModuleUrl,
+        false,
       )
-      expect(code).toContain(`import("/modules/components/card.tsx")`)
+      expect(code.code).toContain(`import("/modules/components/card.tsx")`)
     } finally {
       await rm(projectRoot, { recursive: true, force: true })
     }
@@ -135,6 +154,7 @@ describe('dev server', () => {
     expect(shell.headers.get('cross-origin-embedder-policy')).toBeNull()
     const shellSource = await shell.text()
     expect(shellSource).toContain('/__devjar/client.js')
+    expect(shellSource).toContain("import * as RefreshModule from 'react-refresh/runtime'")
     expect(shellSource).toContain('data-devjar-tailwind')
     expect(shellSource).toContain('https://esm.sh/@tailwindcss/browser@%5E4.1.0')
     expect(shellSource).toContain('Devjar could not start')
@@ -150,6 +170,8 @@ describe('dev server', () => {
     expect(pageModule).toContain('/__devjar/module?path=components%2Fshell.tsx')
     expect(pageModule).toContain('/__devjar/module?path=styles.css')
     expect(pageModule).toContain('https://esm.sh/react@19.2.0/jsx-dev-runtime?dev')
+    expect(pageModule).toContain('__devjarRegisterModule')
+    expect(pageModule).toContain('__devjarRefreshRuntime')
     const sharedModule = await (await fetch(`${base}/__devjar/module?path=components%2Fshell.tsx`)).text()
     expect(sharedModule).not.toContain('ReactNode')
     const client = await (await fetch(`${base}/__devjar/client.js`)).text()
@@ -182,6 +204,64 @@ describe('dev server', () => {
 
     await server.close()
     await expect(server.close()).resolves.toBeUndefined()
+  })
+
+  test('sends a precise update for a changed refresh boundary', async () => {
+    const projectRoot = await mkdtemp(join(tmpdir(), 'devjar-hmr-'))
+    await mkdir(join(projectRoot, 'pages'))
+    await mkdir(join(projectRoot, 'components'))
+    await writeFile(
+      join(projectRoot, 'pages/index.tsx'),
+      `import { Card } from '../components/card'
+export default function Page() { return <Card /> }`,
+    )
+    const cardPath = join(projectRoot, 'components/card.tsx')
+    await writeFile(cardPath, `export function Card() { return <p>one</p> }`)
+
+    const hmrServer = await startDevServer({
+      root: projectRoot,
+      host: '127.0.0.1',
+      port: 0,
+      cdn: undefined,
+    })
+    const base = `http://${hmrServer.host}:${hmrServer.port}`
+    let reader: ReadableStreamDefaultReader<Uint8Array> | undefined
+    try {
+      await new Promise(resolvePromise => setTimeout(resolvePromise, 100))
+      const routes = await (await fetch(`${base}/__devjar/routes.json`)).json()
+      const pageModule = await (await fetch(`${base}${routes.routes['/'].module}`)).text()
+      const cardModuleUrl = pageModule.match(/\/__devjar\/module\?path=components%2Fcard\.tsx/)?.[0]
+      expect(cardModuleUrl).toBeDefined()
+      const cardModule = await (await fetch(`${base}${cardModuleUrl}`)).text()
+      expect(cardModule).toContain('__devjarRegisterModule')
+
+      const eventResponse = await fetch(`${base}/__devjar/events`)
+      reader = eventResponse.body!.getReader()
+      await reader.read()
+      await writeFile(cardPath, `export function Card() { return <p>two</p> }`)
+      const change = await Promise.race([
+        readChangeEvent(reader),
+        new Promise<never>((_resolve, reject) => {
+          setTimeout(() => reject(new Error('Timed out waiting for HMR update')), 2_000)
+        }),
+      ])
+      const { timestamp, ...changeWithoutTimestamp } = change
+      expect(timestamp).toBeNumber()
+      expect(changeWithoutTimestamp).toEqual({
+        revision: routes.revision + 1,
+        reload: false,
+        routes: false,
+        updates: [{
+          path: 'components/card.tsx',
+          type: 'refresh',
+          url: '/__devjar/module?path=components%2Fcard.tsx&v=1',
+        }],
+      })
+    } finally {
+      await reader?.cancel()
+      await hmrServer.close()
+      await rm(projectRoot, { recursive: true, force: true })
+    }
   })
 })
 
@@ -216,7 +296,10 @@ describe('production build', () => {
     expect(await readFile(join(buildRoot, '__devjar/routes.json'), 'utf8')).toBe(JSON.stringify(manifest))
     const entryModule = await readFile(join(buildRoot, manifest.routes['/'].module), 'utf8')
     expect(entryModule).toContain('https://modules.example.test/react@19.2.0/jsx-dev-runtime?dev')
-    expect(await readFile(join(buildRoot, 'index.html'), 'utf8')).toContain('data-devjar-tailwind')
+    expect(entryModule).not.toContain('__devjarRegisterModule')
+    const builtHtml = await readFile(join(buildRoot, 'index.html'), 'utf8')
+    expect(builtHtml).toContain('data-devjar-tailwind')
+    expect(builtHtml).not.toContain('react-refresh')
     expect(await readFile(join(buildRoot, '__devjar/_cdn.js'), 'utf8')).toContain('createEsmShResolver')
     expect(await readFile(join(buildRoot, 'api/projects.json'), 'utf8')).toContain('Mobile refresh')
     expect(await readFile(join(buildRoot, 'public/mark.svg'), 'utf8')).toContain('<svg')

@@ -33,6 +33,31 @@ type RouteManifest = {
   notFound: RouteEntry | undefined
 }
 
+type ModuleGraphEntry = {
+  dependencies: Set<string>
+  refreshBoundary: boolean
+}
+
+export type CompiledProjectModule = {
+  code: string
+  dependencies: string[]
+  refreshBoundary: boolean
+}
+
+type HmrUpdate = {
+  path: string
+  url: string
+  type: 'css' | 'refresh'
+}
+
+type HmrChange = {
+  revision: number
+  reload: boolean
+  routes: boolean
+  timestamp: number
+  updates: HmrUpdate[]
+}
+
 export type DevServerOptions = {
   root: string
   host: string
@@ -244,23 +269,31 @@ export async function compileProjectModule(
   dependencies: Record<string, string>,
   cdn: string,
   moduleUrl: (projectPath: string) => string,
-) {
+  refresh: boolean,
+): Promise<CompiledProjectModule> {
   const sourcePath = await resolveProjectSource(root, projectPath)
   const canonicalProjectPath = relative(root, sourcePath).split(sep).join('/')
   const source = await readFile(sourcePath, 'utf8')
-  if (extname(sourcePath) === '.css') return cssModule(source, canonicalProjectPath)
+  if (extname(sourcePath) === '.css') {
+    return {
+      code: cssModule(source, canonicalProjectPath),
+      dependencies: [],
+      refreshBoundary: false,
+    }
+  }
 
   const output = transformSync(
     canonicalProjectPath,
     source,
-    getTransformOptions(canonicalProjectPath, false),
+    getTransformOptions(canonicalProjectPath, refresh),
   )
   const error = getTransformErrorMessage(output.errors)
   if (error) throw new Error(error)
 
   await init
-  const [imports] = parse(output.code)
+  const [imports, exports] = parse(output.code)
   const replacements: Array<{ start: number, end: number, value: string }> = []
+  const localDependencies: string[] = []
   const resolveModule = createEsmShResolver(dependencies, cdn)
   for (const imported of imports) {
     if (!imported.n) continue
@@ -272,6 +305,7 @@ export async function compileProjectModule(
       )
       const importedProjectPath = relative(root, importedPath).split(sep).join('/')
       value = moduleUrl(importedProjectPath)
+      localDependencies.push(importedProjectPath)
     } else {
       value = resolveModule(imported.n)
     }
@@ -286,7 +320,85 @@ export async function compileProjectModule(
   for (const replacement of replacements.reverse()) {
     code = code.slice(0, replacement.start) + replacement.value + code.slice(replacement.end)
   }
-  return code
+
+  const refreshNames = new Set(
+    [...output.code.matchAll(/\$RefreshReg\$\([^,]+,\s*["']([^"']+)["']\)/g)]
+      .map(match => match[1]),
+  )
+  const refreshBoundary = refresh
+    && exports.length > 0
+    && exports.every(exported => Boolean(exported.ln && refreshNames.has(exported.ln)))
+  if (refresh) {
+    const registeredExports = exports
+      .filter(exported => exported.ln)
+      .map(exported => `${JSON.stringify(exported.n)}: ${exported.ln}`)
+      .join(', ')
+    code = `const $RefreshReg$ = (type, id) => globalThis.__devjarRefreshRuntime.register(type, ${JSON.stringify(`${canonicalProjectPath} `)} + id)
+const $RefreshSig$ = globalThis.__devjarRefreshRuntime.createSignatureFunctionForTransform
+${code}
+globalThis.__devjarRegisterModule(${JSON.stringify(canonicalProjectPath)}, import.meta.url, { ${registeredExports} })
+`
+  }
+  return {
+    code,
+    dependencies: [...new Set(localDependencies)],
+    refreshBoundary,
+  }
+}
+
+function updateModuleGraph(
+  graph: Map<string, ModuleGraphEntry>,
+  importers: Map<string, Set<string>>,
+  projectPath: string,
+  compiled: CompiledProjectModule,
+) {
+  const previous = graph.get(projectPath)
+  for (const dependency of previous?.dependencies || []) {
+    importers.get(dependency)?.delete(projectPath)
+  }
+
+  const dependencies = new Set(compiled.dependencies)
+  graph.set(projectPath, {
+    dependencies,
+    refreshBoundary: compiled.refreshBoundary,
+  })
+  for (const dependency of dependencies) {
+    let dependencyImporters = importers.get(dependency)
+    if (!dependencyImporters) {
+      dependencyImporters = new Set()
+      importers.set(dependency, dependencyImporters)
+    }
+    dependencyImporters.add(projectPath)
+  }
+}
+
+function findRefreshBoundaries(
+  projectPath: string,
+  graph: Map<string, ModuleGraphEntry>,
+  importers: Map<string, Set<string>>,
+) {
+  const boundaries = new Set<string>()
+  const visited = new Set<string>()
+  const queue = [projectPath]
+  let reload = false
+
+  while (queue.length) {
+    const current = queue.shift()!
+    if (visited.has(current)) continue
+    visited.add(current)
+    const entry = graph.get(current)
+    if (entry?.refreshBoundary) {
+      boundaries.add(current)
+      continue
+    }
+    const currentImporters = importers.get(current)
+    if (!currentImporters?.size) {
+      reload = true
+      continue
+    }
+    queue.push(...currentImporters)
+  }
+  return { boundaries, reload }
 }
 
 function send(
@@ -303,7 +415,11 @@ function send(
   response.end(request.method === 'HEAD' ? undefined : body)
 }
 
-function html(dependencies: Record<string, string>, cdn: string) {
+function html(
+  dependencies: Record<string, string>,
+  cdn: string,
+  liveReload: boolean,
+) {
   const resolveModule = createEsmShResolver(dependencies, cdn)
   const resolveRuntimeModule = createEsmShResolver({
     ...dependencies,
@@ -317,6 +433,9 @@ function html(dependencies: Record<string, string>, cdn: string) {
     'react-dom/client': resolveModule('react-dom/client'),
     'es-module-lexer': resolveRuntimeModule('es-module-lexer'),
     devjar: '/__devjar/runtime.js',
+    ...(liveReload
+      ? { 'react-refresh/runtime': resolveRuntimeModule('react-refresh/runtime') }
+      : {}),
   }
   const tailwindUrl = getTailwindBrowserUrl(dependencies, cdn)
   const tailwindPreload = tailwindUrl
@@ -325,6 +444,15 @@ function html(dependencies: Record<string, string>, cdn: string) {
   const tailwindScript = tailwindUrl
     ? `<script data-devjar-tailwind type="module" src="${tailwindUrl}"></script>`
     : ''
+  const clientScript = liveReload
+    ? `<script type="module">
+import * as RefreshModule from 'react-refresh/runtime'
+const RefreshRuntime = RefreshModule.default || RefreshModule
+RefreshRuntime.injectIntoGlobalHook(globalThis)
+globalThis.__devjarRefreshRuntime = RefreshRuntime
+await import('/__devjar/client.js')
+</script>`
+    : '<script type="module" src="/__devjar/client.js"></script>'
   return `<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Devjar</title>${tailwindPreload}<script type="importmap">${JSON.stringify({ imports })}</script>
@@ -337,7 +465,7 @@ const showBootstrapError = value => {
 }
 addEventListener('error', event => showBootstrapError(event.message || 'A browser module failed to load'))
 addEventListener('unhandledrejection', event => showBootstrapError(event.reason?.stack || event.reason || 'An asynchronous module failed'))
-</script>${tailwindScript}<script type="module" src="/__devjar/client.js"></script></body></html>`
+</script>${tailwindScript}${clientScript}</body></html>`
 }
 
 const contentTypes: Record<string, string> = {
@@ -388,7 +516,13 @@ export async function startDevServer(options: DevServerOptions) {
   const port = options.port
   const events = new Set<ServerResponse>()
   const assetsRoot = await runtimeRoot()
+  const moduleGraph = new Map<string, ModuleGraphEntry>()
+  const moduleImporters = new Map<string, Set<string>>()
+  const moduleVersions = new Map<string, number>()
   let revision = 0
+  const currentModuleUrl = (projectPath: string) => (
+    devModuleUrl(projectPath, moduleVersions.get(projectPath) || 0)
+  )
 
   if (!(await fileExists(join(root, 'pages/index.tsx')))
     && !(await fileExists(join(root, 'pages/index.ts')))
@@ -425,7 +559,7 @@ export async function startDevServer(options: DevServerOptions) {
           const manifest = await loadRouteManifest(root, {
             liveReload: true,
             revision,
-            moduleUrl: projectPath => devModuleUrl(projectPath, revision),
+            moduleUrl: currentModuleUrl,
           })
           send(request, response, 200, 'application/json; charset=utf-8', JSON.stringify(manifest))
         } catch (error) {
@@ -440,18 +574,24 @@ export async function startDevServer(options: DevServerOptions) {
           return
         }
         try {
-          const moduleRevision = Number(url.searchParams.get('v')) || 0
           const packageJson = await readPackage(root)
           const dependencies = packageDependencies(packageJson)
           const cdn = projectCdn(packageJson, options.cdn)
-          const code = await compileProjectModule(
+          const compiled = await compileProjectModule(
             root,
             projectPath,
             dependencies,
             cdn,
-            importedPath => devModuleUrl(importedPath, moduleRevision),
+            currentModuleUrl,
+            true,
           )
-          send(request, response, 200, 'text/javascript; charset=utf-8', code)
+          updateModuleGraph(
+            moduleGraph,
+            moduleImporters,
+            projectPath,
+            compiled,
+          )
+          send(request, response, 200, 'text/javascript; charset=utf-8', compiled.code)
         } catch (error) {
           send(request, response, 404, 'text/javascript; charset=utf-8', `throw new Error(${JSON.stringify(error instanceof Error ? error.message : String(error))})`)
         }
@@ -478,7 +618,11 @@ export async function startDevServer(options: DevServerOptions) {
         response,
         200,
         'text/html; charset=utf-8',
-        html(packageDependencies(packageJson), projectCdn(packageJson, options.cdn)),
+        html(
+          packageDependencies(packageJson),
+          projectCdn(packageJson, options.cdn),
+          true,
+        ),
       )
     } catch (error) {
       send(request, response, 500, 'text/plain; charset=utf-8', error instanceof Error ? error.stack || error.message : String(error))
@@ -486,13 +630,67 @@ export async function startDevServer(options: DevServerOptions) {
   })
 
   let timer: NodeJS.Timeout | undefined
+  let pendingTimestamp = 0
+  const pendingFiles = new Set<string>()
   const watcher = watch(root, { recursive: true }, (_event, filename) => {
     if (!filename || /(?:^|[/\\])(?:\.git|node_modules|dist)(?:[/\\]|$)/.test(filename)) return
+    if (!pendingFiles.size) pendingTimestamp = Date.now()
+    pendingFiles.add(filename.split(sep).join('/'))
     clearTimeout(timer)
     timer = setTimeout(() => {
+      const changedFiles = [...pendingFiles]
+      pendingFiles.clear()
+      const timestamp = pendingTimestamp
+      pendingTimestamp = 0
+      let reload = changedFiles.includes('package.json')
+      const routes = changedFiles.some(filename => (
+        filename.startsWith('pages/') && sourceExtensions.includes(extname(filename))
+      ))
+      const invalidated = new Set<string>()
+      const cssUpdates = new Set<string>()
+      const refreshBoundaries = new Set<string>()
+
+      for (const projectPath of changedFiles) {
+        if (!localExtensions.includes(extname(projectPath)) || !moduleGraph.has(projectPath)) continue
+        invalidated.add(projectPath)
+        if (extname(projectPath) === '.css') {
+          cssUpdates.add(projectPath)
+          continue
+        }
+        const result = findRefreshBoundaries(projectPath, moduleGraph, moduleImporters)
+        reload ||= result.reload
+        for (const boundary of result.boundaries) {
+          invalidated.add(boundary)
+          refreshBoundaries.add(boundary)
+        }
+      }
+
+      if (!reload && !routes && !invalidated.size) return
       revision++
+      for (const projectPath of invalidated) {
+        moduleVersions.set(projectPath, (moduleVersions.get(projectPath) || 0) + 1)
+      }
+      const updates: HmrUpdate[] = [
+        ...[...cssUpdates].map(path => ({
+          path,
+          type: 'css' as const,
+          url: currentModuleUrl(path),
+        })),
+        ...[...refreshBoundaries].map(path => ({
+          path,
+          type: 'refresh' as const,
+          url: currentModuleUrl(path),
+        })),
+      ]
+      const change: HmrChange = {
+        revision,
+        reload,
+        routes,
+        timestamp,
+        updates,
+      }
       for (const response of events) {
-        response.write(`event: change\ndata: ${JSON.stringify({ revision })}\n\n`)
+        response.write(`event: change\ndata: ${JSON.stringify(change)}\n\n`)
       }
     }, 40)
   })
@@ -629,7 +827,7 @@ export async function buildProject(options: BuildOptions) {
   await rm(outDir, { recursive: true, force: true })
   await mkdir(outDir, { recursive: true })
   await writeFile(join(outDir, 'manifest.json'), JSON.stringify(manifest))
-  await writeFile(join(outDir, 'index.html'), html(dependencies, cdn))
+  await writeFile(join(outDir, 'index.html'), html(dependencies, cdn, false))
   await copyRuntimeAssets(join(outDir, '__devjar'))
   const modulesRoot = join(outDir, '__devjar/modules')
   await mkdir(modulesRoot, { recursive: true })
@@ -640,8 +838,9 @@ export async function buildProject(options: BuildOptions) {
       dependencies,
       cdn,
       builtModuleUrl,
+      false,
     )
-    await writeFile(join(modulesRoot, moduleAssetName(projectPath)), code)
+    await writeFile(join(modulesRoot, moduleAssetName(projectPath)), code.code)
   }
   await writeFile(join(outDir, '__devjar/routes.json'), JSON.stringify(manifest))
   if (await directoryExists(join(root, 'public'))) {

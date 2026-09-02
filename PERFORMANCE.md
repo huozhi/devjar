@@ -71,7 +71,7 @@ Result:
 
 ## 6. Add module-level HMR
 
-Status: next
+Status: complete
 
 - Maintain a server-side module and reverse-import graph.
 - Transform and invalidate only changed modules and their affected importers.
@@ -83,3 +83,11 @@ Done when:
 - Editing one component does not refetch the complete project.
 - Unrelated file edits do not rerender the active route.
 - Component state survives accepted updates.
+
+Result:
+
+- The development server records each loaded module's local dependencies, reverse importers, and nearest React Refresh boundaries.
+- Source edits version only the changed module and affected boundary modules. CSS updates by itself, and unrelated files do not emit a render update.
+- React Refresh initializes before ReactDOM, validates module export shapes, and preserves component state for accepted updates. Unsafe export changes fall back to one full reload.
+- Manual dashboard measurements on 2026-09-03: editing `project-card.tsx` requested only that module and refreshed in 45 ms from the filesystem notification, including the 40 ms debounce; browser update handling took 3.2 ms.
+- A changed data hook requested only the hook and its nearest page boundary. A CSS edit requested only the stylesheet module and caused zero React render events.
