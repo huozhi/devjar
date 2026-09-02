@@ -20,7 +20,7 @@ export type TailwindStylesheet = {
   update(paths: string[]): Promise<void>
 }
 
-export function usesTailwind(dependencies: Record<string, string>) {
+export function hasTailwindDependency(dependencies: Record<string, string>) {
   return 'tailwindcss' in dependencies || '@tailwindcss/browser' in dependencies
 }
 

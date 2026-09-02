@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { watch } from 'node:fs'
 import { transformSync } from 'oxc-transform'
 import { CDN_HOST, createEsmShResolver, normalizeCdnHost } from './_cdn'
-import { createTailwindStylesheet, usesTailwind } from './tailwind'
+import { createTailwindStylesheet, hasTailwindDependency } from './tailwind'
 import { getTransformErrorMessage, getTransformOptions } from './_transform'
 
 const sourceExtensions = ['.tsx', '.ts', '.jsx', '.js']
@@ -250,7 +250,7 @@ function html(dependencies: Record<string, string>, cdn: string) {
     'es-module-lexer': resolveRuntimeModule('es-module-lexer'),
     devjar: '/__devjar/runtime.js',
   }
-  const stylesheet = usesTailwind(dependencies)
+  const stylesheet = hasTailwindDependency(dependencies)
     ? '<link data-devjar-tailwind rel="stylesheet" href="/__devjar/tailwind.css">'
     : ''
   return `<!doctype html>
@@ -318,7 +318,7 @@ export async function startDevServer(options: DevServerOptions) {
   const assetsRoot = await runtimeRoot()
   const packageJson = await readPackage(root)
   const dependencies = packageDependencies(packageJson)
-  const tailwindStylesheet = usesTailwind(dependencies)
+  const tailwindStylesheet = hasTailwindDependency(dependencies)
     ? await createTailwindStylesheet(root, undefined)
     : undefined
 
@@ -535,7 +535,7 @@ export async function buildProject(options: BuildOptions) {
   const packageJson = await readPackage(root)
   const dependencies = packageDependencies(packageJson)
   const cdn = projectCdn(packageJson, options.cdn)
-  const tailwindStylesheet = usesTailwind(dependencies)
+  const tailwindStylesheet = hasTailwindDependency(dependencies)
     ? await createTailwindStylesheet(root, outDir)
     : undefined
   const discovered = await discoverRoutes(root)
