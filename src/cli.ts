@@ -387,7 +387,7 @@ export async function startDevServer(options: DevServerOptions) {
 
   let timer: NodeJS.Timeout | undefined
   const watcher = watch(root, { recursive: true }, (_event, filename) => {
-    if (!filename || /(?:^|[/\\])(?:\.git|\.devjar|node_modules|dist)(?:[/\\]|$)/.test(filename)) return
+    if (!filename || /(?:^|[/\\])(?:\.git|node_modules|dist)(?:[/\\]|$)/.test(filename)) return
     clearTimeout(timer)
     timer = setTimeout(() => {
       for (const response of events) response.write('event: change\ndata: {}\n\n')

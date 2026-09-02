@@ -35,7 +35,7 @@
     "dev:site": "next dev ./site",
     "dev:cli": "node ./dist/bin.js dev examples/dashboard",
     "demo:build": "node ./dist/bin.js build examples/dashboard",
-    "demo:start": "node ./dist/bin.js start examples/dashboard/.devjar",
+    "demo:start": "node ./dist/bin.js start examples/dashboard/dist",
     "test": "bun test",
     "test:package": "bun scripts/check-package.ts"
   },

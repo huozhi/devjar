@@ -141,7 +141,7 @@ describe('production build', () => {
     await cp(dashboardRoot, projectRoot, { recursive: true })
     const result = await buildProject({
       root: projectRoot,
-      outDir: '.devjar',
+      outDir: 'dist',
       cdn: 'https://modules.example.test/',
     })
     buildRoot = result.outDir

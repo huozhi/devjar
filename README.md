@@ -89,7 +89,7 @@ watching or on-request transforms:
 
 ```sh
 devjar build
-devjar start .devjar
+devjar start dist
 ```
 
 The build contains the transformed route graph, runtime assets, public files,

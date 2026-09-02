@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from 'node:fs'
+import { cpSync, existsSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -39,6 +39,19 @@ if (missing.length) {
 const cli = Bun.spawnSync(['node', 'dist/bin.js', '--version'], { cwd: root })
 if (cli.exitCode !== 0 || cli.stdout.toString().trim() !== packageJson.version) {
   throw new Error('The packaged CLI did not report the package version')
+}
+
+const cliProject = mkdtempSync(join(tmpdir(), 'devjar-cli-'))
+cpSync(join(root, 'examples/basic'), cliProject, { recursive: true })
+const build = Bun.spawnSync(['node', 'dist/bin.js', 'build', cliProject], {
+  cwd: root,
+  stderr: 'inherit',
+})
+const usedDefaultOutput = existsSync(join(cliProject, 'dist', 'manifest.json'))
+rmSync(cliProject, { recursive: true, force: true })
+
+if (build.exitCode !== 0 || !usedDefaultOutput) {
+  throw new Error('The packaged CLI did not build to dist by default')
 }
 
 console.log(`Package contains the CLI and required runtime assets (${files.size} files total).`)

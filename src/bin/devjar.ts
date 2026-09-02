@@ -12,14 +12,14 @@ Turn a folder of React pages into a prototype.
 
 Commands:
   dev      Start a development server (default)
-  build    Create production output in <root>/.devjar
+  build    Create production output in <root>/dist
   start    Serve a directory created by devjar build
 
 Options:
   --cdn <url>      ESM-compatible module CDN (dev and build)
   --host <host>    Host to listen on (dev and start; default: 127.0.0.1)
   --port <port>    Port to listen on (dev and start; default: 3000)
-  -o, --out-dir   Build output relative to the project root (default: .devjar)
+  -o, --out-dir   Build output relative to the project root (default: dist)
   -v, --version    Show the installed version
   -h, --help       Show this help
 
@@ -27,7 +27,7 @@ Examples:
   devjar
   devjar dev examples/dashboard
   devjar build examples/dashboard
-  devjar start examples/dashboard/.devjar`)
+  devjar start examples/dashboard/dist`)
 }
 
 function valueAfter(args: string[], index: number) {
@@ -101,7 +101,7 @@ async function run() {
   if (command === 'build') {
     const result = await buildProject({
       root: root || process.cwd(),
-      outDir: outDir || '.devjar',
+      outDir: outDir || 'dist',
       cdn,
     })
     console.log(`Devjar built ${result.routes.length} routes`)
@@ -111,7 +111,7 @@ async function run() {
 
   const server = command === 'start'
     ? await startBuiltServer({
-        root: root || join(process.cwd(), '.devjar'),
+        root: root || join(process.cwd(), 'dist'),
         host: host || '127.0.0.1',
         port: port ?? 3000,
       })
