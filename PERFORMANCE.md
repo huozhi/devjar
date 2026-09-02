@@ -43,7 +43,11 @@ Result:
 - The CLI compiles Tailwind with a persistent server-side compiler and candidate scanner.
 - Development serves and refreshes `/__devjar/tailwind.css`; the browser no longer loads `@tailwindcss/browser`.
 - Production emits an ordinary `__devjar/tailwind.css` file.
-- Manual dashboard measurements on 2026-09-02: 1,197 ms client start to first render in a fresh browser context and 203 ms from adding new Tailwind candidates to the updated render. Remote CDN startup still dominates the first measurement.
+- Controlled dashboard comparison against `main` on 2026-09-02:
+  - Three isolated Chromium profiles: median navigation-to-render improved from 446 ms to 334 ms (25%), client-start-to-render improved from 376 ms to 185 ms (51%), and the Tailwind resource improved from 102 ms remote to 2.6 ms local.
+  - Five warm-cache Chromium runs: median navigation-to-render improved from 37.3 ms to 32.9 ms (12%).
+  - Seven warm server starts: median startup regressed from 1.7 ms to 9.8 ms, an 8.1 ms one-time cost.
+  - Adding new Tailwind candidates reached the updated render in 203 ms without a page reload.
 
 ## 5. Use module-based routing
 
