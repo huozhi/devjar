@@ -95,6 +95,7 @@ describe('dev server', () => {
     expect(shellSource).toContain('/__devjar/client.js')
     expect(shellSource).toContain('Devjar could not start')
     expect(shellSource).toContain(`Devjar could not start:\\n\\n`)
+    expect(shellSource).not.toContain('<iframe')
     expect(await (await fetch(`${base}/about`, { method: 'HEAD' })).text()).toBe('')
     const bootstrap = shellSource.match(/<script>\n([\s\S]+)<\/script><script type="module"/)?.[1]
     expect(() => new Function(bootstrap || '')).not.toThrow()
@@ -106,9 +107,10 @@ describe('dev server', () => {
     expect(() => parse(client)).not.toThrow()
     expect(client).not.toContain('function dependencyUrl')
     expect(client).toContain('createEsmShResolver(project.dependencies, project.cdn)')
-    expect(client).toContain('transform: false')
-    expect(client).toContain('tailwind: project.tailwind')
-    expect(client).toContain('project?.liveReload')
+    expect(client).toContain('createRenderer(createModule')
+    expect(client).toContain('linkModules(project.files, moduleResolver)')
+    expect(client).not.toContain('createElement("iframe")')
+    expect(client).toContain('project.liveReload')
     expect(client).toContain('popstate')
     expect(client).toContain('history.pushState')
 

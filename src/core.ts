@@ -155,7 +155,42 @@ function replaceImports(
   return { code, dependencies }
 }
 
-// createRenderer is going to be stringified and executed in the iframe
+async function linkModules(
+  files: Record<string, string>,
+  resolveModule: ResolveModule,
+) {
+  if (!esModuleLexerInit) {
+    await init
+    esModuleLexerInit = true
+  }
+
+  const localModules = new Set(Object.keys(files).map(getModuleKey))
+  const dependencies: Record<string, string[]> = {}
+  const linkedFiles: Record<string, string> = {}
+
+  for (const [filename, source] of Object.entries(files)) {
+    const moduleKey = getModuleKey(filename)
+    if (filename.endsWith('.css')) {
+      linkedFiles[moduleKey] = source
+      dependencies[moduleKey] = []
+      continue
+    }
+
+    const linked = replaceImports(
+      source,
+      filename,
+      moduleKey,
+      resolveModule,
+      localModules,
+    )
+    linkedFiles[moduleKey] = linked.code
+    dependencies[moduleKey] = linked.dependencies
+  }
+
+  return { files: linkedFiles, dependencies }
+}
+
+// This is used directly by the CLI client and stringified for the iframe runtime.
 function createRenderer(createModule_: typeof createModule, resolveModule: ResolveModule) {
   function isElementType(value: unknown): value is React.ElementType {
     return typeof value === 'string'
@@ -184,6 +219,12 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
   let reactRoot: import('react-dom/client').Root | undefined
   let ErrorBoundary: ErrorBoundaryClass | undefined
   let errorBoundary: ErrorBoundaryInstance | null = null
+  let reactModuleUrl = ''
+  let reactDomModuleUrl = ''
+  let rendererModules: Promise<[
+    typeof import('react'),
+    typeof import('react-dom/client'),
+  ]> | undefined
   let revision = 0
   const moduleRuntime: ModuleRuntime = {}
   const setErrorBoundaryRef = (value: ErrorBoundaryInstance | null) => {
@@ -192,8 +233,19 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
 
   async function render(files: Record<string, string>, dependencies: Record<string, string[]>) {
     const result = await createModule_(files, { resolveModule, dependencies, runtime: moduleRuntime })
-    const ReactMod: typeof import('react') = await import(/* webpackIgnore: true */ /* @vite-ignore */ /* turbopackIgnore: true */ resolveModule('react'))
-    const ReactDOMMod: typeof import('react-dom/client') = await import(/* webpackIgnore: true */ /* @vite-ignore */ /* turbopackIgnore: true */ resolveModule('react-dom/client'))
+    const nextReactModuleUrl = resolveModule('react')
+    const nextReactDomModuleUrl = resolveModule('react-dom/client')
+    if (!rendererModules
+      || reactModuleUrl !== nextReactModuleUrl
+      || reactDomModuleUrl !== nextReactDomModuleUrl) {
+      reactModuleUrl = nextReactModuleUrl
+      reactDomModuleUrl = nextReactDomModuleUrl
+      rendererModules = Promise.all([
+        import(/* webpackIgnore: true */ /* @vite-ignore */ /* turbopackIgnore: true */ reactModuleUrl),
+        import(/* webpackIgnore: true */ /* @vite-ignore */ /* turbopackIgnore: true */ reactDomModuleUrl),
+      ])
+    }
+    const [ReactMod, ReactDOMMod] = await rendererModules
 
     const _jsx = ReactMod.createElement
     const root = document.getElementById('__reactRoot')
@@ -548,6 +600,8 @@ function useLiveCode({
 
 export { 
   createModule,
+  createRenderer,
+  linkModules,
   replaceImports,
   useLiveCode,
 }

@@ -256,12 +256,12 @@ function html(dependencies: Record<string, string>, cdn: string) {
   return `<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Devjar</title><script type="importmap">${JSON.stringify({ imports })}</script>
-<style>html,body,#root{width:100%;height:100%;margin:0}iframe{display:block;width:100%;height:100%;border:0}.devjar-error{box-sizing:border-box;position:fixed;z-index:10;inset:auto 16px 16px;padding:14px 16px;border:1px solid #ffb4ab;border-radius:8px;background:#330a08;color:#ffdad6;font:13px/1.5 ui-monospace,monospace;white-space:pre-wrap}</style>
-</head><body><div id="root"></div><script>
-const root = document.getElementById('root')
+<style>html,body,#root,#__reactRoot{width:100%;min-height:100%;margin:0}.devjar-error{box-sizing:border-box;position:fixed;z-index:10;inset:auto 16px 16px;padding:14px 16px;border:1px solid #ffb4ab;border-radius:8px;background:#330a08;color:#ffdad6;font:13px/1.5 ui-monospace,monospace;white-space:pre-wrap}</style>
+</head><body><div id="root"></div><pre id="__devjarError" class="devjar-error" hidden></pre><script>
+const errorRoot = document.getElementById('__devjarError')
 const showBootstrapError = value => {
-  root.className = 'devjar-error'
-  root.textContent = 'Devjar could not start:\\n\\n' + value
+  errorRoot.hidden = false
+  errorRoot.textContent = 'Devjar could not start:\\n\\n' + value
 }
 addEventListener('error', event => showBootstrapError(event.message || 'A browser module failed to load'))
 addEventListener('unhandledrejection', event => showBootstrapError(event.reason?.stack || event.reason || 'An asynchronous module failed'))
