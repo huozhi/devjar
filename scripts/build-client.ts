@@ -4,12 +4,7 @@ import { fileURLToPath } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const entry = join(root, 'src/client.tsx')
-const inputs = [
-  entry,
-  join(root, 'src/_cdn.ts'),
-  join(root, 'src/core.ts'),
-  join(root, 'src/module.ts'),
-]
+const inputs = [entry]
 
 async function buildClient() {
   const result = await Bun.build({

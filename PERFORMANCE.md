@@ -48,7 +48,7 @@ Result:
 
 ## 5. Use module-based routing
 
-Status: next
+Status: complete
 
 - Generate a route manifest whose entries load page modules.
 - Keep one React root alive across navigation.
@@ -61,9 +61,17 @@ Done when:
 - Shared modules remain loaded between routes.
 - Prefetched routes transition without a network wait.
 
+Result:
+
+- Development and production expose a compact route manifest whose entries point to native browser modules.
+- Local imports are served as separate modules, so the browser keeps shared components, data modules, and styles loaded between routes.
+- Hovering or focusing an internal link module-preloads and imports its route entry before navigation.
+- The dashboard production manifest shrank from 42,692 bytes of duplicated route graphs to 508 bytes. Its eight deduplicated module assets total 18,155 bytes.
+- Manual dashboard measurements on 2026-09-03: hovering `/projects` fetched only its page module; the prefetched click made no requests and scheduled the render in 0.4 ms. Back, forward, direct 404 routes, live reload, and the production build continued to work.
+
 ## 6. Add module-level HMR
 
-Status: queued
+Status: next
 
 - Maintain a server-side module and reverse-import graph.
 - Transform and invalidate only changed modules and their affected importers.

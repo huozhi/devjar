@@ -1,16 +1,32 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
-import { cp, mkdtemp, readFile, rm } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { init, parse } from 'es-module-lexer'
-import { buildProject, loadProject, startBuiltServer, startDevServer } from '../src/cli'
+import {
+  buildProject,
+  compileProjectModule,
+  loadRouteManifest,
+  startBuiltServer,
+  startDevServer,
+} from '../src/cli'
 import { CDN_HOST, createEsmShResolver } from '../src/_cdn'
 import { replaceImports } from '../src/core'
 import { getTailwindBrowserUrl } from '../src/tailwind'
 
 const root = resolve(import.meta.dir, '../examples/basic')
 const dashboardRoot = resolve(import.meta.dir, '../examples/dashboard')
-const liveProjectOptions = { cdn: undefined, liveReload: true }
+function testModuleUrl(projectPath: string) {
+  return `/modules/${projectPath}`
+}
+
+function loadTestRouteManifest(projectRoot: string) {
+  return loadRouteManifest(projectRoot, {
+    liveReload: true,
+    revision: 7,
+    moduleUrl: testModuleUrl,
+  })
+}
 
 describe('project loading', () => {
   test('keeps parent-directory imports in the local module graph', async () => {
@@ -35,44 +51,36 @@ describe('project loading', () => {
     expect(resolveModule('@scope/pkg/subpath')).toBe('https://esm.sh/@scope/pkg@%5E2.0.0/subpath')
   })
 
-  test('loads a page and its local dependency graph', async () => {
-    const project = await loadProject(root, '/', liveProjectOptions)
-    expect(project.page).toBe('pages/index.tsx')
-    expect(Object.keys(project.files).sort()).toEqual([
-      './components/shell.tsx',
-      './pages/index.tsx',
-      './styles.css',
-      'index.tsx',
-    ])
-    expect(project.tailwind).toBe(true)
-    expect(project.files['index.tsx']).toContain('./pages/index.tsx')
-    expect(project.files['./components/shell.tsx']).not.toContain('ReactNode')
-  })
-
-  test('loads a second page route', async () => {
-    const project = await loadProject(root, '/about', liveProjectOptions)
-    expect(project.page).toBe('pages/about.tsx')
+  test('loads a route manifest with module entries', async () => {
+    const manifest = await loadTestRouteManifest(root)
+    expect(manifest.version).toBe(2)
+    expect(manifest.revision).toBe(7)
+    expect(manifest.routes['/']).toEqual({
+      module: '/modules/pages/index.tsx',
+      page: 'pages/index.tsx',
+    })
+    expect(manifest.routes['/about']).toEqual({
+      module: '/modules/pages/about.tsx',
+      page: 'pages/about.tsx',
+    })
+    expect(manifest.notFound).toBeUndefined()
   })
 
   test('uses a custom module CDN', async () => {
-    const project = await loadProject(root, '/', {
-      cdn: 'https://modules.example.test/',
-      liveReload: true,
-    })
-    expect(project.cdn).toBe('https://modules.example.test')
-    expect(createEsmShResolver(project.dependencies, project.cdn)('react')).toBe(
-      'https://modules.example.test/react@19.2.0?dev',
+    const code = await compileProjectModule(
+      root,
+      'pages/about.tsx',
+      { react: '19.2.0' },
+      'https://modules.example.test/',
+      testModuleUrl,
     )
+    expect(code).toContain('https://modules.example.test/react@19.2.0/jsx-dev-runtime?dev')
   })
 
   test('loads the hosted dashboard example and its 404 page', async () => {
-    const project = await loadProject(dashboardRoot, '/', liveProjectOptions)
-    expect(project.dependencies['lucide-react']).toBe('0.542.0')
-    expect(project.files['./components/project-card.tsx']).toBeDefined()
-    expect(project.files['./lib/projects.ts']).toBeDefined()
-
-    const notFound = await loadProject(dashboardRoot, '/missing', liveProjectOptions)
-    expect(notFound.page).toBe('pages/404.tsx')
+    const manifest = await loadTestRouteManifest(dashboardRoot)
+    expect(manifest.routes['/projects'].page).toBe('pages/projects.tsx')
+    expect(manifest.notFound?.page).toBe('pages/404.tsx')
   })
 
   test('uses the project Tailwind version for the cached browser runtime', () => {
@@ -83,6 +91,29 @@ describe('project loading', () => {
       'https://modules.example.test/@tailwindcss/browser@%5E4.1.0',
     )
     expect(getTailwindBrowserUrl({}, CDN_HOST)).toBeUndefined()
+  })
+
+  test('rewrites dynamic local imports as module URLs', async () => {
+    const projectRoot = await mkdtemp(join(tmpdir(), 'devjar-dynamic-import-'))
+    try {
+      await mkdir(join(projectRoot, 'pages'))
+      await mkdir(join(projectRoot, 'components'))
+      await writeFile(
+        join(projectRoot, 'pages/index.tsx'),
+        `export const loadCard = () => import('../components/card')`,
+      )
+      await writeFile(join(projectRoot, 'components/card.tsx'), 'export default function Card() {}')
+      const code = await compileProjectModule(
+        await realpath(projectRoot),
+        'pages/index.tsx',
+        {},
+        CDN_HOST,
+        testModuleUrl,
+      )
+      expect(code).toContain(`import("/modules/components/card.tsx")`)
+    } finally {
+      await rm(projectRoot, { recursive: true, force: true })
+    }
   })
 })
 
@@ -113,18 +144,25 @@ describe('dev server', () => {
     const bootstrap = shellSource.match(/<script>\n([\s\S]+?)<\/script>/)?.[1]
     expect(() => new Function(bootstrap || '')).not.toThrow()
 
-    const project = await fetch(`${base}/__devjar/project?route=%2Fabout`)
-    expect((await project.json()).page).toBe('pages/about.tsx')
+    const routes = await (await fetch(`${base}/__devjar/routes.json`)).json()
+    expect(routes.routes['/about'].page).toBe('pages/about.tsx')
+    const pageModule = await (await fetch(`${base}${routes.routes['/about'].module}`)).text()
+    expect(pageModule).toContain('/__devjar/module?path=components%2Fshell.tsx')
+    expect(pageModule).toContain('/__devjar/module?path=styles.css')
+    expect(pageModule).toContain('https://esm.sh/react@19.2.0/jsx-dev-runtime?dev')
+    const sharedModule = await (await fetch(`${base}/__devjar/module?path=components%2Fshell.tsx`)).text()
+    expect(sharedModule).not.toContain('ReactNode')
     const client = await (await fetch(`${base}/__devjar/client.js`)).text()
     await init
     expect(() => parse(client)).not.toThrow()
-    expect(client).not.toContain('function dependencyUrl')
-    expect(client).toContain('createEsmShResolver(project.dependencies, project.cdn)')
-    expect(client).toContain('createRenderer(createModule')
-    expect(client).toContain('linkModules(project.files, moduleResolver)')
+    expect(client).toContain('/__devjar/routes.json')
+    expect(client).toContain('modulepreload')
+    expect(client).toContain('pointerover')
+    expect(client).not.toContain('/__devjar/project')
+    expect(client).not.toContain('linkModules')
     expect(client).not.toContain('createElement("iframe")')
     expect(client).not.toContain('@tailwindcss/browser')
-    expect(client).toContain('project.liveReload')
+    expect(client).toContain('routeManifest.liveReload')
     expect(client).toContain('popstate')
     expect(client).toContain('history.pushState')
 
@@ -171,9 +209,13 @@ describe('production build', () => {
   test('writes routes, runtime assets, public files, and static APIs', async () => {
     const manifest = JSON.parse(await readFile(join(buildRoot, 'manifest.json'), 'utf8'))
     expect(Object.keys(manifest.routes).sort()).toEqual(['/', '/404', '/projects', '/settings'])
-    expect(manifest.routes['/'].liveReload).toBe(false)
-    expect(manifest.cdn).toBe('https://modules.example.test')
-    expect(await readFile(join(buildRoot, '__devjar/client.js'), 'utf8')).toContain('__devjar/project')
+    expect(manifest.version).toBe(2)
+    expect(manifest.liveReload).toBe(false)
+    expect(manifest.routes['/'].module).toMatch(/^\/__devjar\/modules\/.+\.js$/)
+    expect(await readFile(join(buildRoot, '__devjar/client.js'), 'utf8')).toContain('__devjar/routes.json')
+    expect(await readFile(join(buildRoot, '__devjar/routes.json'), 'utf8')).toBe(JSON.stringify(manifest))
+    const entryModule = await readFile(join(buildRoot, manifest.routes['/'].module), 'utf8')
+    expect(entryModule).toContain('https://modules.example.test/react@19.2.0/jsx-dev-runtime?dev')
     expect(await readFile(join(buildRoot, 'index.html'), 'utf8')).toContain('data-devjar-tailwind')
     expect(await readFile(join(buildRoot, '__devjar/_cdn.js'), 'utf8')).toContain('createEsmShResolver')
     expect(await readFile(join(buildRoot, 'api/projects.json'), 'utf8')).toContain('Mobile refresh')
@@ -196,11 +238,13 @@ describe('production build', () => {
 
     const shell = await (await fetch(`${base}/projects`)).text()
     expect(shell).toContain('https://modules.example.test/react@19.2.0?dev')
-    const project = await (await fetch(`${base}/__devjar/project?route=%2Fprojects`)).json()
-    expect(project.page).toBe('pages/projects.tsx')
-    expect(project.liveReload).toBe(false)
-    const notFound = await (await fetch(`${base}/__devjar/project?route=%2Fmissing`)).json()
-    expect(notFound.page).toBe('pages/404.tsx')
+    const routes = await (await fetch(`${base}/__devjar/routes.json`)).json()
+    expect(routes.routes['/projects'].page).toBe('pages/projects.tsx')
+    expect(routes.liveReload).toBe(false)
+    expect(routes.notFound.page).toBe('pages/404.tsx')
+    const projectModule = await fetch(`${base}${routes.routes['/projects'].module}`)
+    expect(projectModule.status).toBe(200)
+    expect(projectModule.headers.get('content-type')).toContain('text/javascript')
     expect((await fetch(`${base}/__devjar/events`)).status).toBe(404)
     expect(await (await fetch(`${base}/api/projects.json`)).json()).toHaveLength(4)
     expect(await (await fetch(`${base}/mark.svg`)).text()).toContain('<svg')
