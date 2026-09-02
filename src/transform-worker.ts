@@ -1,4 +1,4 @@
-import { getTransformErrorMessage, getTransformOptions } from './_transform'
+import { getTransformErrorMessage, getTransformOptions } from './transform'
 
 type OxcTransform = Pick<typeof import('oxc-transform'), 'transformSync'>
 
