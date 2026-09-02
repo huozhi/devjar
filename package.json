@@ -43,8 +43,10 @@
     "react": "^19.0.0"
   },
   "dependencies": {
+    "@tailwindcss/oxide": "^4.3.3",
     "es-module-lexer": "1.6.0",
-    "oxc-transform": "^0.144.0"
+    "oxc-transform": "^0.144.0",
+    "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
     "@oxc-transform/binding-wasm32-wasi": "0.144.0",

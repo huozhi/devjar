@@ -10,10 +10,7 @@ type Project = {
   cdn: string
   liveReload: boolean
   page: string
-  tailwind: boolean
 }
-
-const tailwindSrc = 'https://unpkg.com/@tailwindcss/browser@4'
 
 function getRoot(id: string) {
   const root = document.getElementById(id)
@@ -32,7 +29,6 @@ let loadRevision = 0
 let moduleResolver = (_specifier: string): string => {
   throw new Error('Devjar module resolution is not initialized')
 }
-let tailwindReady: Promise<void> | undefined
 const render = createRenderer(createModule, specifier => moduleResolver(specifier))
 
 async function getProject(route: string): Promise<Project> {
@@ -57,30 +53,29 @@ function hideError() {
   errorRoot.textContent = ''
 }
 
-function loadTailwind(enabled: boolean) {
-  if (!enabled) return Promise.resolve()
-  if (tailwindReady) return tailwindReady
+function reloadTailwindStylesheet() {
+  const stylesheet = document.querySelector<HTMLLinkElement>('link[data-devjar-tailwind]')
+  if (!stylesheet) return Promise.resolve()
 
-  tailwindReady = new Promise<void>(resolvePromise => {
-    const script = document.createElement('script')
+  return new Promise<void>(resolvePromise => {
     const ready = () => resolvePromise()
-    script.src = tailwindSrc
-    script.addEventListener('load', ready, { once: true })
-    script.addEventListener('error', ready, { once: true })
-    document.head.appendChild(script)
+    stylesheet.addEventListener('load', ready, { once: true })
+    stylesheet.addEventListener('error', ready, { once: true })
+    stylesheet.href = `/__devjar/tailwind.css?v=${loadRevision}`
   })
-  return tailwindReady
 }
 
-async function load(route: string) {
+async function load(route: string, reloadTailwind: boolean) {
   const revision = ++loadRevision
   try {
-    const project = await getProject(route)
+    const [project] = await Promise.all([
+      getProject(route),
+      reloadTailwind ? reloadTailwindStylesheet() : Promise.resolve(),
+    ])
     if (revision !== loadRevision) return project
 
     moduleResolver = createEsmShResolver(project.dependencies, project.cdn)
     const linked = await linkModules(project.files, moduleResolver)
-    await loadTailwind(project.tailwind)
     if (revision !== loadRevision) return project
 
     await render(linked.files, linked.dependencies)
@@ -126,20 +121,20 @@ function navigate(event: MouseEvent) {
 
   event.preventDefault()
   history.pushState(null, '', url.pathname + url.search + url.hash)
-  void load(url.pathname).catch(() => {})
+  void load(url.pathname, false).catch(() => {})
 }
 
 async function start() {
   document.addEventListener('click', navigate)
   addEventListener('popstate', () => {
-    void load(location.pathname).catch(() => {})
+    void load(location.pathname, false).catch(() => {})
   })
 
-  const project = await load(location.pathname)
+  const project = await load(location.pathname, false)
   if (project.liveReload) {
     const events = new EventSource('/__devjar/events')
     events.addEventListener('change', () => {
-      void load(location.pathname).catch(() => {})
+      void load(location.pathname, true).catch(() => {})
     })
   }
 }

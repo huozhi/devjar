@@ -26,7 +26,7 @@ Result:
 
 ## 4. Compile Tailwind on the server
 
-Status: next
+Status: complete
 
 - Remove `@tailwindcss/browser` from the CLI runtime.
 - Compile one stylesheet on the server and update it incrementally during development.
@@ -38,9 +38,16 @@ Done when:
 - Tailwind class edits update without a full page reload.
 - Production output contains compiled CSS.
 
+Result:
+
+- The CLI compiles Tailwind with a persistent server-side compiler and candidate scanner.
+- Development serves and refreshes `/__devjar/tailwind.css`; the browser no longer loads `@tailwindcss/browser`.
+- Production emits an ordinary `__devjar/tailwind.css` file.
+- Manual dashboard measurements on 2026-09-02: 1,197 ms client start to first render in a fresh browser context and 203 ms from adding new Tailwind candidates to the updated render. Remote CDN startup still dominates the first measurement.
+
 ## 5. Use module-based routing
 
-Status: queued
+Status: next
 
 - Generate a route manifest whose entries load page modules.
 - Keep one React root alive across navigation.

@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { watch } from 'node:fs'
 import { transformSync } from 'oxc-transform'
 import { CDN_HOST, createEsmShResolver, normalizeCdnHost } from './_cdn'
+import { createTailwindStylesheet, usesTailwind } from './tailwind'
 import { getTransformErrorMessage, getTransformOptions } from './_transform'
 
 const sourceExtensions = ['.tsx', '.ts', '.jsx', '.js']
@@ -25,7 +26,6 @@ type Project = {
   liveReload: boolean
   page: string
   route: string
-  tailwind: boolean
 }
 
 type BuiltManifest = {
@@ -211,16 +211,13 @@ export async function loadProject(
     files[filename] = output.code
   }
 
-  const dependencies = packageDependencies(packageJson)
-
   return {
     files,
-    dependencies,
+    dependencies: packageDependencies(packageJson),
     cdn: projectCdn(packageJson, options.cdn),
     liveReload: options.liveReload,
     page: projectPath,
     route,
-    tailwind: 'tailwindcss' in dependencies || '@tailwindcss/browser' in dependencies,
   }
 }
 
@@ -253,9 +250,12 @@ function html(dependencies: Record<string, string>, cdn: string) {
     'es-module-lexer': resolveRuntimeModule('es-module-lexer'),
     devjar: '/__devjar/runtime.js',
   }
+  const stylesheet = usesTailwind(dependencies)
+    ? '<link data-devjar-tailwind rel="stylesheet" href="/__devjar/tailwind.css">'
+    : ''
   return `<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Devjar</title><script type="importmap">${JSON.stringify({ imports })}</script>
+<title>Devjar</title>${stylesheet}<script type="importmap">${JSON.stringify({ imports })}</script>
 <style>html,body,#root,#__reactRoot{width:100%;min-height:100%;margin:0}.devjar-error{box-sizing:border-box;position:fixed;z-index:10;inset:auto 16px 16px;padding:14px 16px;border:1px solid #ffb4ab;border-radius:8px;background:#330a08;color:#ffdad6;font:13px/1.5 ui-monospace,monospace;white-space:pre-wrap}</style>
 </head><body><div id="root"></div><pre id="__devjarError" class="devjar-error" hidden></pre><script>
 const errorRoot = document.getElementById('__devjarError')
@@ -316,6 +316,11 @@ export async function startDevServer(options: DevServerOptions) {
   const port = options.port
   const events = new Set<ServerResponse>()
   const assetsRoot = await runtimeRoot()
+  const packageJson = await readPackage(root)
+  const dependencies = packageDependencies(packageJson)
+  const tailwindStylesheet = usesTailwind(dependencies)
+    ? await createTailwindStylesheet(root, undefined)
+    : undefined
 
   if (!(await fileExists(join(root, 'pages/index.tsx')))
     && !(await fileExists(join(root, 'pages/index.ts')))
@@ -357,6 +362,14 @@ export async function startDevServer(options: DevServerOptions) {
         }
         return
       }
+      if (url.pathname === '/__devjar/tailwind.css') {
+        if (tailwindStylesheet) {
+          send(request, response, 200, 'text/css; charset=utf-8', tailwindStylesheet.getCss())
+        } else {
+          send(request, response, 404, 'text/plain; charset=utf-8', 'Tailwind is not enabled')
+        }
+        return
+      }
       if (url.pathname === '/__devjar/runtime.js') {
         if (!await serveFile(request, response, assetsRoot, 'index.js', undefined)) send(request, response, 500, 'text/plain', 'Devjar runtime is missing')
         return
@@ -372,13 +385,12 @@ export async function startDevServer(options: DevServerOptions) {
         return
       }
       if (await serveFile(request, response, join(root, 'public'), url.pathname.slice(1), undefined)) return
-      const packageJson = await readPackage(root)
       send(
         request,
         response,
         200,
         'text/html; charset=utf-8',
-        html(packageDependencies(packageJson), projectCdn(packageJson, options.cdn)),
+        html(dependencies, projectCdn(packageJson, options.cdn)),
       )
     } catch (error) {
       send(request, response, 500, 'text/plain; charset=utf-8', error instanceof Error ? error.stack || error.message : String(error))
@@ -386,11 +398,23 @@ export async function startDevServer(options: DevServerOptions) {
   })
 
   let timer: NodeJS.Timeout | undefined
+  let updatePromise = Promise.resolve()
+  const changedPaths = new Set<string>()
   const watcher = watch(root, { recursive: true }, (_event, filename) => {
     if (!filename || /(?:^|[/\\])(?:\.git|node_modules|dist)(?:[/\\]|$)/.test(filename)) return
+    changedPaths.add(resolve(root, filename))
     clearTimeout(timer)
     timer = setTimeout(() => {
-      for (const response of events) response.write('event: change\ndata: {}\n\n')
+      const paths = [...changedPaths]
+      changedPaths.clear()
+      updatePromise = updatePromise.then(async () => {
+        try {
+          await tailwindStylesheet?.update(paths)
+        } catch (error) {
+          console.error(error instanceof Error ? error.stack || error.message : String(error))
+        }
+        for (const response of events) response.write('event: change\ndata: {}\n\n')
+      })
     }, 40)
   })
 
@@ -511,6 +535,9 @@ export async function buildProject(options: BuildOptions) {
   const packageJson = await readPackage(root)
   const dependencies = packageDependencies(packageJson)
   const cdn = projectCdn(packageJson, options.cdn)
+  const tailwindStylesheet = usesTailwind(dependencies)
+    ? await createTailwindStylesheet(root, outDir)
+    : undefined
   const discovered = await discoverRoutes(root)
   const routes: Record<string, Project> = {}
   let notFound: Project | undefined
@@ -530,6 +557,9 @@ export async function buildProject(options: BuildOptions) {
   await writeFile(join(outDir, 'manifest.json'), JSON.stringify(manifest))
   await writeFile(join(outDir, 'index.html'), html(dependencies, cdn))
   await copyRuntimeAssets(join(outDir, '__devjar'))
+  if (tailwindStylesheet) {
+    await writeFile(join(outDir, '__devjar/tailwind.css'), tailwindStylesheet.getCss())
+  }
   if (await directoryExists(join(root, 'public'))) {
     await cp(join(root, 'public'), join(outDir, 'public'), { recursive: true })
   }

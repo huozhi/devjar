@@ -1,11 +1,12 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
-import { cp, mkdtemp, readFile, rm } from 'node:fs/promises'
+import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { init, parse } from 'es-module-lexer'
 import { buildProject, loadProject, startBuiltServer, startDevServer } from '../src/cli'
 import { CDN_HOST, createEsmShResolver } from '../src/_cdn'
 import { replaceImports } from '../src/core'
+import { createTailwindStylesheet } from '../src/tailwind'
 
 const root = resolve(import.meta.dir, '../examples/basic')
 const dashboardRoot = resolve(import.meta.dir, '../examples/dashboard')
@@ -43,7 +44,7 @@ describe('project loading', () => {
       './styles.css',
       'index.tsx',
     ])
-    expect(project.tailwind).toBe(true)
+    expect(project).not.toHaveProperty('tailwind')
     expect(project.files['index.tsx']).toContain('./pages/index.tsx')
     expect(project.files['./components/shell.tsx']).not.toContain('ReactNode')
   })
@@ -75,6 +76,24 @@ describe('project loading', () => {
   })
 })
 
+describe('Tailwind stylesheet', () => {
+  test('adds new candidates incrementally', async () => {
+    const sourceRoot = await mkdtemp(join(tmpdir(), 'devjar-tailwind-'))
+    const sourcePath = join(sourceRoot, 'page.tsx')
+    try {
+      await writeFile(sourcePath, 'export default () => <div className="p-2" />')
+      const stylesheet = await createTailwindStylesheet(sourceRoot, undefined)
+      expect(stylesheet.getCss()).toContain('.p-2')
+
+      await writeFile(sourcePath, 'export default () => <div className="p-8" />')
+      await stylesheet.update([sourcePath])
+      expect(stylesheet.getCss()).toContain('.p-8')
+    } finally {
+      await rm(sourceRoot, { recursive: true, force: true })
+    }
+  })
+})
+
 describe('dev server', () => {
   let server: Awaited<ReturnType<typeof startDevServer>> | undefined
   afterAll(async () => server?.close())
@@ -93,6 +112,7 @@ describe('dev server', () => {
     expect(shell.headers.get('cross-origin-embedder-policy')).toBeNull()
     const shellSource = await shell.text()
     expect(shellSource).toContain('/__devjar/client.js')
+    expect(shellSource).toContain('data-devjar-tailwind')
     expect(shellSource).toContain('Devjar could not start')
     expect(shellSource).toContain(`Devjar could not start:\\n\\n`)
     expect(shellSource).not.toContain('<iframe')
@@ -110,6 +130,8 @@ describe('dev server', () => {
     expect(client).toContain('createRenderer(createModule')
     expect(client).toContain('linkModules(project.files, moduleResolver)')
     expect(client).not.toContain('createElement("iframe")')
+    expect(client).not.toContain('@tailwindcss/browser')
+    expect(client).toContain('/__devjar/tailwind.css?v=')
     expect(client).toContain('project.liveReload')
     expect(client).toContain('popstate')
     expect(client).toContain('history.pushState')
@@ -127,6 +149,9 @@ describe('dev server', () => {
     expect(worker.headers.get('content-type')).toContain('text/javascript')
     const wasm = await fetch(`${base}/__devjar/transform.wasm32-wasi.wasm`)
     expect(wasm.headers.get('content-type')).toBe('application/wasm')
+    const tailwind = await fetch(`${base}/__devjar/tailwind.css`)
+    expect(tailwind.headers.get('content-type')).toContain('text/css')
+    expect(await tailwind.text()).toContain('.bg-neutral-950')
 
     await server.close()
     await expect(server.close()).resolves.toBeUndefined()
@@ -160,6 +185,8 @@ describe('production build', () => {
     expect(manifest.routes['/'].liveReload).toBe(false)
     expect(manifest.cdn).toBe('https://modules.example.test')
     expect(await readFile(join(buildRoot, '__devjar/client.js'), 'utf8')).toContain('__devjar/project')
+    expect(await readFile(join(buildRoot, 'index.html'), 'utf8')).toContain('data-devjar-tailwind')
+    expect(await readFile(join(buildRoot, '__devjar/tailwind.css'), 'utf8')).toContain('.bg-stone-950')
     expect(await readFile(join(buildRoot, '__devjar/_cdn.js'), 'utf8')).toContain('createEsmShResolver')
     expect(await readFile(join(buildRoot, 'api/projects.json'), 'utf8')).toContain('Mobile refresh')
     expect(await readFile(join(buildRoot, 'public/mark.svg'), 'utf8')).toContain('<svg')
