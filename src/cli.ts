@@ -1,11 +1,11 @@
 import { createReadStream } from 'node:fs'
-import { readFile, realpath, stat } from 'node:fs/promises'
-import { createServer, type ServerResponse } from 'node:http'
-import { extname, join, normalize, relative, resolve, sep } from 'node:path'
+import { cp, mkdir, readdir, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises'
+import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
+import { dirname, extname, join, normalize, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { watch } from 'node:fs'
 import { transformSync } from 'oxc-transform'
-import { CDN_HOST, createEsmShResolver } from './_cdn'
+import { CDN_HOST, createEsmShResolver, normalizeCdnHost } from './_cdn'
 import { getTransformErrorMessage, getTransformOptions } from './_transform'
 
 const sourceExtensions = ['.tsx', '.ts', '.jsx', '.js']
@@ -13,17 +13,43 @@ const localExtensions = [...sourceExtensions, '.css']
 type PackageJson = {
   dependencies?: Record<string, string>
   devDependencies?: Record<string, string>
+  devjar?: {
+    cdn?: string
+  }
 }
 
 type Project = {
   files: Record<string, string>
   dependencies: Record<string, string>
+  cdn: string
+  liveReload: boolean
   page: string
   route: string
   tailwind: boolean
 }
 
+type BuiltManifest = {
+  version: 1
+  dependencies: Record<string, string>
+  cdn: string
+  routes: Record<string, Project>
+  notFound?: Project
+}
+
 export type DevServerOptions = {
+  root?: string
+  host?: string
+  port?: number
+  cdn?: string
+}
+
+export type BuildOptions = {
+  root?: string
+  outDir?: string
+  cdn?: string
+}
+
+export type StartServerOptions = {
   root?: string
   host?: string
   port?: number
@@ -40,6 +66,33 @@ async function fileExists(path: string) {
   } catch {
     return false
   }
+}
+
+async function directoryExists(path: string) {
+  try {
+    return (await stat(path)).isDirectory()
+  } catch {
+    return false
+  }
+}
+
+async function existingDirectory(path: string): Promise<string> {
+  if (await directoryExists(path)) return realpath(path)
+  const parent = dirname(path)
+  if (parent === path) return path
+  return existingDirectory(parent)
+}
+
+async function runtimeRoot() {
+  const moduleRoot = fileURLToPath(new URL('.', import.meta.url))
+  return await fileExists(join(moduleRoot, 'index.js'))
+    ? moduleRoot
+    : resolve(moduleRoot, '../dist')
+}
+
+function normalizeRoute(route: string) {
+  const cleanRoute = route.replace(/^\/+|\/+$/g, '')
+  return cleanRoute ? `/${cleanRoute}` : '/'
 }
 
 async function findSourceFile(path: string) {
@@ -93,7 +146,7 @@ async function collectFiles(root: string, entry: string) {
 }
 
 function routeCandidates(route: string) {
-  const cleanRoute = route.replace(/^\/+|\/+$/g, '')
+  const cleanRoute = normalizeRoute(route).slice(1)
   const base = cleanRoute || 'index'
   const candidates = sourceExtensions.flatMap(extension => [
     `${base}${extension}`,
@@ -121,7 +174,23 @@ async function readPackage(root: string): Promise<PackageJson> {
   }
 }
 
-export async function loadProject(root: string, route: string): Promise<Project> {
+function packageDependencies(packageJson: PackageJson) {
+  return {
+    ...packageJson.devDependencies,
+    ...packageJson.dependencies,
+  }
+}
+
+function projectCdn(packageJson: PackageJson, override?: string) {
+  return normalizeCdnHost(override || packageJson.devjar?.cdn || CDN_HOST)
+}
+
+export async function loadProject(
+  root: string,
+  route: string,
+  options: { cdn?: string, liveReload?: boolean } = {},
+): Promise<Project> {
+  root = await realpath(root)
   const page = await resolvePage(root, route)
   if (!page) throw new Error(`No page found for /${route.replace(/^\/+/, '')}`)
   const packageJson = await readPackage(root)
@@ -137,37 +206,46 @@ export async function loadProject(root: string, route: string): Promise<Project>
     files[filename] = output.code
   }
 
-  const dependencies = {
-    ...packageJson.devDependencies,
-    ...packageJson.dependencies,
-  }
+  const dependencies = packageDependencies(packageJson)
 
   return {
     files,
     dependencies,
+    cdn: projectCdn(packageJson, options.cdn),
+    liveReload: options.liveReload ?? true,
     page: projectPath,
     route,
     tailwind: 'tailwindcss' in dependencies || '@tailwindcss/browser' in dependencies,
   }
 }
 
-function send(response: ServerResponse, status: number, type: string, body: string | Buffer) {
+function send(
+  request: IncomingMessage,
+  response: ServerResponse,
+  status: number,
+  type: string,
+  body: string | Buffer,
+) {
   response.writeHead(status, {
     'Content-Type': type,
     'Cache-Control': 'no-store',
   })
-  response.end(body)
+  response.end(request.method === 'HEAD' ? undefined : body)
 }
 
-function html(dependencies: Record<string, string>) {
-  const resolveModule = createEsmShResolver(dependencies)
+function html(dependencies: Record<string, string>, cdn: string) {
+  const resolveModule = createEsmShResolver(dependencies, cdn)
+  const resolveRuntimeModule = createEsmShResolver({
+    ...dependencies,
+    'es-module-lexer': '1.6.0',
+  }, cdn)
   const imports = {
     react: resolveModule('react'),
     'react-dom': resolveModule('react-dom'),
     'react/jsx-runtime': resolveModule('react/jsx-runtime'),
     'react/jsx-dev-runtime': resolveModule('react/jsx-dev-runtime'),
     'react-dom/client': resolveModule('react-dom/client'),
-    'es-module-lexer': `${CDN_HOST}/es-module-lexer@1.6.0`,
+    'es-module-lexer': resolveRuntimeModule('es-module-lexer'),
     devjar: '/__devjar/runtime.js',
   }
   return `<!doctype html>
@@ -203,7 +281,13 @@ const contentTypes: Record<string, string> = {
   '.woff2': 'font/woff2',
 }
 
-async function serveFile(response: ServerResponse, root: string, requestPath: string, allowed?: Set<string>) {
+async function serveFile(
+  request: IncomingMessage,
+  response: ServerResponse,
+  root: string,
+  requestPath: string,
+  allowed?: Set<string>,
+) {
   const path = resolve(root, `.${normalize('/' + requestPath)}`)
   if (!isInside(root, path) || (allowed && !allowed.has(extname(path)))) return false
   if (!(await fileExists(path))) return false
@@ -216,19 +300,17 @@ async function serveFile(response: ServerResponse, root: string, requestPath: st
     'Content-Length': info.size,
     'Cache-Control': 'no-store',
   })
-  createReadStream(canonicalPath).pipe(response)
+  if (request.method === 'HEAD') response.end()
+  else createReadStream(canonicalPath).pipe(response)
   return true
 }
 
 export async function startDevServer(options: DevServerOptions = {}) {
-  const root = resolve(options.root || process.cwd())
+  const root = await realpath(resolve(options.root || process.cwd()))
   const host = options.host || '127.0.0.1'
   const port = options.port ?? 3000
   const events = new Set<ServerResponse>()
-  const moduleRoot = fileURLToPath(new URL('.', import.meta.url))
-  const runtimeRoot = await fileExists(join(moduleRoot, 'index.js'))
-    ? moduleRoot
-    : resolve(moduleRoot, '../dist')
+  const assetsRoot = await runtimeRoot()
 
   if (!(await fileExists(join(root, 'pages/index.tsx')))
     && !(await fileExists(join(root, 'pages/index.ts')))
@@ -251,6 +333,10 @@ export async function startDevServer(options: DevServerOptions = {}) {
           'Cache-Control': 'no-cache',
           Connection: 'keep-alive',
         })
+        if (request.method === 'HEAD') {
+          response.end()
+          return
+        }
         response.write(': connected\n\n')
         events.add(response)
         request.on('close', () => events.delete(response))
@@ -259,38 +345,44 @@ export async function startDevServer(options: DevServerOptions = {}) {
       if (url.pathname === '/__devjar/project') {
         const route = url.searchParams.get('route') || '/'
         try {
-          const project = await loadProject(root, route)
-          send(response, 200, 'application/json; charset=utf-8', JSON.stringify(project))
+          const project = await loadProject(root, route, { cdn: options.cdn })
+          send(request, response, 200, 'application/json; charset=utf-8', JSON.stringify(project))
         } catch (error) {
-          send(response, 404, 'application/json; charset=utf-8', JSON.stringify({ error: error instanceof Error ? error.message : String(error) }))
+          send(request, response, 404, 'application/json; charset=utf-8', JSON.stringify({ error: error instanceof Error ? error.message : String(error) }))
         }
         return
       }
       if (url.pathname === '/__devjar/runtime.js') {
-        if (!await serveFile(response, runtimeRoot, 'index.js')) send(response, 500, 'text/plain', 'Devjar runtime is missing')
+        if (!await serveFile(request, response, assetsRoot, 'index.js')) send(request, response, 500, 'text/plain', 'Devjar runtime is missing')
         return
       }
       if (url.pathname.startsWith('/__devjar/')) {
-        if (!await serveFile(response, runtimeRoot, url.pathname.slice('/__devjar/'.length))) send(response, 404, 'text/plain', 'Not found')
+        if (!await serveFile(request, response, assetsRoot, url.pathname.slice('/__devjar/'.length))) send(request, response, 404, 'text/plain', 'Not found')
         return
       }
       if (url.pathname.startsWith('/api/')) {
-        if (!await serveFile(response, join(root, 'api'), url.pathname.slice('/api/'.length), new Set(['.json', '.txt']))) {
-          send(response, 404, 'text/plain; charset=utf-8', 'Not found')
+        if (!await serveFile(request, response, join(root, 'api'), url.pathname.slice('/api/'.length), new Set(['.json', '.txt']))) {
+          send(request, response, 404, 'text/plain; charset=utf-8', 'Not found')
         }
         return
       }
-      if (await serveFile(response, join(root, 'public'), url.pathname.slice(1))) return
+      if (await serveFile(request, response, join(root, 'public'), url.pathname.slice(1))) return
       const packageJson = await readPackage(root)
-      send(response, 200, 'text/html; charset=utf-8', html({ ...packageJson.devDependencies, ...packageJson.dependencies }))
+      send(
+        request,
+        response,
+        200,
+        'text/html; charset=utf-8',
+        html(packageDependencies(packageJson), projectCdn(packageJson, options.cdn)),
+      )
     } catch (error) {
-      send(response, 500, 'text/plain; charset=utf-8', error instanceof Error ? error.stack || error.message : String(error))
+      send(request, response, 500, 'text/plain; charset=utf-8', error instanceof Error ? error.stack || error.message : String(error))
     }
   })
 
   let timer: NodeJS.Timeout | undefined
   const watcher = watch(root, { recursive: true }, (_event, filename) => {
-    if (!filename || /(?:^|[/\\])(?:\.git|node_modules|dist)(?:[/\\]|$)/.test(filename)) return
+    if (!filename || /(?:^|[/\\])(?:\.git|\.devjar|node_modules|dist)(?:[/\\]|$)/.test(filename)) return
     clearTimeout(timer)
     timer = setTimeout(() => {
       for (const response of events) response.write('event: change\ndata: {}\n\n')
@@ -316,6 +408,185 @@ export async function startDevServer(options: DevServerOptions = {}) {
       for (const response of events) response.end()
       events.clear()
 
+      const forceClose = setTimeout(() => server.closeAllConnections(), 5_000)
+      forceClose.unref()
+      server.close(error => {
+        clearTimeout(forceClose)
+        if (error && (error as NodeJS.ErrnoException).code !== 'ERR_SERVER_NOT_RUNNING') reject(error)
+        else resolvePromise()
+      })
+      server.closeIdleConnections()
+    })
+    return closePromise
+  }
+
+  return {
+    host,
+    port: (server.address() as import('node:net').AddressInfo).port,
+    root,
+    close,
+  }
+}
+
+async function discoverRoutes(root: string) {
+  const pagesRoot = join(root, 'pages')
+  if (!await directoryExists(pagesRoot)) {
+    throw new Error(`Devjar expected a pages directory in ${root}`)
+  }
+
+  const files: string[] = []
+  const visit = async (directory: string) => {
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const path = join(directory, entry.name)
+      if (entry.isDirectory()) await visit(path)
+      else if (entry.isFile() && sourceExtensions.includes(extname(entry.name))) files.push(path)
+    }
+  }
+  await visit(pagesRoot)
+
+  const routes = new Map<string, string>()
+  let notFound: string | undefined
+  for (const path of files.sort()) {
+    let pagePath = relative(pagesRoot, path).split(sep).join('/')
+    pagePath = pagePath.slice(0, -extname(pagePath).length)
+    if (pagePath === '404') notFound = path
+    const route = normalizeRoute(pagePath.replace(/(?:^|\/)index$/, ''))
+    if (routes.has(route)) {
+      throw new Error(`Multiple pages resolve to ${route}: ${relative(root, routes.get(route)!)} and ${relative(root, path)}`)
+    }
+    routes.set(route, path)
+  }
+
+  if (!routes.has('/')) {
+    throw new Error(`Devjar expected an index page in ${pagesRoot}`)
+  }
+  return { routes, notFound }
+}
+
+async function copyApiFiles(source: string, destination: string) {
+  if (!await directoryExists(source)) return
+  for (const entry of await readdir(source, { withFileTypes: true })) {
+    const sourcePath = join(source, entry.name)
+    const destinationPath = join(destination, entry.name)
+    if (entry.isDirectory()) await copyApiFiles(sourcePath, destinationPath)
+    else if (entry.isFile() && (extname(entry.name) === '.json' || extname(entry.name) === '.txt')) {
+      await mkdir(dirname(destinationPath), { recursive: true })
+      await cp(sourcePath, destinationPath)
+    }
+  }
+}
+
+async function copyRuntimeAssets(destination: string) {
+  const source = await runtimeRoot()
+  await mkdir(destination, { recursive: true })
+  const assets = [
+    ['index.js', 'runtime.js'],
+    ['client.js', 'client.js'],
+    ['transform-worker.js', 'transform-worker.js'],
+    ['transform.wasi-browser.js', 'transform.wasi-browser.js'],
+    ['transform.wasm32-wasi.wasm', 'transform.wasm32-wasi.wasm'],
+    ['wasi-worker-browser.js', 'wasi-worker-browser.js'],
+  ] as const
+  for (const [sourceName, destinationName] of assets) {
+    const sourcePath = join(source, sourceName)
+    if (!await fileExists(sourcePath)) throw new Error(`Devjar runtime asset is missing: ${sourceName}`)
+    await cp(sourcePath, join(destination, destinationName))
+  }
+}
+
+export async function buildProject(options: BuildOptions = {}) {
+  const root = await realpath(resolve(options.root || process.cwd()))
+  const outDir = resolve(root, options.outDir || '.devjar')
+  const outputBoundary = await existingDirectory(outDir)
+  if (outDir === root || !isInside(root, outDir) || !isInside(root, outputBoundary)) {
+    throw new Error('The build output must be a directory inside the project root')
+  }
+
+  const packageJson = await readPackage(root)
+  const dependencies = packageDependencies(packageJson)
+  const cdn = projectCdn(packageJson, options.cdn)
+  const discovered = await discoverRoutes(root)
+  const routes: Record<string, Project> = {}
+  let notFound: Project | undefined
+
+  for (const route of discovered.routes.keys()) {
+    const project = await loadProject(root, route, { cdn, liveReload: false })
+    routes[route] = project
+    if (discovered.notFound && resolve(root, project.page) === discovered.notFound) notFound = project
+  }
+  if (discovered.notFound && !notFound) {
+    notFound = await loadProject(root, '/__devjar_not_found__', { cdn, liveReload: false })
+  }
+
+  const manifest: BuiltManifest = { version: 1, dependencies, cdn, routes, notFound }
+  await rm(outDir, { recursive: true, force: true })
+  await mkdir(outDir, { recursive: true })
+  await writeFile(join(outDir, 'manifest.json'), JSON.stringify(manifest))
+  await writeFile(join(outDir, 'index.html'), html(dependencies, cdn))
+  await copyRuntimeAssets(join(outDir, '__devjar'))
+  if (await directoryExists(join(root, 'public'))) {
+    await cp(join(root, 'public'), join(outDir, 'public'), { recursive: true })
+  }
+  await copyApiFiles(join(root, 'api'), join(outDir, 'api'))
+
+  return { root, outDir, routes: Object.keys(routes) }
+}
+
+export async function startBuiltServer(options: StartServerOptions = {}) {
+  const requestedRoot = resolve(options.root || join(process.cwd(), '.devjar'))
+  if (!await directoryExists(requestedRoot)) {
+    throw new Error(`Devjar build directory not found: ${requestedRoot}`)
+  }
+  const root = await realpath(requestedRoot)
+  const host = options.host || '127.0.0.1'
+  const port = options.port ?? 3000
+  const manifest = JSON.parse(await readFile(join(root, 'manifest.json'), 'utf8')) as BuiltManifest
+  if (manifest.version !== 1) throw new Error(`Unsupported Devjar build version: ${manifest.version}`)
+  const shell = await readFile(join(root, 'index.html'), 'utf8')
+
+  const server = createServer(async (request, response) => {
+    try {
+      const url = new URL(request.url || '/', `http://${request.headers.host || 'localhost'}`)
+      if (request.method !== 'GET' && request.method !== 'HEAD') {
+        response.writeHead(405, { Allow: 'GET, HEAD' })
+        response.end(request.method === 'HEAD' ? undefined : 'Method not allowed')
+        return
+      }
+      if (url.pathname === '/__devjar/project') {
+        const route = normalizeRoute(url.searchParams.get('route') || '/')
+        const project = manifest.routes[route] || manifest.notFound
+        if (project) send(request, response, 200, 'application/json; charset=utf-8', JSON.stringify(project))
+        else send(request, response, 404, 'application/json; charset=utf-8', JSON.stringify({ error: `No page found for ${route}` }))
+        return
+      }
+      if (url.pathname.startsWith('/__devjar/')) {
+        if (!await serveFile(request, response, join(root, '__devjar'), url.pathname.slice('/__devjar/'.length))) {
+          send(request, response, 404, 'text/plain; charset=utf-8', 'Not found')
+        }
+        return
+      }
+      if (url.pathname.startsWith('/api/')) {
+        if (!await serveFile(request, response, join(root, 'api'), url.pathname.slice('/api/'.length), new Set(['.json', '.txt']))) {
+          send(request, response, 404, 'text/plain; charset=utf-8', 'Not found')
+        }
+        return
+      }
+      if (await serveFile(request, response, join(root, 'public'), url.pathname.slice(1))) return
+      send(request, response, 200, 'text/html; charset=utf-8', shell)
+    } catch (error) {
+      send(request, response, 500, 'text/plain; charset=utf-8', error instanceof Error ? error.stack || error.message : String(error))
+    }
+  })
+
+  await new Promise<void>((resolvePromise, reject) => {
+    server.once('error', reject)
+    server.listen(port, host, resolvePromise)
+  })
+
+  let closePromise: Promise<void> | undefined
+  const close = () => {
+    if (closePromise) return closePromise
+    closePromise = new Promise<void>((resolvePromise, reject) => {
       const forceClose = setTimeout(() => server.closeAllConnections(), 5_000)
       forceClose.unref()
       server.close(error => {

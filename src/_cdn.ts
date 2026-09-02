@@ -11,16 +11,28 @@ function packageName(specifier: string) {
   return specifier.split('/')[0]
 }
 
-export function createEsmShResolver(dependencies: Record<string, string> = {}) {
+export function normalizeCdnHost(cdn = CDN_HOST) {
+  const url = new URL(cdn)
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    throw new Error(`Module CDN must use http or https: ${cdn}`)
+  }
+  return url.href.replace(/\/$/, '')
+}
+
+export function createEsmShResolver(
+  dependencies: Record<string, string> = {},
+  cdn = CDN_HOST,
+) {
+  const host = normalizeCdnHost(cdn)
   return (specifier: string) => {
     const name = packageName(specifier)
     const version = dependencies[name] || defaultVersions[name]
-    if (!version) return `${CDN_HOST}/${specifier}`
+    if (!version) return `${host}/${specifier}`
     if (/^(?:file:|link:|workspace:|git|https?:)/.test(version)) {
       throw new Error(`CDN dependencies cannot use ${name}@${version}`)
     }
     const subpath = specifier.slice(name.length)
     const dev = name === 'react' || name === 'react-dom' || name === 'react-refresh'
-    return `${CDN_HOST}/${name}@${encodeURIComponent(version)}${subpath}${dev ? '?dev' : ''}`
+    return `${host}/${name}@${encodeURIComponent(version)}${subpath}${dev ? '?dev' : ''}`
   }
 }

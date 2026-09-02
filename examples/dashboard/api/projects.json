@@ -1,0 +1,6 @@
+[
+  { "id": 1, "name": "Mobile refresh", "owner": "Mina", "progress": 72, "status": "On track" },
+  { "id": 2, "name": "Usage insights", "owner": "Noah", "progress": 46, "status": "At risk" },
+  { "id": 3, "name": "Team onboarding", "owner": "Iris", "progress": 88, "status": "On track" },
+  { "id": 4, "name": "Billing cleanup", "owner": "Theo", "progress": 31, "status": "Planning" }
+]

@@ -1,11 +1,14 @@
-import { afterAll, describe, expect, test } from 'bun:test'
-import { resolve } from 'node:path'
+import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
+import { cp, mkdtemp, readFile, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join, resolve } from 'node:path'
 import { init, parse } from 'es-module-lexer'
-import { loadProject, startDevServer } from '../src/cli'
+import { buildProject, loadProject, startBuiltServer, startDevServer } from '../src/cli'
 import { createEsmShResolver } from '../src/_cdn'
 import { replaceImports } from '../src/core'
 
 const root = resolve(import.meta.dir, '../examples/basic')
+const dashboardRoot = resolve(import.meta.dir, '../examples/dashboard')
 
 describe('project loading', () => {
   test('keeps parent-directory imports in the local module graph', async () => {
@@ -45,6 +48,24 @@ describe('project loading', () => {
     const project = await loadProject(root, '/about')
     expect(project.page).toBe('pages/about.tsx')
   })
+
+  test('uses a custom module CDN', async () => {
+    const project = await loadProject(root, '/', { cdn: 'https://modules.example.test/' })
+    expect(project.cdn).toBe('https://modules.example.test')
+    expect(createEsmShResolver(project.dependencies, project.cdn)('react')).toBe(
+      'https://modules.example.test/react@19.2.0?dev',
+    )
+  })
+
+  test('loads the hosted dashboard example and its 404 page', async () => {
+    const project = await loadProject(dashboardRoot, '/')
+    expect(project.dependencies['lucide-react']).toBe('0.542.0')
+    expect(project.files['./components/project-card.tsx']).toBeDefined()
+    expect(project.files['./lib/projects.ts']).toBeDefined()
+
+    const notFound = await loadProject(dashboardRoot, '/missing')
+    expect(notFound.page).toBe('pages/404.tsx')
+  })
 })
 
 describe('dev server', () => {
@@ -62,6 +83,7 @@ describe('dev server', () => {
     expect(shellSource).toContain('/__devjar/client.js')
     expect(shellSource).toContain('Devjar could not start')
     expect(shellSource).toContain(`Devjar could not start:\\n\\n`)
+    expect(await (await fetch(`${base}/about`, { method: 'HEAD' })).text()).toBe('')
     const bootstrap = shellSource.match(/<script>\n([\s\S]+)<\/script><script type="module"/)?.[1]
     expect(() => new Function(bootstrap || '')).not.toThrow()
 
@@ -71,9 +93,10 @@ describe('dev server', () => {
     await init
     expect(() => parse(client)).not.toThrow()
     expect(client).not.toContain('function dependencyUrl')
-    expect(client).toContain('dependencies: project.dependencies')
+    expect(client).toContain('createEsmShResolver(project.dependencies, project.cdn)')
     expect(client).toContain('transform: false')
     expect(client).toContain('tailwind: project.tailwind')
+    expect(client).toContain('project?.liveReload')
     expect(client).toContain('popstate')
     expect(client).toContain('history.pushState')
 
@@ -93,5 +116,60 @@ describe('dev server', () => {
 
     await server.close()
     await expect(server.close()).resolves.toBeUndefined()
+  })
+})
+
+describe('production build', () => {
+  let projectRoot = ''
+  let buildRoot = ''
+  let server: Awaited<ReturnType<typeof startBuiltServer>> | undefined
+
+  beforeAll(async () => {
+    projectRoot = await mkdtemp(join(tmpdir(), 'devjar-build-'))
+    await cp(dashboardRoot, projectRoot, { recursive: true })
+    const result = await buildProject({
+      root: projectRoot,
+      cdn: 'https://modules.example.test/',
+    })
+    buildRoot = result.outDir
+  })
+
+  afterAll(async () => {
+    await server?.close()
+    if (projectRoot) await rm(projectRoot, { recursive: true, force: true })
+  })
+
+  test('writes routes, runtime assets, public files, and static APIs', async () => {
+    const manifest = JSON.parse(await readFile(join(buildRoot, 'manifest.json'), 'utf8'))
+    expect(Object.keys(manifest.routes).sort()).toEqual(['/', '/404', '/projects', '/settings'])
+    expect(manifest.routes['/'].liveReload).toBe(false)
+    expect(manifest.cdn).toBe('https://modules.example.test')
+    expect(await readFile(join(buildRoot, '__devjar/client.js'), 'utf8')).toContain('__devjar/project')
+    expect(await readFile(join(buildRoot, 'api/projects.json'), 'utf8')).toContain('Mobile refresh')
+    expect(await readFile(join(buildRoot, 'public/mark.svg'), 'utf8')).toContain('<svg')
+  })
+
+  test('refuses to clean an output directory outside the project', async () => {
+    await expect(buildProject({ root: projectRoot, outDir: '../outside' })).rejects.toThrow(
+      'The build output must be a directory inside the project root',
+    )
+  })
+
+  test('serves prebuilt projects without development events', async () => {
+    server = await startBuiltServer({ root: buildRoot, port: 0 })
+    const base = `http://${server.host}:${server.port}`
+
+    const shell = await (await fetch(`${base}/projects`)).text()
+    expect(shell).toContain('https://modules.example.test/react@19.2.0?dev')
+    const project = await (await fetch(`${base}/__devjar/project?route=%2Fprojects`)).json()
+    expect(project.page).toBe('pages/projects.tsx')
+    expect(project.liveReload).toBe(false)
+    const notFound = await (await fetch(`${base}/__devjar/project?route=%2Fmissing`)).json()
+    expect(notFound.page).toBe('pages/404.tsx')
+    expect((await fetch(`${base}/__devjar/events`)).status).toBe(404)
+    expect(await (await fetch(`${base}/api/projects.json`)).json()).toHaveLength(4)
+    expect(await (await fetch(`${base}/mark.svg`)).text()).toContain('<svg')
+
+    await server.close()
   })
 })
