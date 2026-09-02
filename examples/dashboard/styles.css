@@ -1,0 +1,6 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+a { text-decoration: none; }
+input[type='checkbox'] { width: 2rem; height: 1.25rem; accent-color: #84cc16; }
+a:focus-visible { outline: 3px solid #65a30d; outline-offset: 3px; }
+::selection { background: #171717; color: #d9ff54; }

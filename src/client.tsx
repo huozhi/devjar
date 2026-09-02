@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { DevJar } from 'devjar'
+import { createEsmShResolver } from './_cdn'
 
 type Project = {
   files: Record<string, string>
   dependencies: Record<string, string>
+  cdn: string
+  liveReload: boolean
   page: string
   tailwind: boolean
 }
@@ -25,6 +28,10 @@ function App() {
   const [project, setProject] = useState<Project | null>(null)
   const [error, setError] = useState<unknown>(null)
   const previewRef = useRef<HTMLIFrameElement>(null)
+  const resolveModule = useMemo(
+    () => project ? createEsmShResolver(project.dependencies, project.cdn) : undefined,
+    [project?.cdn, project?.dependencies],
+  )
   const load = useCallback((route = location.pathname) => {
     getProject(route).then(value => {
       setProject(value)
@@ -34,25 +41,32 @@ function App() {
 
   useEffect(() => {
     load()
-    const events = new EventSource('/__devjar/events')
-    const reload = () => load(location.pathname)
     const navigateHistory = () => load(location.pathname)
-    events.addEventListener('change', reload)
     addEventListener('popstate', navigateHistory)
     return () => {
-      events.removeEventListener('change', reload)
-      events.close()
       removeEventListener('popstate', navigateHistory)
     }
   }, [load])
+
+  useEffect(() => {
+    if (!project?.liveReload) return
+    const events = new EventSource('/__devjar/events')
+    const reload = () => load(location.pathname)
+    events.addEventListener('change', reload)
+    return () => {
+      events.removeEventListener('change', reload)
+      events.close()
+    }
+  }, [load, project?.liveReload])
 
   useEffect(() => {
     const iframe = previewRef.current
     if (!iframe) return
     let previewDocument: Document | null = null
     const navigate = (event: MouseEvent) => {
-      const anchor = event.target instanceof Element
-        ? event.target.closest<HTMLAnchorElement>('a[href]')
+      const target = event.target as Element | null
+      const anchor = typeof target?.closest === 'function'
+        ? target.closest<HTMLAnchorElement>('a[href]')
         : null
       if (!anchor || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
       if ((anchor.target && anchor.target !== '_self') || anchor.hasAttribute('download')) return
@@ -86,7 +100,7 @@ function App() {
     <>
       <DevJar
         files={project.files}
-        dependencies={project.dependencies}
+        resolveModule={resolveModule}
         transform={false}
         tailwind={project.tailwind}
         onError={value => setError(value || null)}

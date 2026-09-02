@@ -32,3 +32,9 @@ jobs:
 
       - name: Build Site
         run: pnpm run build:site
+
+      - name: Test CLI
+        run: pnpm test
+
+      - name: Check Package
+        run: pnpm test:package

@@ -40,6 +40,9 @@ jobs:
       - name: Build Package
         run: pnpm run build
 
+      - name: Test Package
+        run: pnpm test && pnpm test:package
+
       - name: Determine npm tag
         id: npm-tag
         shell: bash

@@ -27,8 +27,11 @@ my-prototype/
 ```
 
 ```sh
-npx devjar
+npx devjar dev
 ```
+
+Running `devjar` without a command is an alias for `devjar dev`. The development
+server watches the project and updates the preview as files change.
 
 The pages directory maps directly to URLs:
 
@@ -61,8 +64,50 @@ not supported.
 The embedded browser runtime loads Tailwind automatically. For CLI projects,
 add `tailwindcss` or `@tailwindcss/browser` to `package.json` to enable it.
 
+Bare imports use esm.sh by default. An ESM-compatible CDN can be selected on the
+command line or stored in `package.json`:
+
 ```sh
-devjar [root] --host 127.0.0.1 --port 3000
+devjar dev --cdn https://modules.example.com
+```
+
+```json
+{
+  "devjar": {
+    "cdn": "https://modules.example.com"
+  }
+}
+```
+
+The CLI applies dependency versions to CDN URLs using the
+`package@version/subpath` convention.
+
+## Build and host
+
+Create a self-contained production build, then serve it without source-file
+watching or on-request transforms:
+
+```sh
+devjar build
+devjar start dist
+```
+
+The build contains the transformed route graph, runtime assets, public files,
+and static API data. Use `--out-dir <directory>` to change its location. The
+output directory must remain inside the project root.
+
+The repository includes two runnable examples:
+
+```sh
+devjar dev examples/basic
+devjar dev examples/dashboard
+```
+
+The dashboard demonstrates page navigation, shared components, a CDN-loaded
+icon package, Tailwind, static API data, and a public SVG asset.
+
+```sh
+devjar dev [root] --host localhost --port 3000
 ```
 
 ## Demo
