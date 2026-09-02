@@ -31,7 +31,7 @@ let esModuleLexerInit = false
 const isRelative = (specifier: string) => specifier.startsWith('./') || specifier.startsWith('../')
 const removeExtension = (str: string) => str.replace(/\.[^/.]+$/, '')
 const localImportPrefix = '__DEVJAR_LOCAL_IMPORT__'
-const defaultTailwindSrc = 'https://unpkg.com/@tailwindcss/browser@4'
+const tailwindSrc = 'https://unpkg.com/@tailwindcss/browser@4'
 
 function createLocalImportPlaceholder(moduleKey: string) {
   return `${localImportPrefix}${encodeURIComponent(moduleKey)}__`
@@ -310,13 +310,11 @@ function useLiveCode({
   resolveModule: customResolveModule,
   dependencies,
   transform = true,
-  tailwindSrc = defaultTailwindSrc,
   transformWorkerUrl,
 }: {
   resolveModule?: (specifier: string) => string
   dependencies?: Record<string, string>
   transform?: boolean
-  tailwindSrc?: string | false
   transformWorkerUrl?: string | URL
 }) {
   const resolveModule = useMemo(
@@ -379,29 +377,25 @@ function useLiveCode({
     const appScriptContent = createMainScript({ uid })
     
     const appScript = createScript(appScriptRef, { content: appScriptContent })
-    const tailwindScript = tailwindSrc
-      ? createScript(tailwindcssScriptRef, { src: tailwindSrc })
-      : null
+    const tailwindScript = createScript(tailwindcssScriptRef, { src: tailwindSrc })
 
     let resolveTailwind: (() => void) | undefined
-    tailwindReadyRef.current = tailwindScript
-      ? new Promise<void>((resolve) => {
-          const ready = () => resolve()
-          resolveTailwind = ready
-          tailwindScript.addEventListener('load', ready, { once: true })
-          tailwindScript.addEventListener('error', ready, { once: true })
-        })
-      : Promise.resolve()
+    tailwindReadyRef.current = new Promise<void>((resolve) => {
+      const ready = () => resolve()
+      resolveTailwind = ready
+      tailwindScript.addEventListener('load', ready, { once: true })
+      tailwindScript.addEventListener('error', ready, { once: true })
+    })
 
     body.appendChild(div)
-    if (tailwindScript) body.appendChild(tailwindScript)
+    body.appendChild(tailwindScript)
     body.appendChild(appScript)
     
     return () => {
       if (!iframe || !iframe.contentDocument) return
       body.removeChild(div)
       body.removeChild(appScript)
-      if (tailwindScript) body.removeChild(tailwindScript)
+      body.removeChild(tailwindScript)
       resolveTailwind?.()
     }
   }, [])

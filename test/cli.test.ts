@@ -32,6 +32,7 @@ describe('project loading', () => {
     expect(project.page).toBe('pages/index.tsx')
     expect(Object.keys(project.files).sort()).toEqual([
       './components/card.tsx',
+      './components/shell.tsx',
       './pages/index.tsx',
       './styles.css',
       'index.tsx',
@@ -72,7 +73,6 @@ describe('dev server', () => {
     expect(client).not.toContain('function dependencyUrl')
     expect(client).toContain('dependencies: project.dependencies')
     expect(client).toContain('transform: false')
-    expect(client).toContain('tailwindSrc: project.tailwindSrc')
     expect(client).toContain('popstate')
     expect(client).toContain('history.pushState')
 

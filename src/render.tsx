@@ -11,7 +11,6 @@ export function DevJar({
   dependencies,
   transform,
   onError = defaultOnError,
-  tailwindSrc,
   transformWorkerUrl,
   ref: forwardedRef,
   ...props
@@ -21,12 +20,11 @@ export function DevJar({
   dependencies?: Record<string, string>
   transform?: boolean
   onError?: (error: unknown) => void
-  tailwindSrc?: string | false
   transformWorkerUrl?: string | URL
   ref?: React.Ref<HTMLIFrameElement>
 } & React.IframeHTMLAttributes<HTMLIFrameElement>) {
   const onErrorRef = useRef(onError)
-  const { ref, error, load } = useLiveCode({ resolveModule, dependencies, transform, tailwindSrc, transformWorkerUrl })
+  const { ref, error, load } = useLiveCode({ resolveModule, dependencies, transform, transformWorkerUrl })
 
   useImperativeHandle(forwardedRef, () => ref.current!, [ref])
 

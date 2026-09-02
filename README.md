@@ -58,16 +58,7 @@ Files below `public/` are served from `/`. JSON and text files below `api/`
 are available at their corresponding `/api/` URLs. Executable API routes are
 not supported.
 
-Tailwind CSS v4 utilities are enabled through the Tailwind browser script by
-default. Disable it or provide another browser-build URL in `package.json`:
-
-```json
-{
-  "devjar": {
-    "tailwind": false
-  }
-}
-```
+Tailwind CSS v4 utilities are available automatically in every CLI prototype.
 
 ```sh
 devjar [root] --host 127.0.0.1 --port 3000
@@ -124,7 +115,6 @@ pnpm add devjar
 * `dependencies`: Optional package name/version map. Packages load from esm.sh.
 * `resolveModule`: Optional override that maps module specifiers to browser-loadable module URLs.
 * `onError`: Callback function of error event from the iframe sandbox. By default `console.log`.
-* `tailwindSrc`: Optional Tailwind browser script URL. Pass `false` to disable Tailwind injection.
 * `transformWorkerUrl`: Optional custom URL for the packaged transform worker.
 
 **Example**
@@ -158,7 +148,6 @@ A hook that provides lower-level control over the live code execution environmen
 
 * `options`
   * `resolveModule(specifier)`: A function that receives a module specifier and returns the browser-loadable URL. For example, import React from 'react' will load React from skypack.dev/react.
-  * `tailwindSrc`: Optional Tailwind browser script URL. Pass `false` to disable Tailwind injection.
   * `transformWorkerUrl`: Optional custom URL for the packaged transform worker.
 
 **Returns**

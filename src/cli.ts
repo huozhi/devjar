@@ -13,9 +13,6 @@ const localExtensions = [...sourceExtensions, '.css']
 type PackageJson = {
   dependencies?: Record<string, string>
   devDependencies?: Record<string, string>
-  devjar?: {
-    tailwind?: boolean | string
-  }
 }
 
 type Project = {
@@ -23,7 +20,6 @@ type Project = {
   dependencies: Record<string, string>
   page: string
   route: string
-  tailwindSrc?: string | false
 }
 
 export type DevServerOptions = {
@@ -148,11 +144,6 @@ export async function loadProject(root: string, route: string): Promise<Project>
     },
     page: projectPath,
     route,
-    tailwindSrc: packageJson.devjar?.tailwind === false
-      ? false
-      : typeof packageJson.devjar?.tailwind === 'string'
-        ? packageJson.devjar.tailwind
-        : undefined,
   }
 }
 

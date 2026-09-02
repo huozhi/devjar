@@ -39,7 +39,6 @@ Props:
 - `dependencies?: Record<string, string>`: package versions loaded from esm.sh when no custom resolver is supplied.
 - `resolveModule?: (specifier: string) => string`: overrides the default CDN resolver for bare imports.
 - `onError?: (...data: any[]) => void`: receives runtime or transform errors.
-- `tailwindSrc?: string | false`: Tailwind browser script URL injected into the iframe. Defaults to `https://unpkg.com/@tailwindcss/browser@4`; pass `false` to disable it.
 
 File keys can include relative modules and CSS:
 
@@ -78,7 +77,6 @@ Options:
 
 - `dependencies?: Record<string, string>`: package versions loaded from esm.sh.
 - `resolveModule?: (specifier: string) => string`: overrides the default CDN resolver.
-- `tailwindSrc?: string | false`: Tailwind browser script URL injected into the iframe. Defaults to `https://unpkg.com/@tailwindcss/browser@4`; pass `false` to disable it.
 
 Returns:
 

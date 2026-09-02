@@ -1,6 +1,7 @@
 {
   "private": true,
   "dependencies": {
+    "lucide-react": "0.542.0",
     "react": "19.2.0",
     "react-dom": "19.2.0"
   }
