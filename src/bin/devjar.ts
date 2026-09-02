@@ -37,9 +37,17 @@ const server = await startDevServer({ root, host, port })
 console.log(`Devjar serving ${server.root}`)
 console.log(`http://${server.host}:${server.port}`)
 
-async function close() {
-  await server.close()
-  process.exit(0)
+let shuttingDown = false
+async function close(signal: string) {
+  if (shuttingDown) return
+  shuttingDown = true
+  console.log(`\n${signal} received, shutting down…`)
+  try {
+    await server.close()
+  } catch (error) {
+    console.error(error)
+    process.exitCode = 1
+  }
 }
-process.once('SIGINT', close)
-process.once('SIGTERM', close)
+process.once('SIGINT', () => void close('SIGINT'))
+process.once('SIGTERM', () => void close('SIGTERM'))

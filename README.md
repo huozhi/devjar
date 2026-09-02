@@ -58,6 +58,17 @@ Files below `public/` are served from `/`. JSON and text files below `api/`
 are available at their corresponding `/api/` URLs. Executable API routes are
 not supported.
 
+Tailwind CSS v4 utilities are enabled through the Tailwind browser script by
+default. Disable it or provide another browser-build URL in `package.json`:
+
+```json
+{
+  "devjar": {
+    "tailwind": false
+  }
+}
+```
+
 ```sh
 devjar [root] --host 127.0.0.1 --port 3000
 ```

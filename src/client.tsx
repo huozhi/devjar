@@ -6,6 +6,7 @@ type Project = {
   files: Record<string, string>
   dependencies: Record<string, string>
   page: string
+  tailwindSrc?: string | false
 }
 
 async function getProject(route: string): Promise<Project> {
@@ -86,6 +87,7 @@ function App() {
       <DevJar
         files={project.files}
         dependencies={project.dependencies}
+        tailwindSrc={project.tailwindSrc}
         transform={false}
         onError={value => setError(value || null)}
         title={project.page}

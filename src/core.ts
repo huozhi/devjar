@@ -328,6 +328,7 @@ function useLiveCode({
   const rerender = useState({})[1]
   const appScriptRef = useScript()
   const tailwindcssScriptRef = useScript()
+  const tailwindReadyRef = useRef<Promise<void>>(Promise.resolve())
   const transformWorkerRef = useRef<Worker | undefined>(undefined)
   const transformCacheRef = useRef(new Map<string, { source: string, code: string }>())
   const transformRequestsRef = useRef(new Map<number, {
@@ -382,15 +383,26 @@ function useLiveCode({
       ? createScript(tailwindcssScriptRef, { src: tailwindSrc })
       : null
 
+    let resolveTailwind: (() => void) | undefined
+    tailwindReadyRef.current = tailwindScript
+      ? new Promise<void>((resolve) => {
+          const ready = () => resolve()
+          resolveTailwind = ready
+          tailwindScript.addEventListener('load', ready, { once: true })
+          tailwindScript.addEventListener('error', ready, { once: true })
+        })
+      : Promise.resolve()
+
     body.appendChild(div)
-    body.appendChild(appScript)
     if (tailwindScript) body.appendChild(tailwindScript)
+    body.appendChild(appScript)
     
     return () => {
       if (!iframe || !iframe.contentDocument) return
       body.removeChild(div)
       body.removeChild(appScript)
       if (tailwindScript) body.removeChild(tailwindScript)
+      resolveTailwind?.()
     }
   }, [])
 
@@ -500,6 +512,7 @@ function useLiveCode({
           const contentWindow = iframe.contentWindow
           if (!contentWindow) throw new Error('devjar: iframe window is unavailable')
           const renderFiles = async () => {
+            await tailwindReadyRef.current
             const render = contentWindow.__render__
             if (!render) throw new Error('devjar: renderer was not initialized')
             await render(transformedFiles, dependencies)

@@ -72,6 +72,7 @@ describe('dev server', () => {
     expect(client).not.toContain('function dependencyUrl')
     expect(client).toContain('dependencies: project.dependencies')
     expect(client).toContain('transform: false')
+    expect(client).toContain('tailwindSrc: project.tailwindSrc')
     expect(client).toContain('popstate')
     expect(client).toContain('history.pushState')
 
@@ -88,5 +89,8 @@ describe('dev server', () => {
     expect(worker.headers.get('content-type')).toContain('text/javascript')
     const wasm = await fetch(`${base}/__devjar/transform.wasm32-wasi.wasm`)
     expect(wasm.headers.get('content-type')).toBe('application/wasm')
+
+    await server.close()
+    await expect(server.close()).resolves.toBeUndefined()
   })
 })

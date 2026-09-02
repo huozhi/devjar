@@ -13,6 +13,9 @@ const localExtensions = [...sourceExtensions, '.css']
 type PackageJson = {
   dependencies?: Record<string, string>
   devDependencies?: Record<string, string>
+  devjar?: {
+    tailwind?: boolean | string
+  }
 }
 
 type Project = {
@@ -20,6 +23,7 @@ type Project = {
   dependencies: Record<string, string>
   page: string
   route: string
+  tailwindSrc?: string | false
 }
 
 export type DevServerOptions = {
@@ -144,6 +148,11 @@ export async function loadProject(root: string, route: string): Promise<Project>
     },
     page: projectPath,
     route,
+    tailwindSrc: packageJson.devjar?.tailwind === false
+      ? false
+      : typeof packageJson.devjar?.tailwind === 'string'
+        ? packageJson.devjar.tailwind
+        : undefined,
   }
 }
 
@@ -293,20 +302,41 @@ export async function startDevServer(options: DevServerOptions = {}) {
     }, 40)
   })
 
-  await new Promise<void>((resolvePromise, reject) => {
-    server.once('error', reject)
-    server.listen(port, host, resolvePromise)
-  })
+  try {
+    await new Promise<void>((resolvePromise, reject) => {
+      server.once('error', reject)
+      server.listen(port, host, resolvePromise)
+    })
+  } catch (error) {
+    watcher.close()
+    throw error
+  }
+
+  let closePromise: Promise<void> | undefined
+  const close = () => {
+    if (closePromise) return closePromise
+    closePromise = new Promise<void>((resolvePromise, reject) => {
+      clearTimeout(timer)
+      watcher.close()
+      for (const response of events) response.end()
+      events.clear()
+
+      const forceClose = setTimeout(() => server.closeAllConnections(), 5_000)
+      forceClose.unref()
+      server.close(error => {
+        clearTimeout(forceClose)
+        if (error && (error as NodeJS.ErrnoException).code !== 'ERR_SERVER_NOT_RUNNING') reject(error)
+        else resolvePromise()
+      })
+      server.closeIdleConnections()
+    })
+    return closePromise
+  }
 
   return {
     host,
     port: (server.address() as import('node:net').AddressInfo).port,
     root,
-    close: async () => {
-      clearTimeout(timer)
-      watcher.close()
-      for (const response of events) response.end()
-      await new Promise<void>((resolvePromise, reject) => server.close(error => error ? reject(error) : resolvePromise()))
-    },
+    close,
   }
 }
