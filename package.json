@@ -1,6 +1,25 @@
 {
   "name": "devjar",
   "version": "0.11.0",
+  "description": "Zero-config React static site builder.",
+  "keywords": [
+    "react",
+    "static-site-generator",
+    "ssg",
+    "prototype",
+    "playground",
+    "code-editor"
+  ],
+  "homepage": "https://github.com/huozhi/devjar#readme",
+  "bugs": {
+    "url": "https://github.com/huozhi/devjar/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/huozhi/devjar.git"
+  },
+  "license": "MIT",
+  "author": "huozhi",
   "type": "module",
   "exports": {
     ".": {
@@ -11,14 +30,13 @@
   "bin": {
     "jar": "./dist/bin.js"
   },
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/huozhi/devjar"
-  },
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "pnpm run build:lib && pnpm run build:client && pnpm run build:cli-assets && pnpm run build:worker",

@@ -12,6 +12,19 @@ if (packageJson.bin?.jar !== './dist/bin.js') {
 if (packageJson.engines?.node !== '>=22') {
   throw new Error('package.json must require Node.js 22 or newer')
 }
+if (typeof packageJson.description !== 'string' || packageJson.description.length === 0) {
+  throw new Error('package.json must describe Devjar for npm')
+}
+if (!Array.isArray(packageJson.keywords) || packageJson.keywords.length === 0) {
+  throw new Error('package.json must include npm keywords')
+}
+if (packageJson.homepage !== 'https://github.com/huozhi/devjar#readme'
+  || packageJson.bugs?.url !== 'https://github.com/huozhi/devjar/issues') {
+  throw new Error('package.json must link to the Devjar repository and issue tracker')
+}
+if (packageJson.publishConfig?.access !== 'public' || packageJson.publishConfig?.provenance !== true) {
+  throw new Error('package.json must publish publicly with provenance')
+}
 
 const cache = mkdtempSync(join(tmpdir(), 'devjar-npm-cache-'))
 const env = Object.fromEntries(
