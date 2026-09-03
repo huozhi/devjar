@@ -129,13 +129,14 @@ describe('project loading', () => {
     expect(compiled.code).toContain('https://modules.example.test/react@19.2.0/jsx-dev-runtime?dev')
   })
 
-  test('ignores package configuration outside dependency versions', async () => {
+  test('uses project dependencies for the app and Devjar dependencies for its runtime', async () => {
     const projectRoot = await mkdtemp(join(tmpdir(), 'devjar-zero-config-'))
     try {
       await cp(root, projectRoot, { recursive: true })
       const packageJsonPath = join(projectRoot, 'package.json')
       const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8'))
       packageJson.devjar = { cdn: 'https://modules.example.test/' }
+      packageJson.dependencies['es-module-lexer'] = '9.9.9'
       await writeFile(packageJsonPath, JSON.stringify(packageJson))
 
       const result = await buildProject({
@@ -146,8 +147,15 @@ describe('project loading', () => {
       })
       const manifest = JSON.parse(await readFile(join(result.outDir, 'manifest.json'), 'utf8'))
       const entry = await readFile(join(result.outDir, manifest.routes['/'].module), 'utf8')
+      const document = await readFile(join(result.outDir, 'index.html'), 'utf8')
+      const devjarPackage = JSON.parse(
+        await readFile(resolve(import.meta.dir, '../package.json'), 'utf8'),
+      )
+      const lexerVersion = encodeURIComponent(devjarPackage.dependencies['es-module-lexer'])
       expect(entry).toContain('https://esm.sh/react@19.2.0/jsx-dev-runtime?dev')
       expect(entry).not.toContain('modules.example.test')
+      expect(document).toContain(`https://esm.sh/es-module-lexer@${lexerVersion}`)
+      expect(document).not.toContain('es-module-lexer@9.9.9')
     } finally {
       await rm(projectRoot, { recursive: true, force: true })
     }

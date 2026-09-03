@@ -98,6 +98,15 @@ function packageDependencies(packageJson: PackageJson) {
   }
 }
 
+async function readDevjarDependencies(assetsRoot: string) {
+  const packageJson = await readPackage(dirname(assetsRoot))
+  const esModuleLexer = packageJson.dependencies?.['es-module-lexer']
+  if (!esModuleLexer) {
+    throw new Error('Devjar is missing its es-module-lexer dependency')
+  }
+  return { 'es-module-lexer': esModuleLexer }
+}
+
 function resolveCdn(override: string | undefined) {
   return normalizeCdnHost(override || CDN_HOST)
 }
@@ -145,6 +154,7 @@ function send(
 
 type HtmlOptions = {
   dependencies: Record<string, string>
+  devjarDependencies: Record<string, string>
   cdn: string
   liveReload: boolean
   content: string
@@ -155,7 +165,7 @@ function html(options: HtmlOptions) {
   const resolveModule = createEsmShResolver(options.dependencies, options.cdn)
   const resolveRuntimeModule = createEsmShResolver({
     ...options.dependencies,
-    'es-module-lexer': '1.6.0',
+    ...options.devjarDependencies,
   }, options.cdn)
   const imports = {
     react: resolveModule('react'),
@@ -251,6 +261,7 @@ export async function startDevServer(options: DevServerOptions) {
   const port = options.port
   const events = new Set<ServerResponse>()
   const assetsRoot = await runtimeRoot()
+  const devjarDependencies = await readDevjarDependencies(assetsRoot)
   const modules = new DevModuleGraph()
   let revision = 0
 
@@ -348,6 +359,7 @@ export async function startDevServer(options: DevServerOptions) {
         html(
           {
             dependencies: packageDependencies(packageJson),
+            devjarDependencies,
             cdn: resolveCdn(options.cdn),
             liveReload: true,
             content: '',
@@ -523,12 +535,13 @@ async function writeRouteHtml(
   outDir: string,
   route: string,
   rendered: PrerenderedRoute,
-  options: Pick<HtmlOptions, 'dependencies' | 'cdn'>,
+  options: Pick<HtmlOptions, 'dependencies' | 'devjarDependencies' | 'cdn'>,
 ) {
   const outputPath = routeHtmlPath(outDir, route)
   await mkdir(dirname(outputPath), { recursive: true })
   const document = html({
     dependencies: options.dependencies,
+    devjarDependencies: options.devjarDependencies,
     cdn: options.cdn,
     liveReload: false,
     content: rendered.markup,
@@ -548,6 +561,8 @@ export async function buildProject(options: BuildOptions) {
 
   const packageJson = await readPackage(root)
   const dependencies = packageDependencies(packageJson)
+  const runtime = await runtimeRoot()
+  const devjarDependencies = await readDevjarDependencies(runtime)
   const cdn = resolveCdn(options.cdn)
   const discovered = await discoverRoutes(root)
   const manifest = await loadRouteManifest(root, {
@@ -560,8 +575,9 @@ export async function buildProject(options: BuildOptions) {
         root,
         routes: discovered.routes,
         dependencies,
+        devjarDependencies,
         cdn,
-        runtimeModulePath: join(await runtimeRoot(), 'index.js'),
+        runtimeModulePath: join(runtime, 'index.js'),
       })
     : Object.fromEntries([...discovered.routes.keys()].map(route => (
         [route, { markup: '', styles: '' }]
@@ -577,7 +593,11 @@ export async function buildProject(options: BuildOptions) {
   await copyPublicFiles(join(root, 'public'), outDir)
   await writeFile(join(outDir, 'manifest.json'), JSON.stringify(manifest))
   for (const route of Object.keys(manifest.routes)) {
-    await writeRouteHtml(outDir, route, renderedRoutes[route], { dependencies, cdn })
+    await writeRouteHtml(outDir, route, renderedRoutes[route], {
+      dependencies,
+      devjarDependencies,
+      cdn,
+    })
   }
   await copyRuntimeAssets(join(outDir, '__devjar'))
   const modulesRoot = join(outDir, '__devjar/modules')
