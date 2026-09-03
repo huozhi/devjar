@@ -10,6 +10,12 @@ describe('Vercel deployment', () => {
     expect(config.outputDirectory).toBe('examples/website/dist')
     expect(config.headers).toEqual([
       {
+        source: '/_jar/assets/(.*)',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
+      {
         source: '/(.*)',
         headers: [
           { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },

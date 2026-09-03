@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdtempSync, rmSync } from 'node:fs'
+import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -24,17 +24,20 @@ rmSync(cache, { recursive: true, force: true })
 if (result.exitCode !== 0) process.exit(result.exitCode)
 const pack = JSON.parse(result.stdout.toString())[0]
 const files = new Set<string>(pack.files.map((file: { path: string }) => file.path))
+const transformAssets = JSON.parse(
+  readFileSync(join(root, 'dist/transform-assets.json'), 'utf8'),
+) as Record<string, string>
 const required = [
   'dist/bin.js',
   'dist/client.js',
   'dist/http-loader.mjs',
   'dist/index.js',
   'dist/prerender-runner.mjs',
-  'dist/transform-worker.js',
-  'dist/transform.wasm32-wasi.wasm',
+  'dist/transform-assets.json',
+  ...Object.values(transformAssets).map(file => `dist/${file}`),
 ]
 const missing = required.filter(file => !files.has(file))
-const hasRuntimeChunk = [...files].some(file => /^dist\/.+-[a-z0-9]+\.js$/.test(file))
+const hasRuntimeChunk = [...files].some(file => /^dist\/[^/]+-[a-z0-9]+\.js$/.test(file))
 
 if (missing.length || !hasRuntimeChunk) {
   if (!hasRuntimeChunk) missing.push('dist/<runtime>-<hash>.js')

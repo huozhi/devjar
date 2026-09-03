@@ -32,12 +32,19 @@ type TransformWorkerResponse = {
   transformed?: never
   error: { message: string, stack?: string }
 }
+type TransformAssetManifest = {
+  worker: string
+  binding: string
+  wasm: string
+  wasiWorker: string
+}
 
 let esModuleLexerInit = false
 const isRelative = (specifier: string) => specifier.startsWith('./') || specifier.startsWith('../')
 const localImportPrefix = '__DEVJAR_LOCAL_IMPORT__'
 const tailwindSrc = 'https://unpkg.com/@tailwindcss/browser@4'
 const localExtensions = [...sourceExtensions, '.css']
+let transformAssetManifestPromise: Promise<TransformAssetManifest> | undefined
 
 function createLocalImportPlaceholder(moduleKey: string) {
   return `${localImportPrefix}${encodeURIComponent(moduleKey)}__`
@@ -57,22 +64,49 @@ function normalizeProjectPath(filename: string) {
   return parts.join('/')
 }
 
-function createTransformWorker(transformWorkerUrl?: string | URL) {
+function isTransformAssetManifest(value: unknown): value is TransformAssetManifest {
+  if (typeof value !== 'object' || value === null) return false
+  const manifest = value as Record<string, unknown>
+  return ['worker', 'binding', 'wasm', 'wasiWorker']
+    .every(name => typeof manifest[name] === 'string')
+}
+
+async function loadTransformAssetManifest() {
+  if (!transformAssetManifestPromise) {
+    transformAssetManifestPromise = (async () => {
+      const url = new URL('./transform-assets.json', import.meta.url)
+      const response = await fetch(url)
+      if (!response.ok) {
+        throw new Error(`devjar: Failed to load transform assets: ${response.status} ${response.statusText}`)
+      }
+      const manifest: unknown = await response.json()
+      if (!isTransformAssetManifest(manifest)) {
+        throw new Error('devjar: Invalid transform asset manifest')
+      }
+      return manifest
+    })()
+  }
+  return transformAssetManifestPromise
+}
+
+async function createTransformWorker(transformWorkerUrl?: string | URL) {
+  const manifestUrl = new URL('./transform-assets.json', import.meta.url)
+  const assets = await loadTransformAssetManifest()
   const workerUrl = new URL(
-    transformWorkerUrl ?? new URL('./transform-worker.js', import.meta.url),
+    transformWorkerUrl ?? new URL(assets.worker, manifestUrl),
     globalThis.location.href,
   )
   workerUrl.searchParams.set(
     'binding',
-    new URL('./transform.wasi-browser.js', import.meta.url).href,
+    new URL(assets.binding, manifestUrl).href,
   )
   workerUrl.searchParams.set(
     'wasm',
-    new URL('./transform.wasm32-wasi.wasm', import.meta.url).href,
+    new URL(assets.wasm, manifestUrl).href,
   )
   workerUrl.searchParams.set(
     'wasiWorker',
-    new URL('./wasi-worker-browser.js', import.meta.url).href,
+    new URL(assets.wasiWorker, manifestUrl).href,
   )
 
   return new Worker(workerUrl, {
@@ -542,6 +576,7 @@ function useLiveCode({
   const tailwindcssScriptRef = useScript()
   const tailwindReadyRef = useRef<Promise<void>>(Promise.resolve())
   const transformWorkerRef = useRef<Worker | undefined>(undefined)
+  const transformWorkerPromiseRef = useRef<Promise<Worker> | undefined>(undefined)
   const transformCacheRef = useRef(new Map<string, { source: string, code: string }>())
   const transformRequestsRef = useRef(new Map<number, {
     resolve: (value: Record<string, string>) => void
@@ -571,8 +606,12 @@ function useLiveCode({
   useEffect(() => {
     return () => {
       loadIdRef.current++
+      const worker = transformWorkerRef.current
+      const workerPromise = transformWorkerPromiseRef.current
+      transformWorkerPromiseRef.current = undefined
       transformWorkerRef.current?.terminate()
       transformWorkerRef.current = undefined
+      if (!worker) void workerPromise?.then(pendingWorker => pendingWorker.terminate(), () => {})
       for (const { reject } of transformRequestsRef.current.values()) {
         reject(new Error('devjar: transform worker was terminated'))
       }
@@ -619,9 +658,29 @@ function useLiveCode({
     }
   }, [])
 
-  const transformFiles = useCallback((files: Record<string, string>) => {
+  const transformFiles = useCallback(async (files: Record<string, string>) => {
+    let workerPromise = transformWorkerPromiseRef.current
+    if (!workerPromise) {
+      workerPromise = createTransformWorker(transformWorkerUrl)
+      transformWorkerPromiseRef.current = workerPromise
+    }
+
+    let worker: Worker
+    try {
+      worker = await workerPromise
+    } catch (error) {
+      if (transformWorkerPromiseRef.current === workerPromise) {
+        transformWorkerPromiseRef.current = undefined
+      }
+      throw error
+    }
+
+    if (transformWorkerPromiseRef.current !== workerPromise) {
+      worker.terminate()
+      throw new Error('devjar: transform worker was terminated')
+    }
+
     if (!transformWorkerRef.current) {
-      const worker = createTransformWorker(transformWorkerUrl)
       worker.onmessage = ({ data }: MessageEvent<TransformWorkerResponse>) => {
         const request = transformRequestsRef.current.get(data.id)
         if (!request) return
@@ -643,7 +702,6 @@ function useLiveCode({
     }
 
     const id = ++transformRequestIdRef.current
-    const worker = transformWorkerRef.current!
     return new Promise<Record<string, string>>((resolve, reject) => {
       transformRequestsRef.current.set(id, { resolve, reject })
       worker.postMessage({

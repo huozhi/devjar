@@ -142,6 +142,8 @@ const isolationHeaders = {
   'Cross-Origin-Opener-Policy': 'same-origin',
   'Cross-Origin-Embedder-Policy': 'credentialless',
 }
+const noStore = 'no-store'
+const immutableAsset = 'public, max-age=31536000, immutable'
 
 function send(
   request: IncomingMessage,
@@ -152,7 +154,7 @@ function send(
 ) {
   response.writeHead(status, {
     'Content-Type': type,
-    'Cache-Control': 'no-store',
+    'Cache-Control': noStore,
     ...isolationHeaders,
   })
   response.end(request.method === 'HEAD' ? undefined : body)
@@ -247,6 +249,7 @@ async function serveFile(
   root: string,
   requestPath: string,
   allowed: Set<string> | undefined,
+  cacheControl: string,
 ) {
   const path = resolve(root, `.${normalize('/' + requestPath)}`)
   if (!isInside(root, path) || (allowed && !allowed.has(extname(path)))) return false
@@ -258,7 +261,7 @@ async function serveFile(
   response.writeHead(200, {
     'Content-Type': contentTypes[extname(path)] || 'application/octet-stream',
     'Content-Length': info.size,
-    'Cache-Control': 'no-store',
+    'Cache-Control': cacheControl,
     ...isolationHeaders,
   })
   if (request.method === 'HEAD') response.end()
@@ -347,20 +350,21 @@ export async function startDevServer(options: DevServerOptions) {
         return
       }
       if (url.pathname === '/_jar/runtime.js') {
-        if (!await serveFile(request, response, assetsRoot, 'index.js', undefined)) send(request, response, 500, 'text/plain', 'Devjar runtime is missing')
+        if (!await serveFile(request, response, assetsRoot, 'index.js', undefined, noStore)) send(request, response, 500, 'text/plain', 'Devjar runtime is missing')
         return
       }
       if (url.pathname.startsWith('/_jar/')) {
-        if (!await serveFile(request, response, assetsRoot, url.pathname.slice('/_jar/'.length), undefined)) send(request, response, 404, 'text/plain', 'Not found')
+        const cacheControl = url.pathname.startsWith('/_jar/assets/') ? immutableAsset : noStore
+        if (!await serveFile(request, response, assetsRoot, url.pathname.slice('/_jar/'.length), undefined, cacheControl)) send(request, response, 404, 'text/plain', 'Not found')
         return
       }
       if (url.pathname.startsWith('/api/')) {
-        if (!await serveFile(request, response, join(root, 'api'), url.pathname.slice('/api/'.length), new Set(['.json', '.txt']))) {
+        if (!await serveFile(request, response, join(root, 'api'), url.pathname.slice('/api/'.length), new Set(['.json', '.txt']), noStore)) {
           send(request, response, 404, 'text/plain; charset=utf-8', 'Not found')
         }
         return
       }
-      if (await serveFile(request, response, join(root, 'public'), url.pathname.slice(1), undefined)) return
+      if (await serveFile(request, response, join(root, 'public'), url.pathname.slice(1), undefined, noStore)) return
       const packageJson = await readPackage(root)
       send(
         request,
@@ -513,16 +517,36 @@ async function copyPublicFiles(source: string, destination: string) {
   }
 }
 
+type TransformAssetManifest = {
+  worker: string
+  binding: string
+  wasm: string
+  wasiWorker: string
+}
+
+async function readTransformAssetManifest(source: string): Promise<TransformAssetManifest> {
+  const manifest: unknown = JSON.parse(await readFile(join(source, 'transform-assets.json'), 'utf8'))
+  if (typeof manifest !== 'object' || manifest === null) {
+    throw new Error('Devjar transform asset manifest is invalid')
+  }
+  const value = manifest as Record<string, unknown>
+  const names = ['worker', 'binding', 'wasm', 'wasiWorker'] as const
+  const assetPath = /^assets\/[a-z0-9.-]+-[a-z0-9]+\.(?:js|wasm)$/
+  if (!names.every(name => typeof value[name] === 'string' && assetPath.test(value[name]))) {
+    throw new Error('Devjar transform asset manifest is invalid')
+  }
+  return Object.fromEntries(names.map(name => [name, value[name]])) as TransformAssetManifest
+}
+
 async function copyRuntimeAssets(destination: string) {
   const source = await runtimeRoot()
+  const transformAssets = await readTransformAssetManifest(source)
   await mkdir(destination, { recursive: true })
   const assets: Array<[string, string]> = [
     ['index.js', 'runtime.js'],
     ['client.js', 'client.js'],
-    ['transform-worker.js', 'transform-worker.js'],
-    ['transform.wasi-browser.js', 'transform.wasi-browser.js'],
-    ['transform.wasm32-wasi.wasm', 'transform.wasm32-wasi.wasm'],
-    ['wasi-worker-browser.js', 'wasi-worker-browser.js'],
+    ['transform-assets.json', 'transform-assets.json'],
+    ...Object.values(transformAssets).map(path => [path, path] as [string, string]),
   ]
   const entryFiles = new Set(assets.map(([sourceName]) => sourceName))
   for (const name of await readdir(source)) {
@@ -533,6 +557,7 @@ async function copyRuntimeAssets(destination: string) {
   for (const [sourceName, destinationName] of assets) {
     const sourcePath = join(source, sourceName)
     if (!await fileExists(sourcePath)) throw new Error(`Devjar runtime asset is missing: ${sourceName}`)
+    await mkdir(dirname(join(destination, destinationName)), { recursive: true })
     await cp(sourcePath, join(destination, destinationName))
   }
 }
@@ -661,18 +686,19 @@ export async function startBuiltServer(options: StartServerOptions) {
         return
       }
       if (url.pathname.startsWith('/_jar/')) {
-        if (!await serveFile(request, response, join(root, '_jar'), url.pathname.slice('/_jar/'.length), undefined)) {
+        const cacheControl = url.pathname.startsWith('/_jar/assets/') ? immutableAsset : noStore
+        if (!await serveFile(request, response, join(root, '_jar'), url.pathname.slice('/_jar/'.length), undefined, cacheControl)) {
           send(request, response, 404, 'text/plain; charset=utf-8', 'Not found')
         }
         return
       }
       if (url.pathname.startsWith('/api/')) {
-        if (!await serveFile(request, response, join(root, 'api'), url.pathname.slice('/api/'.length), new Set(['.json', '.txt']))) {
+        if (!await serveFile(request, response, join(root, 'api'), url.pathname.slice('/api/'.length), new Set(['.json', '.txt']), noStore)) {
           send(request, response, 404, 'text/plain; charset=utf-8', 'Not found')
         }
         return
       }
-      if (await serveFile(request, response, root, url.pathname.slice(1), undefined)) return
+      if (await serveFile(request, response, root, url.pathname.slice(1), undefined, noStore)) return
       const route = normalizeRoute(url.pathname)
       const routeDocument = routeHtml.get(route)
       if (routeDocument) {
