@@ -31,10 +31,10 @@ const required = [
   'dist/transform.wasm32-wasi.wasm',
 ]
 const missing = required.filter(file => !files.has(file))
-const hasCdnChunk = [...files].some(file => /^dist\/cdn-.+\.js$/.test(file))
+const hasRuntimeChunk = [...files].some(file => /^dist\/.+-[a-z0-9]+\.js$/.test(file))
 
-if (missing.length || !hasCdnChunk) {
-  if (!hasCdnChunk) missing.push('dist/cdn-<hash>.js')
+if (missing.length || !hasRuntimeChunk) {
+  if (!hasRuntimeChunk) missing.push('dist/<runtime>-<hash>.js')
   throw new Error(`Package is missing required files: ${missing.join(', ')}`)
 }
 
