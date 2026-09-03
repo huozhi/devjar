@@ -57,22 +57,43 @@ function normalizeProjectPath(filename: string) {
   return parts.join('/')
 }
 
-function createTransformWorker(transformWorkerUrl?: string | URL) {
+type TransformAssetManifest = {
+  worker: string
+  binding: string
+  wasm: string
+  wasiWorker: string
+}
+
+// The worker assets are content-hashed at build time for immutable caching.
+// Their hashed names live in transform-assets.json next to this module, so the
+// runtime resolves them relative to import.meta.url. Fetched once and cached.
+let transformAssetsPromise: Promise<TransformAssetManifest> | undefined
+function loadTransformAssets(): Promise<TransformAssetManifest> {
+  transformAssetsPromise ??= fetch(new URL('./transform-assets.json', import.meta.url))
+    .then(res => {
+      if (!res.ok) throw new Error(`devjar: failed to load transform assets (${res.status})`)
+      return res.json() as Promise<TransformAssetManifest>
+    })
+  return transformAssetsPromise
+}
+
+async function createTransformWorker(transformWorkerUrl?: string | URL) {
+  const assets = await loadTransformAssets()
   const workerUrl = new URL(
-    transformWorkerUrl ?? new URL('./transform-worker.js', import.meta.url),
+    transformWorkerUrl ?? new URL(`./${assets.worker}`, import.meta.url),
     globalThis.location.href,
   )
   workerUrl.searchParams.set(
     'binding',
-    new URL('./transform.wasi-browser.js', import.meta.url).href,
+    new URL(`./${assets.binding}`, import.meta.url).href,
   )
   workerUrl.searchParams.set(
     'wasm',
-    new URL('./transform.wasm32-wasi.wasm', import.meta.url).href,
+    new URL(`./${assets.wasm}`, import.meta.url).href,
   )
   workerUrl.searchParams.set(
     'wasiWorker',
-    new URL('./wasi-worker-browser.js', import.meta.url).href,
+    new URL(`./${assets.wasiWorker}`, import.meta.url).href,
   )
 
   return new Worker(workerUrl, {
@@ -619,9 +640,9 @@ function useLiveCode({
     }
   }, [])
 
-  const transformFiles = useCallback((files: Record<string, string>) => {
+  const transformFiles = useCallback(async (files: Record<string, string>) => {
     if (!transformWorkerRef.current) {
-      const worker = createTransformWorker(transformWorkerUrl)
+      const worker = await createTransformWorker(transformWorkerUrl)
       worker.onmessage = ({ data }: MessageEvent<TransformWorkerResponse>) => {
         const request = transformRequestsRef.current.get(data.id)
         if (!request) return

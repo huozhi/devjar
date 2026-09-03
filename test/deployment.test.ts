@@ -16,6 +16,12 @@ describe('Vercel deployment', () => {
           { key: 'Cross-Origin-Embedder-Policy', value: 'credentialless' },
         ],
       },
+      {
+        source: '/_jar/(.*-[a-z0-9]+\\.(?:js|wasm))',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
     ])
   })
 })

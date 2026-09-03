@@ -30,15 +30,29 @@ const required = [
   'dist/http-loader.mjs',
   'dist/index.js',
   'dist/prerender-runner.mjs',
-  'dist/transform-worker.js',
-  'dist/transform.wasm32-wasi.wasm',
+  'dist/transform-assets.json',
 ]
 const missing = required.filter(file => !files.has(file))
-const hasRuntimeChunk = [...files].some(file => /^dist\/.+-[a-z0-9]+\.js$/.test(file))
-
-if (missing.length || !hasRuntimeChunk) {
-  if (!hasRuntimeChunk) missing.push('dist/<runtime>-<hash>.js')
+if (missing.length) {
   throw new Error(`Package is missing required files: ${missing.join(', ')}`)
+}
+
+// The transform worker assets are content-hashed for immutable caching. The
+// manifest records their hashed names; assert each hashed asset is published.
+const assetManifestPath = join(root, 'dist', 'transform-assets.json')
+const assetManifest = JSON.parse(await Bun.file(assetManifestPath).text()) as {
+  worker: string
+  binding: string
+  wasm: string
+  wasiWorker: string
+}
+const hashedAssets = [assetManifest.worker, assetManifest.binding, assetManifest.wasm, assetManifest.wasiWorker]
+const missingHashed = hashedAssets.filter(name => !files.has(`dist/${name}`))
+const unhashed = hashedAssets.filter(name => !/-[a-z0-9]+\.(js|wasm)$/.test(name))
+if (missingHashed.length || unhashed.length) {
+  throw new Error(
+    `Package transform assets invalid: missing=${missingHashed.join(', ') || 'none'} unhashed=${unhashed.join(', ') || 'none'}`,
+  )
 }
 
 const cli = Bun.spawnSync(['node', 'dist/bin.js', '--version'], { cwd: root })

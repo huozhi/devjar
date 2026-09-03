@@ -516,13 +516,29 @@ async function copyPublicFiles(source: string, destination: string) {
 async function copyRuntimeAssets(destination: string) {
   const source = await runtimeRoot()
   await mkdir(destination, { recursive: true })
+
+  // The transform worker assets are content-hashed for immutable caching. Their
+  // hashed names are recorded in transform-assets.json, which the browser
+  // runtime reads to resolve them. Copy the manifest plus each hashed asset.
+  const manifestPath = join(source, 'transform-assets.json')
+  if (!await fileExists(manifestPath)) {
+    throw new Error('Devjar runtime asset is missing: transform-assets.json')
+  }
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8')) as {
+    worker: string
+    binding: string
+    wasm: string
+    wasiWorker: string
+  }
+
   const assets: Array<[string, string]> = [
     ['index.js', 'runtime.js'],
     ['client.js', 'client.js'],
-    ['transform-worker.js', 'transform-worker.js'],
-    ['transform.wasi-browser.js', 'transform.wasi-browser.js'],
-    ['transform.wasm32-wasi.wasm', 'transform.wasm32-wasi.wasm'],
-    ['wasi-worker-browser.js', 'wasi-worker-browser.js'],
+    ['transform-assets.json', 'transform-assets.json'],
+    [manifest.worker, manifest.worker],
+    [manifest.binding, manifest.binding],
+    [manifest.wasm, manifest.wasm],
+    [manifest.wasiWorker, manifest.wasiWorker],
   ]
   const entryFiles = new Set(assets.map(([sourceName]) => sourceName))
   for (const name of await readdir(source)) {

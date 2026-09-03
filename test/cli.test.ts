@@ -316,10 +316,19 @@ describe('dev server', () => {
     expect((await fetch(`${base}/api/blocked.js`)).status).toBe(404)
     expect((await fetch(`${base}/api/status.json`, { method: 'POST' })).status).toBe(405)
 
-    const worker = await fetch(`${base}/_jar/transform-worker.js`)
+    // The transform assets are content-hashed; resolve their names via the manifest.
+    const assetManifest = await (await fetch(`${base}/_jar/transform-assets.json`)).json() as {
+      worker: string
+      binding: string
+      wasm: string
+      wasiWorker: string
+    }
+    expect(assetManifest.worker).toMatch(/^transform-worker-[a-z0-9]+\.js$/)
+    const worker = await fetch(`${base}/_jar/${assetManifest.worker}`)
     expect(worker.headers.get('content-type')).toContain('text/javascript')
     expect(worker.headers.get('cross-origin-embedder-policy')).toBe('credentialless')
-    const wasm = await fetch(`${base}/_jar/transform.wasm32-wasi.wasm`)
+    expect(assetManifest.wasm).toMatch(/^transform\.wasm32-wasi-[a-z0-9]+\.wasm$/)
+    const wasm = await fetch(`${base}/_jar/${assetManifest.wasm}`)
     expect(wasm.headers.get('content-type')).toBe('application/wasm')
 
     await server.close()
