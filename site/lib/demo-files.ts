@@ -42,56 +42,28 @@ export const demoFiles = {
     )
   }`,
   'components/intro.jsx': source`\
-  import { useEffect, useState } from 'react'
-
-  const pixels = '░▒▓█▄▀■□▪▫'
-
   export default function Intro({ name, title, description, action }) {
-    const [frame, setFrame] = useState(0)
-
-    useEffect(() => {
-      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-
-      const timer = setInterval(() => {
-        setFrame((current) => {
-          const next = current + 1
-          if (next >= title.length + 4) clearInterval(timer)
-          return next
-        })
-      }, 65)
-
-      return () => clearInterval(timer)
-    }, [title])
-
     function editDemo() {
       window.parent.postMessage('devjar:edit-demo', '*')
     }
 
+    const [firstWord, ...rest] = title.split(' ')
+
     return (
       <section className="intro">
         <p className="eyebrow">{name}</p>
-        <h1 aria-label={title}>
-          {Array.from(title).map((character, index) => {
-            const wave = frame - 4
-            const isWave = Math.abs(index - wave) < 0.65
-
-            return (
+        <h1>
+          <span className="title-word">
+            {Array.from(firstWord).map((character, index) => (
               <span
-                className={isWave ? 'title-character is-wave' : 'title-character'}
+                className={index % 3 === 2 ? 'title-glitch' : undefined}
                 key={index}
-                aria-hidden="true"
               >
-                <span className="title-letter">
-                  {character === ' ' ? '\u00a0' : character}
-                </span>
-                {isWave ? (
-                  <span className="title-pixel">
-                    {pixels[(frame + index) % pixels.length]}
-                  </span>
-                ) : null}
+                {character}
               </span>
-            )
-          })}
+            ))}
+          </span>{' '}
+          {rest.join(' ')}
         </h1>
         <p className="description">{description}</p>
         <p className="edit-prompt">
@@ -103,9 +75,9 @@ export const demoFiles = {
               editDemo()
             }}
           >
-            {action}
+            <span className="edit-action">{action}</span>
+            <span>this demo</span>
           </a>
-          <span> this demo</span>
         </p>
       </section>
     )
@@ -207,20 +179,40 @@ export const demoFiles = {
     line-height: 1.02;
   }
 
-  .title-character {
-    position: relative;
+  .title-word,
+  .title-glitch {
     display: inline-block;
   }
 
-  .title-character.is-wave .title-letter {
-    visibility: hidden;
+  .title-glitch {
+    animation: title-glitch 480ms steps(2, end) 240ms 1;
   }
 
-  .title-pixel {
-    position: absolute;
-    inset: 0;
-    color: #e7e5e4;
-    text-align: center;
+  .title-glitch:nth-child(6) {
+    animation-delay: 320ms;
+  }
+
+  .title-glitch:nth-child(9) {
+    animation-delay: 400ms;
+  }
+
+  @keyframes title-glitch {
+    0%, 18%, 52%, 100% {
+      transform: translate(0);
+      text-shadow: none;
+    }
+    20% {
+      transform: translate(-1px, 1px);
+      text-shadow: 2px 0 #d6d3d1;
+    }
+    36% {
+      transform: translate(1px, -1px);
+      text-shadow: -2px 0 #a8a29e;
+    }
+    50% {
+      transform: translate(-0.5px, 0);
+      text-shadow: 1px 0 #d6d3d1;
+    }
   }
 
   .description {
@@ -242,14 +234,36 @@ export const demoFiles = {
   }
 
   .edit-prompt a {
+    position: relative;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.25em;
+    color: #737373;
+    text-decoration: none;
+  }
+
+  .edit-prompt a::after {
+    position: absolute;
+    right: 0;
+    bottom: 3px;
+    left: 0;
+    height: 1px;
+    background: #737373;
+    content: '';
+    transform: scaleX(0);
+    transform-origin: center;
+    animation: edit-underline 420ms ease-out 950ms 1 forwards;
+  }
+
+  .edit-action {
     color: #404040;
     font-size: 1.1rem;
     font-weight: 700;
-    text-decoration-color: #404040;
-    text-underline-offset: 3px;
   }
 
   .edit-pointer {
+    position: relative;
+    top: 2px;
     color: #737373;
     font-size: 1.1rem;
     animation: point-to-edit 1s ease-in-out infinite;
@@ -257,6 +271,10 @@ export const demoFiles = {
 
   @keyframes point-to-edit {
     50% { transform: translateX(3px); }
+  }
+
+  @keyframes edit-underline {
+    to { transform: scaleX(1); }
   }
 
   .route-demo {
@@ -381,6 +399,7 @@ export const demoFiles = {
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
       transition-duration: 0.01ms !important;
     }
   }
