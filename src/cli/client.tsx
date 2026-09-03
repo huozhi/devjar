@@ -117,6 +117,23 @@ function hideError() {
   errorRoot.textContent = ''
 }
 
+function syncDefaultTitle() {
+  requestAnimationFrame(() => {
+    const defaultTitle = document.head.querySelector('title[data-devjar-default]')
+    const pageTitle = document.head.querySelector('title:not([data-devjar-default])')
+    if (pageTitle) {
+      defaultTitle?.remove()
+      return
+    }
+    if (defaultTitle) return
+
+    const title = document.createElement('title')
+    title.dataset.devjarDefault = ''
+    title.textContent = 'Devjar'
+    document.head.appendChild(title)
+  })
+}
+
 function isElementType(value: unknown): value is ElementType {
   return typeof value === 'string'
     || typeof value === 'function'
@@ -146,7 +163,7 @@ async function load(route: string) {
       if (!reactRoot) reactRoot = createRoot(appRoot)
       reactRoot.render(page)
     }
-    document.title = entry.page
+    syncDefaultTitle()
     hideError()
     if (!performance.getEntriesByName('devjar:first-render').length) {
       performance.mark('devjar:first-render')
@@ -208,6 +225,7 @@ async function start() {
           routeManifest = await getRouteManifest(revision)
         },
         onRefresh: detail => {
+          syncDefaultTitle()
           hideError()
           dispatchEvent(new CustomEvent('devjar:render', { detail }))
         },

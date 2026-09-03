@@ -163,6 +163,7 @@ type HtmlOptions = {
   devjarDependencies: Record<string, string>
   cdn: string
   liveReload: boolean
+  head: string
   content: string
   styles: string
 }
@@ -204,9 +205,12 @@ await import('/__devjar/client.js')
   const staticStyles = options.styles
     ? `<style data-devjar-static>${options.styles.replace(/<\/style/gi, '<\\/style')}</style>`
     : ''
+  const documentHead = /<title(?:\s|>)/i.test(options.head)
+    ? options.head
+    : `<title data-devjar-default>Devjar</title>${options.head}`
   return `<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Devjar</title>${tailwindPreload}<script type="importmap">${JSON.stringify({ imports })}</script>
+${documentHead}${tailwindPreload}<script type="importmap">${JSON.stringify({ imports })}</script>
 <style>html,body,#root,#__reactRoot{width:100%;min-height:100%;margin:0}.devjar-error{box-sizing:border-box;position:fixed;z-index:10;inset:auto 16px 16px;padding:14px 16px;border:1px solid #ffb4ab;border-radius:8px;background:#330a08;color:#ffdad6;font:13px/1.5 ui-monospace,monospace;white-space:pre-wrap}</style>${staticStyles}
 </head><body><div id="root"><div id="__reactRoot">${options.content}</div></div><pre id="__devjarError" class="devjar-error" hidden></pre><script>
 const errorRoot = document.getElementById('__devjarError')
@@ -369,6 +373,7 @@ export async function startDevServer(options: DevServerOptions) {
             devjarDependencies,
             cdn: resolveCdn(options.cdn),
             liveReload: true,
+            head: '',
             content: '',
             styles: '',
           },
@@ -551,6 +556,7 @@ async function writeRouteHtml(
     devjarDependencies: options.devjarDependencies,
     cdn: options.cdn,
     liveReload: false,
+    head: rendered.head,
     content: rendered.markup,
     styles: rendered.styles,
   })
@@ -587,7 +593,7 @@ export async function buildProject(options: BuildOptions) {
         runtimeModulePath: join(runtime, 'index.js'),
       })
     : Object.fromEntries([...discovered.routes.keys()].map(route => (
-        [route, { markup: '', styles: '' }]
+        [route, { head: '', markup: '', styles: '' }]
       )))
   const projectPaths = new Set<string>()
   for (const page of discovered.routes.values()) {

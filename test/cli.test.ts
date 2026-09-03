@@ -305,6 +305,7 @@ describe('dev server', () => {
     expect(client).toContain('routeManifest.liveReload')
     expect(client).toContain('popstate')
     expect(client).toContain('history.pushState')
+    expect(client).not.toContain('document.title = entry.page')
 
     const json = await fetch(`${base}/api/status.json`)
     expect(json.headers.get('content-type')).toContain('application/json')
@@ -418,6 +419,7 @@ describe('production build', () => {
     expect(entryModule).toContain('https://modules.example.test/react@19.2.0/jsx-dev-runtime?dev')
     expect(entryModule).not.toContain('__devjarRegisterModule')
     const builtHtml = await readFile(join(buildRoot, 'index.html'), 'utf8')
+    expect(builtHtml).toContain('<title data-devjar-default>Devjar</title>')
     expect(builtHtml).toContain('data-devjar-tailwind')
     expect(builtHtml).not.toContain('react-refresh')
     const runtimeFiles = await readdir(join(buildRoot, '__devjar'))
@@ -484,12 +486,16 @@ describe('static export', () => {
         `import '../styles.css'
 import { DevJar } from 'devjar'
 export default function Page() {
-  return <main className="page"><h1>Static now</h1><DevJar files={{ 'pages/index.jsx': 'export default function Page() {}' }} /></main>
+  return <>
+    <title>Static title</title>
+    <meta name="description" content="Static description" />
+    <main className="page"><h1>Static now</h1><DevJar files={{ 'pages/index.jsx': 'export default function Page() {}' }} /></main>
+  </>
 }`,
       )
       await writeFile(
         join(projectRoot, 'pages/guides/about.tsx'),
-        `export default function About() { return <h1>About statically rendered</h1> }`,
+        `export default function About() { return <><title>About title</title><h1>About statically rendered</h1></> }`,
       )
       await writeFile(
         join(projectRoot, 'pages/404.tsx'),
@@ -504,14 +510,19 @@ export default function Page() {
         prerender: true,
       })
       const document = await readFile(join(result.outDir, 'index.html'), 'utf8')
+      expect(document).toContain('<head><meta charset="utf-8"')
+      expect(document).toContain('<title>Static title</title><meta name="description" content="Static description">')
+      expect(document).not.toContain('<div id="__reactRoot"><title>')
       expect(document).toContain('<main class="page"><h1>Static now</h1>')
       expect(document).toContain('<iframe')
       expect(document).toContain('<style data-devjar-static>.page { color: black; }</style>')
       expect(document).toContain('<div id="__reactRoot">')
-      expect(await readFile(join(result.outDir, 'guides/about/index.html'), 'utf8'))
-        .toContain('<h1>About statically rendered</h1>')
-      expect(await readFile(join(result.outDir, '404.html'), 'utf8'))
-        .toContain('<h1>Static not found</h1>')
+      const aboutDocument = await readFile(join(result.outDir, 'guides/about/index.html'), 'utf8')
+      expect(aboutDocument).toContain('<title>About title</title>')
+      expect(aboutDocument).toContain('<h1>About statically rendered</h1>')
+      const notFoundDocument = await readFile(join(result.outDir, '404.html'), 'utf8')
+      expect(notFoundDocument).toContain('<title data-devjar-default>Devjar</title>')
+      expect(notFoundDocument).toContain('<h1>Static not found</h1>')
       expect(await readFile(join(result.outDir, '404/index.html'), 'utf8'))
         .toContain('<h1>Static not found</h1>')
       expect(await readFile(join(result.outDir, '__devjar/client.js'), 'utf8'))
