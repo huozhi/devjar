@@ -17,7 +17,7 @@ type RenderFunction = (
 ) => Promise<void>
 
 declare global {
-  var __devjar__: Record<string, { resolveModule?: ResolveModule }> | undefined
+  var __jar__: Record<string, { resolveModule?: ResolveModule }> | undefined
   interface Window {
     __render__?: RenderFunction
   }
@@ -485,7 +485,7 @@ function createMainScript({ uid }: { uid: string }) {
 const _createModule = ${createModule.toString()};
 const _createRenderer = ${createRenderer.toString()};
 
-const resolveModule = (specifier) => window.parent.__devjar__[globalThis.uid].resolveModule(specifier)
+const resolveModule = (specifier) => window.parent.__jar__[globalThis.uid].resolveModule(specifier)
 
 globalThis.uid = ${JSON.stringify(uid)};
 globalThis.__render__ = _createRenderer(_createModule, resolveModule);
@@ -554,16 +554,16 @@ function useLiveCode({
   // Let resolveModule execute on parent window side since it might involve
   // variables that iframe cannot access.
   useEffect(() => {
-    if (!globalThis.__devjar__) {
-      globalThis.__devjar__ = {};
+    if (!globalThis.__jar__) {
+      globalThis.__jar__ = {};
     }
-    globalThis.__devjar__[uid] = {
+    globalThis.__jar__[uid] = {
       resolveModule,
     }
 
     return () => {
-      if (globalThis.__devjar__) {
-        delete globalThis.__devjar__[uid]
+      if (globalThis.__jar__) {
+        delete globalThis.__jar__[uid]
       }
     }
   }, [resolveModule, uid])

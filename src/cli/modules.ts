@@ -110,7 +110,7 @@ export async function collectProjectFiles(root: string, entry: string) {
 export function devModuleUrl(projectPath: string, version: number) {
   const parameters = new URLSearchParams({ path: projectPath })
   if (version) parameters.set('v', String(version))
-  return `/__devjar/module?${parameters}`
+  return `/_jar/module?${parameters}`
 }
 
 export function moduleAssetName(projectPath: string) {
@@ -118,20 +118,20 @@ export function moduleAssetName(projectPath: string) {
 }
 
 export function builtModuleUrl(projectPath: string) {
-  return `/__devjar/modules/${moduleAssetName(projectPath)}`
+  return `/_jar/modules/${moduleAssetName(projectPath)}`
 }
 
 function browserCssModule(source: string, projectPath: string) {
   return `const sheet = new CSSStyleSheet()
 sheet.replaceSync(${JSON.stringify(source)})
-globalThis.__devjarStyleSheets ||= new Map()
-const previous = globalThis.__devjarStyleSheets.get(${JSON.stringify(projectPath)})
+globalThis.__jarStyleSheets ||= new Map()
+const previous = globalThis.__jarStyleSheets.get(${JSON.stringify(projectPath)})
 const sheets = [...document.adoptedStyleSheets]
 const index = sheets.indexOf(previous)
 if (index < 0) sheets.push(sheet)
 else sheets[index] = sheet
 document.adoptedStyleSheets = sheets
-globalThis.__devjarStyleSheets.set(${JSON.stringify(projectPath)}, sheet)
+globalThis.__jarStyleSheets.set(${JSON.stringify(projectPath)}, sheet)
 export default sheet
 `
 }
@@ -223,10 +223,10 @@ export async function compileProjectModule(
       .filter(exported => exported.ln)
       .map(exported => `${JSON.stringify(exported.n)}: ${exported.ln}`)
       .join(', ')
-    code = `const $RefreshReg$ = (type, id) => globalThis.__devjarRefreshRuntime.register(type, ${JSON.stringify(`${projectPath} `)} + id)
-const $RefreshSig$ = globalThis.__devjarRefreshRuntime.createSignatureFunctionForTransform
+    code = `const $RefreshReg$ = (type, id) => globalThis.__jarRefreshRuntime.register(type, ${JSON.stringify(`${projectPath} `)} + id)
+const $RefreshSig$ = globalThis.__jarRefreshRuntime.createSignatureFunctionForTransform
 ${code}
-globalThis.__devjarRegisterModule(${JSON.stringify(projectPath)}, import.meta.url, { ${registeredExports} })
+globalThis.__jarRegisterModule(${JSON.stringify(projectPath)}, import.meta.url, { ${registeredExports} })
 `
   }
   return {

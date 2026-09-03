@@ -181,7 +181,7 @@ function html(options: HtmlOptions) {
     'react/jsx-dev-runtime': resolveModule('react/jsx-dev-runtime'),
     'react-dom/client': resolveModule('react-dom/client'),
     'es-module-lexer': resolveRuntimeModule('es-module-lexer'),
-    devjar: '/__devjar/runtime.js',
+    devjar: '/_jar/runtime.js',
     ...(options.liveReload
       ? { 'react-refresh/runtime': resolveRuntimeModule('react-refresh/runtime') }
       : {}),
@@ -198,10 +198,10 @@ function html(options: HtmlOptions) {
 import * as RefreshModule from 'react-refresh/runtime'
 const RefreshRuntime = RefreshModule.default || RefreshModule
 RefreshRuntime.injectIntoGlobalHook(globalThis)
-globalThis.__devjarRefreshRuntime = RefreshRuntime
-await import('/__devjar/client.js')
+globalThis.__jarRefreshRuntime = RefreshRuntime
+await import('/_jar/client.js')
 </script>`
-    : '<script type="module" src="/__devjar/client.js"></script>'
+    : '<script type="module" src="/_jar/client.js"></script>'
   const staticStyles = options.styles
     ? `<style data-devjar-static>${options.styles.replace(/<\/style/gi, '<\\/style')}</style>`
     : ''
@@ -212,8 +212,8 @@ await import('/__devjar/client.js')
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 ${documentHead}${tailwindPreload}<script type="importmap">${JSON.stringify({ imports })}</script>
 <style>html,body,#root,#__reactRoot{width:100%;min-height:100%;margin:0}.devjar-error{box-sizing:border-box;position:fixed;z-index:10;inset:auto 16px 16px;padding:14px 16px;border:1px solid #ffb4ab;border-radius:8px;background:#330a08;color:#ffdad6;font:13px/1.5 ui-monospace,monospace;white-space:pre-wrap}</style>${staticStyles}
-</head><body><div id="root"><div id="__reactRoot">${options.content}</div></div><pre id="__devjarError" class="devjar-error" hidden></pre><script>
-const errorRoot = document.getElementById('__devjarError')
+</head><body><div id="root"><div id="__reactRoot">${options.content}</div></div><pre id="__jarError" class="devjar-error" hidden></pre><script>
+const errorRoot = document.getElementById('__jarError')
 const showBootstrapError = value => {
   errorRoot.hidden = false
   errorRoot.textContent = 'Devjar could not start:\\n\\n' + value
@@ -291,7 +291,7 @@ export async function startDevServer(options: DevServerOptions) {
         response.end('Method not allowed')
         return
       }
-      if (url.pathname === '/__devjar/events') {
+      if (url.pathname === '/_jar/events') {
         response.writeHead(200, {
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',
@@ -306,7 +306,7 @@ export async function startDevServer(options: DevServerOptions) {
         request.on('close', () => events.delete(response))
         return
       }
-      if (url.pathname === '/__devjar/routes.json') {
+      if (url.pathname === '/_jar/routes.json') {
         try {
           const manifest = await loadRouteManifest(root, {
             liveReload: true,
@@ -319,7 +319,7 @@ export async function startDevServer(options: DevServerOptions) {
         }
         return
       }
-      if (url.pathname === '/__devjar/module') {
+      if (url.pathname === '/_jar/module') {
         const projectPath = url.searchParams.get('path')
         if (!projectPath) {
           send(request, response, 400, 'text/plain; charset=utf-8', 'Module path is required')
@@ -335,7 +335,7 @@ export async function startDevServer(options: DevServerOptions) {
             dependencies,
             cdn,
             moduleUrl: modules.moduleUrl,
-            runtimeModuleUrl: '/__devjar/runtime.js',
+            runtimeModuleUrl: '/_jar/runtime.js',
             refresh: true,
             platform: 'browser',
           })
@@ -346,12 +346,12 @@ export async function startDevServer(options: DevServerOptions) {
         }
         return
       }
-      if (url.pathname === '/__devjar/runtime.js') {
+      if (url.pathname === '/_jar/runtime.js') {
         if (!await serveFile(request, response, assetsRoot, 'index.js', undefined)) send(request, response, 500, 'text/plain', 'Devjar runtime is missing')
         return
       }
-      if (url.pathname.startsWith('/__devjar/')) {
-        if (!await serveFile(request, response, assetsRoot, url.pathname.slice('/__devjar/'.length), undefined)) send(request, response, 404, 'text/plain', 'Not found')
+      if (url.pathname.startsWith('/_jar/')) {
+        if (!await serveFile(request, response, assetsRoot, url.pathname.slice('/_jar/'.length), undefined)) send(request, response, 404, 'text/plain', 'Not found')
         return
       }
       if (url.pathname.startsWith('/api/')) {
@@ -612,8 +612,8 @@ export async function buildProject(options: BuildOptions) {
       cdn,
     })
   }
-  await copyRuntimeAssets(join(outDir, '__devjar'))
-  const modulesRoot = join(outDir, '__devjar/modules')
+  await copyRuntimeAssets(join(outDir, '_jar'))
+  const modulesRoot = join(outDir, '_jar/modules')
   await mkdir(modulesRoot, { recursive: true })
   for (const projectPath of projectPaths) {
     const compiled = await compileProjectModule({
@@ -622,13 +622,13 @@ export async function buildProject(options: BuildOptions) {
       dependencies,
       cdn,
       moduleUrl: builtModuleUrl,
-      runtimeModuleUrl: '/__devjar/runtime.js',
+      runtimeModuleUrl: '/_jar/runtime.js',
       refresh: false,
       platform: 'browser',
     })
     await writeFile(join(modulesRoot, moduleAssetName(projectPath)), compiled.code)
   }
-  await writeFile(join(outDir, '__devjar/routes.json'), JSON.stringify(manifest))
+  await writeFile(join(outDir, '_jar/routes.json'), JSON.stringify(manifest))
   await copyApiFiles(join(root, 'api'), join(outDir, 'api'))
 
   return { root, outDir, routes: Object.keys(manifest.routes) }
@@ -660,8 +660,8 @@ export async function startBuiltServer(options: StartServerOptions) {
         response.end(request.method === 'HEAD' ? undefined : 'Method not allowed')
         return
       }
-      if (url.pathname.startsWith('/__devjar/')) {
-        if (!await serveFile(request, response, join(root, '__devjar'), url.pathname.slice('/__devjar/'.length), undefined)) {
+      if (url.pathname.startsWith('/_jar/')) {
+        if (!await serveFile(request, response, join(root, '_jar'), url.pathname.slice('/_jar/'.length), undefined)) {
           send(request, response, 404, 'text/plain; charset=utf-8', 'Not found')
         }
         return

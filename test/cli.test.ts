@@ -124,7 +124,7 @@ describe('project loading', () => {
       dependencies: { react: '19.2.0' },
       cdn: 'https://modules.example.test/',
       moduleUrl: testModuleUrl,
-      runtimeModuleUrl: '/__devjar/runtime.js',
+      runtimeModuleUrl: '/_jar/runtime.js',
       refresh: false,
       platform: 'browser',
     })
@@ -214,7 +214,7 @@ describe('project loading', () => {
         dependencies: {},
         cdn: CDN_HOST,
         moduleUrl: testModuleUrl,
-        runtimeModuleUrl: '/__devjar/runtime.js',
+        runtimeModuleUrl: '/_jar/runtime.js',
         refresh: false,
         platform: 'browser',
       })
@@ -271,7 +271,7 @@ describe('dev server', () => {
     expect(shell.headers.get('cross-origin-opener-policy')).toBe('same-origin')
     expect(shell.headers.get('cross-origin-embedder-policy')).toBe('credentialless')
     const shellSource = await shell.text()
-    expect(shellSource).toContain('/__devjar/client.js')
+    expect(shellSource).toContain('/_jar/client.js')
     expect(shellSource).toContain("import * as RefreshModule from 'react-refresh/runtime'")
     expect(shellSource).toContain('data-devjar-tailwind')
     expect(shellSource).toContain('https://esm.sh/@tailwindcss/browser@%5E4.1.0')
@@ -282,23 +282,23 @@ describe('dev server', () => {
     const bootstrap = shellSource.match(/<script>\n([\s\S]+?)<\/script>/)?.[1]
     expect(() => new Function(bootstrap || '')).not.toThrow()
 
-    const routes = await (await fetch(`${base}/__devjar/routes.json`)).json()
+    const routes = await (await fetch(`${base}/_jar/routes.json`)).json()
     expect(routes.routes['/about'].page).toBe('pages/about.tsx')
     const pageModule = await (await fetch(`${base}${routes.routes['/about'].module}`)).text()
-    expect(pageModule).toContain('/__devjar/module?path=components%2Fshell.tsx')
-    expect(pageModule).toContain('/__devjar/module?path=styles.css')
+    expect(pageModule).toContain('/_jar/module?path=components%2Fshell.tsx')
+    expect(pageModule).toContain('/_jar/module?path=styles.css')
     expect(pageModule).toContain('https://esm.sh/react@19.2.0/jsx-dev-runtime?dev')
-    expect(pageModule).toContain('__devjarRegisterModule')
-    expect(pageModule).toContain('__devjarRefreshRuntime')
-    const sharedModule = await (await fetch(`${base}/__devjar/module?path=components%2Fshell.tsx`)).text()
+    expect(pageModule).toContain('__jarRegisterModule')
+    expect(pageModule).toContain('__jarRefreshRuntime')
+    const sharedModule = await (await fetch(`${base}/_jar/module?path=components%2Fshell.tsx`)).text()
     expect(sharedModule).not.toContain('ReactNode')
-    const client = await (await fetch(`${base}/__devjar/client.js`)).text()
+    const client = await (await fetch(`${base}/_jar/client.js`)).text()
     await init
     expect(() => parse(client)).not.toThrow()
-    expect(client).toContain('/__devjar/routes.json')
+    expect(client).toContain('/_jar/routes.json')
     expect(client).toContain('modulepreload')
     expect(client).toContain('pointerover')
-    expect(client).not.toContain('/__devjar/project')
+    expect(client).not.toContain('/_jar/project')
     expect(client).not.toContain('linkModules')
     expect(client).not.toContain('createElement("iframe")')
     expect(client).not.toContain('@tailwindcss/browser')
@@ -316,10 +316,10 @@ describe('dev server', () => {
     expect((await fetch(`${base}/api/blocked.js`)).status).toBe(404)
     expect((await fetch(`${base}/api/status.json`, { method: 'POST' })).status).toBe(405)
 
-    const worker = await fetch(`${base}/__devjar/transform-worker.js`)
+    const worker = await fetch(`${base}/_jar/transform-worker.js`)
     expect(worker.headers.get('content-type')).toContain('text/javascript')
     expect(worker.headers.get('cross-origin-embedder-policy')).toBe('credentialless')
-    const wasm = await fetch(`${base}/__devjar/transform.wasm32-wasi.wasm`)
+    const wasm = await fetch(`${base}/_jar/transform.wasm32-wasi.wasm`)
     expect(wasm.headers.get('content-type')).toBe('application/wasm')
 
     await server.close()
@@ -348,14 +348,14 @@ export default function Page() { return <Card /> }`,
     let reader: ReadableStreamDefaultReader<Uint8Array> | undefined
     try {
       await new Promise(resolvePromise => setTimeout(resolvePromise, 100))
-      const routes = await (await fetch(`${base}/__devjar/routes.json`)).json()
+      const routes = await (await fetch(`${base}/_jar/routes.json`)).json()
       const pageModule = await (await fetch(`${base}${routes.routes['/'].module}`)).text()
-      const cardModuleUrl = pageModule.match(/\/__devjar\/module\?path=components%2Fcard\.tsx/)?.[0]
+      const cardModuleUrl = pageModule.match(/\/_jar\/module\?path=components%2Fcard\.tsx/)?.[0]
       expect(cardModuleUrl).toBeDefined()
       const cardModule = await (await fetch(`${base}${cardModuleUrl}`)).text()
-      expect(cardModule).toContain('__devjarRegisterModule')
+      expect(cardModule).toContain('__jarRegisterModule')
 
-      const eventResponse = await fetch(`${base}/__devjar/events`)
+      const eventResponse = await fetch(`${base}/_jar/events`)
       reader = eventResponse.body!.getReader()
       await reader.read()
       await writeFile(cardPath, `export function Card() { return <p>two</p> }`)
@@ -374,7 +374,7 @@ export default function Page() { return <Card /> }`,
         updates: [{
           path: 'components/card.tsx',
           type: 'refresh',
-          url: '/__devjar/module?path=components%2Fcard.tsx&v=1',
+          url: '/_jar/module?path=components%2Fcard.tsx&v=1',
         }],
       })
     } finally {
@@ -412,17 +412,17 @@ describe('production build', () => {
     expect(Object.keys(manifest.routes).sort()).toEqual(['/', '/404', '/projects', '/settings'])
     expect(manifest.version).toBe(2)
     expect(manifest.liveReload).toBe(false)
-    expect(manifest.routes['/'].module).toMatch(/^\/__devjar\/modules\/.+\.js$/)
-    expect(await readFile(join(buildRoot, '__devjar/client.js'), 'utf8')).toContain('__devjar/routes.json')
-    expect(await readFile(join(buildRoot, '__devjar/routes.json'), 'utf8')).toBe(JSON.stringify(manifest))
+    expect(manifest.routes['/'].module).toMatch(/^\/_jar\/modules\/.+\.js$/)
+    expect(await readFile(join(buildRoot, '_jar/client.js'), 'utf8')).toContain('_jar/routes.json')
+    expect(await readFile(join(buildRoot, '_jar/routes.json'), 'utf8')).toBe(JSON.stringify(manifest))
     const entryModule = await readFile(join(buildRoot, manifest.routes['/'].module), 'utf8')
     expect(entryModule).toContain('https://modules.example.test/react@19.2.0/jsx-dev-runtime?dev')
-    expect(entryModule).not.toContain('__devjarRegisterModule')
+    expect(entryModule).not.toContain('__jarRegisterModule')
     const builtHtml = await readFile(join(buildRoot, 'index.html'), 'utf8')
     expect(builtHtml).toContain('<title data-devjar-default>Devjar</title>')
     expect(builtHtml).toContain('data-devjar-tailwind')
     expect(builtHtml).not.toContain('react-refresh')
-    const runtimeFiles = await readdir(join(buildRoot, '__devjar'))
+    const runtimeFiles = await readdir(join(buildRoot, '_jar'))
     expect(runtimeFiles.some(file => /^.+-[a-z0-9]+\.js$/.test(file))).toBe(true)
     expect(await readFile(join(buildRoot, 'api/projects.json'), 'utf8')).toContain('Mobile refresh')
     expect(await readFile(join(buildRoot, 'mark.svg'), 'utf8')).toContain('<svg')
@@ -448,14 +448,14 @@ describe('production build', () => {
 
     const shell = await (await fetch(`${base}/projects`)).text()
     expect(shell).toContain('https://modules.example.test/react@19.2.0?dev')
-    const routes = await (await fetch(`${base}/__devjar/routes.json`)).json()
+    const routes = await (await fetch(`${base}/_jar/routes.json`)).json()
     expect(routes.routes['/projects'].page).toBe('pages/projects.tsx')
     expect(routes.liveReload).toBe(false)
     expect(routes.notFound.page).toBe('pages/404.tsx')
     const projectModule = await fetch(`${base}${routes.routes['/projects'].module}`)
     expect(projectModule.status).toBe(200)
     expect(projectModule.headers.get('content-type')).toContain('text/javascript')
-    expect((await fetch(`${base}/__devjar/events`)).status).toBe(404)
+    expect((await fetch(`${base}/_jar/events`)).status).toBe(404)
     expect(await (await fetch(`${base}/api/projects.json`)).json()).toHaveLength(4)
     expect(await (await fetch(`${base}/mark.svg`)).text()).toContain('<svg')
 
@@ -525,11 +525,11 @@ export default function Page() {
       expect(notFoundDocument).toContain('<h1>Static not found</h1>')
       expect(await readFile(join(result.outDir, '404/index.html'), 'utf8'))
         .toContain('<h1>Static not found</h1>')
-      expect(await readFile(join(result.outDir, '__devjar/client.js'), 'utf8'))
+      expect(await readFile(join(result.outDir, '_jar/client.js'), 'utf8'))
         .toContain('hydrateRoot')
       const manifest = JSON.parse(await readFile(join(result.outDir, 'manifest.json'), 'utf8'))
       const pageModule = await readFile(join(result.outDir, manifest.routes['/'].module), 'utf8')
-      expect(pageModule).toContain('/__devjar/runtime.js')
+      expect(pageModule).toContain('/_jar/runtime.js')
       expect(pageModule).not.toContain(`${address.port}/devjar`)
     } finally {
       await new Promise<void>(resolvePromise => cdn.close(() => resolvePromise()))
