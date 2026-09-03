@@ -30,8 +30,8 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build Site
-        run: pnpm run build:site
+      - name: Build Website
+        run: pnpm run build:website
 
       - name: Test CLI
         run: pnpm test

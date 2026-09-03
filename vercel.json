@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "buildCommand": "pnpm run build:website",
-  "outputDirectory": "examples/website/dist",
+  "outputDirectory": "site/dist",
   "headers": [
     {
       "source": "/(.*)",

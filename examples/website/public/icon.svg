@@ -1,5 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
-  <title id="title">devjar</title>
-  <rect width="64" height="64" rx="8" fill="#fafafa"/>
-  <path d="M23 16h18v9l4 5a8 8 0 0 1 2 5v13a6 6 0 0 1-6 6H23a6 6 0 0 1-6-6V35a8 8 0 0 1 2-5l4-5V16Zm2 19 5 5-5 5m10 0h7" fill="none" stroke="#171717" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>
