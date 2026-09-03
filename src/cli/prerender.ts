@@ -61,6 +61,7 @@ export async function prerender(options: PrerenderOptions) {
     const projectFiles = new Set<string>()
     const routeFiles = new Map<string, Set<string>>()
     const projectStyles = new Map<string, string>()
+    const resolveModule = createEsmShResolver(options.dependencies, options.cdn, false)
     for (const [route, entry] of options.routes) {
       const files = await collectProjectFiles(options.root, entry)
       routeFiles.set(route, files)
@@ -71,8 +72,7 @@ export async function prerender(options: PrerenderOptions) {
       const compiled = await compileProjectModule({
         root: options.root,
         projectPath,
-        dependencies: options.dependencies,
-        cdn: options.cdn,
+        resolveModule,
         moduleUrl: importedPath => `./${serverModuleName(importedPath)}`,
         assetUrl: (projectPath, contents) => builtAssetUrl(
           projectPath,
@@ -89,7 +89,6 @@ export async function prerender(options: PrerenderOptions) {
     }
 
     const outputPath = join(temporaryRoot, 'rendered.json')
-    const resolveModule = createEsmShResolver(options.dependencies, options.cdn, false)
     const resolveRuntimeModule = createEsmShResolver({
       ...options.dependencies,
       ...options.devjarDependencies,

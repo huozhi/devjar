@@ -129,6 +129,11 @@ export default function Page() {
   const page = await browser.newPage()
   const consoleErrors: string[] = []
   const pageErrors: string[] = []
+  const externalRequests: string[] = []
+  const builtOrigin = new URL(baseUrl).origin
+  page.on('request', request => {
+    if (new URL(request.url()).origin !== builtOrigin) externalRequests.push(request.url())
+  })
   page.on('console', message => {
     if (message.type() === 'error') consoleErrors.push(message.text())
   })
@@ -142,6 +147,17 @@ export default function Page() {
   assert.equal(homeResponse?.status(), 200)
   await page.waitForFunction('globalThis.__devjarRenderCount > 0')
   await assertPage(page, 'Home', 'Package home')
+  assert.deepEqual(externalRequests, [])
+  const vendorUrls = await page.evaluate(() => performance.getEntriesByType('resource')
+    .map(entry => entry.name)
+    .filter(url => url.includes('/_jar/vendor/')))
+  assert(vendorUrls.length > 0, 'The browser did not load vendored dependencies')
+  const vendorResponse = await page.request.get(vendorUrls[0])
+  assert.equal(vendorResponse.status(), 200)
+  assert.equal(
+    vendorResponse.headers()['cache-control'],
+    'public, max-age=31536000, immutable',
+  )
   const logoPath = await page.locator('img[alt="Logo"]').getAttribute('src')
   assert.match(logoPath || '', /^\/preview\/_jar\/assets\/logo-[a-f0-9]{10}\.svg$/)
   const logoResponse = await page.request.get(new URL(logoPath!, baseUrl).href)
@@ -184,7 +200,7 @@ export default function Page() {
   assert(consoleErrors.every(message => message.includes('404 (Not Found)')))
   assert.deepEqual(pageErrors, [])
 
-  console.log('Packaged CLI builds at a subpath, hydrates, navigates, and renders its custom 404 in Chromium without unexpected browser errors.')
+  console.log('Packaged CLI vendors dependencies, builds at a subpath, hydrates, navigates, and renders its custom 404 in Chromium without unexpected browser errors.')
 } finally {
   await browser?.close()
   if (server) await stopServer(server)
