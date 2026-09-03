@@ -40,8 +40,14 @@ jobs:
       - name: Build Package
         run: pnpm run build
 
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
       - name: Test Package
         run: pnpm typecheck && pnpm test && pnpm test:package
+
+      - name: Test Packaged Browser
+        run: bun scripts/test-package-browser.ts
 
       - name: Determine npm tag
         id: npm-tag

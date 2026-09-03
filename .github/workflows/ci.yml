@@ -41,3 +41,35 @@ jobs:
 
       - name: Check Package
         run: pnpm test:package
+
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    name: Packaged browser
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - name: Use Node 24 and pnpm
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: 'pnpm'
+
+      - name: Use Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Build Package
+        run: pnpm run build
+
+      - name: Test Packaged Browser
+        run: bun scripts/test-package-browser.ts
