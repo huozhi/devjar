@@ -9,7 +9,7 @@ function source(parts: TemplateStringsArray) {
 }
 
 export const demoFiles = {
-  'pages/index.jsx': source`\
+  'pages/index.tsx': source`\
   import Intro from '../components/intro'
   import Routes from '../components/routes'
   import '../styles.css'
@@ -41,7 +41,7 @@ export const demoFiles = {
       </div>
     )
   }`,
-  'components/intro.jsx': source`\
+  'components/intro.tsx': source`\
   export default function Intro({ name, title, description, action }) {
     function editDemo() {
       window.parent.postMessage('devjar:edit-demo', '*')
@@ -82,7 +82,7 @@ export const demoFiles = {
       </section>
     )
   }`,
-  'components/routes.jsx': source`\
+  'components/routes.tsx': source`\
   function TerminalIcon() {
     return (
       <svg viewBox="0 0 16 16" aria-hidden="true">

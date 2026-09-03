@@ -49,10 +49,10 @@ export default function Page() {
               <p>Files inside <code>pages/</code> become routes, including nested pages and a custom 404.</p>
               <div className="code-block" aria-label="Example project structure">
                 <pre><code>{`pages/
-├── index.jsx       → /
-├── about.jsx       → /about
+├── index.tsx       → /
+├── about.tsx       → /about
 └── docs/
-    └── start.jsx   → /docs/start`}</code></pre>
+    └── start.tsx   → /docs/start`}</code></pre>
               </div>
             </div>
 
