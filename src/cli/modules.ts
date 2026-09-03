@@ -1,5 +1,6 @@
+import { createHash } from 'node:crypto'
 import { readFile, realpath, stat } from 'node:fs/promises'
-import { extname, relative, resolve, sep } from 'node:path'
+import { basename, extname, relative, resolve, sep } from 'node:path'
 import { init, parse } from 'es-module-lexer'
 import { transformSync } from 'oxc-transform'
 import { createEsmShResolver } from '../cdn'
@@ -7,7 +8,27 @@ import { sourceExtensions, withBase } from '../project'
 import { getTransformErrorMessage, getTransformOptions } from '../transform'
 import type { HmrUpdate } from './protocol'
 
-export const localExtensions = [...sourceExtensions, '.css']
+export const staticAssetExtensions = [
+  '.avif',
+  '.gif',
+  '.ico',
+  '.jpeg',
+  '.jpg',
+  '.mp3',
+  '.mp4',
+  '.ogg',
+  '.otf',
+  '.pdf',
+  '.png',
+  '.svg',
+  '.ttf',
+  '.wav',
+  '.webm',
+  '.webp',
+  '.woff',
+  '.woff2',
+] as const
+export const localExtensions = [...sourceExtensions, '.css', ...staticAssetExtensions]
 
 type ModuleGraphEntry = {
   dependencies: Set<string>
@@ -18,6 +39,7 @@ export type CompiledProjectModule = {
   code: string
   dependencies: string[]
   refreshBoundary: boolean
+  style: string | undefined
 }
 
 export type CompileProjectModuleOptions = {
@@ -26,10 +48,36 @@ export type CompileProjectModuleOptions = {
   dependencies: Record<string, string>
   cdn: string
   moduleUrl: (projectPath: string) => string
+  assetUrl: (projectPath: string, contents: Buffer) => string
   runtimeModuleUrl: string
   development: boolean
   refresh: boolean
   platform: 'browser' | 'server'
+}
+
+export function isStaticAsset(projectPath: string) {
+  return (staticAssetExtensions as readonly string[]).includes(extname(projectPath).toLowerCase())
+}
+
+export function staticAssetName(projectPath: string, contents: Buffer) {
+  const extension = extname(projectPath).toLowerCase()
+  const name = basename(projectPath, extname(projectPath))
+    .replace(/[^a-zA-Z0-9_-]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'asset'
+  const hash = createHash('sha256').update(contents).digest('hex').slice(0, 10)
+  return `${name}-${hash}${extension}`
+}
+
+export function devAssetUrl(projectPath: string, contents: Buffer, base: string) {
+  const parameters = new URLSearchParams({
+    path: projectPath,
+    v: createHash('sha256').update(contents).digest('hex').slice(0, 10),
+  })
+  return `${withBase(base, '/_jar/asset')}?${parameters}`
+}
+
+export function builtAssetUrl(projectPath: string, contents: Buffer, base: string) {
+  return withBase(base, `/_jar/assets/${staticAssetName(projectPath, contents)}`)
 }
 
 async function fileExists(path: string) {
@@ -47,7 +95,7 @@ function isInside(root: string, path: string) {
 }
 
 async function findSourceFile(path: string) {
-  if (await fileExists(path) && localExtensions.includes(extname(path))) return path
+  if (await fileExists(path) && localExtensions.includes(extname(path).toLowerCase())) return path
   if (extname(path)) return
   for (const extension of localExtensions) {
     if (await fileExists(path + extension)) return path + extension
@@ -78,6 +126,56 @@ async function localImports(projectPath: string, source: string) {
   return imports
 }
 
+function cssAssetSpecifiers(source: string) {
+  const specifiers = new Set<string>()
+  for (const match of source.matchAll(/url\(\s*(?:(["'])(.*?)\1|([^)'"\s][^)]*))\s*\)/g)) {
+    const specifier = (match[2] || match[3] || '').trim()
+    const path = specifier.split(/[?#]/, 1)[0]
+    if (path && !path.startsWith('/') && !path.startsWith('#')
+      && !/^(?:data|https?):/i.test(path)) specifiers.add(specifier)
+  }
+  return specifiers
+}
+
+async function resolveCssAssets(
+  root: string,
+  sourcePath: string,
+  source: string,
+) {
+  const assets = new Map<string, { path: string, projectPath: string, contents: Buffer }>()
+  for (const specifier of cssAssetSpecifiers(source)) {
+    const path = specifier.split(/[?#]/, 1)[0]
+    const assetPath = await resolveProjectSource(root, relative(root, resolve(sourcePath, '..', path)))
+    if (!isStaticAsset(assetPath)) {
+      throw new Error(`CSS URL must reference a static asset: ${specifier}`)
+    }
+    assets.set(specifier, {
+      path: assetPath,
+      projectPath: relative(root, assetPath).split(sep).join('/'),
+      contents: await readFile(assetPath),
+    })
+  }
+  return assets
+}
+
+function rewriteCssAssets(
+  source: string,
+  assets: Map<string, { path: string, projectPath: string, contents: Buffer }>,
+  assetUrl: CompileProjectModuleOptions['assetUrl'],
+) {
+  return source.replace(
+    /url\(\s*(?:(["'])(.*?)\1|([^)'"\s][^)]*))\s*\)/g,
+    (match, _quote: string | undefined, quoted: string | undefined, unquoted: string | undefined) => {
+      const specifier = (quoted || unquoted || '').trim()
+      const asset = assets.get(specifier)
+      if (!asset) return match
+      const path = specifier.split(/[?#]/, 1)[0]
+      const suffix = specifier.slice(path.length)
+      return match.replace(specifier, `${assetUrl(asset.projectPath, asset.contents)}${suffix}`)
+    },
+  )
+}
+
 export async function collectProjectFiles(root: string, entry: string) {
   const projectPaths = new Set<string>()
   const queue = [entry]
@@ -94,9 +192,15 @@ export async function collectProjectFiles(root: string, entry: string) {
 
     const projectPath = relative(root, canonicalPath).split(sep).join('/')
     projectPaths.add(projectPath)
-    if (extname(canonicalPath) === '.css') continue
+    if (isStaticAsset(canonicalPath)) continue
 
     const source = await readFile(canonicalPath, 'utf8')
+    if (extname(canonicalPath) === '.css') {
+      for (const asset of (await resolveCssAssets(root, canonicalPath, source)).values()) {
+        queue.push(asset.path)
+      }
+      continue
+    }
     for (const specifier of await localImports(projectPath, source)) {
       const imported = await findSourceFile(resolve(canonicalPath, '..', specifier))
       if (!imported) {
@@ -160,14 +264,27 @@ export async function compileProjectModule(
 ): Promise<CompiledProjectModule> {
   const sourcePath = await resolveProjectSource(options.root, options.projectPath)
   const projectPath = relative(options.root, sourcePath).split(sep).join('/')
-  const source = await readFile(sourcePath, 'utf8')
+  const contents = await readFile(sourcePath)
+  if (isStaticAsset(sourcePath)) {
+    return {
+      code: `export default ${JSON.stringify(options.assetUrl(projectPath, contents))}\n`,
+      dependencies: [],
+      refreshBoundary: false,
+      style: undefined,
+    }
+  }
+
+  let source = contents.toString('utf8')
   if (extname(sourcePath) === '.css') {
+    const assets = await resolveCssAssets(options.root, sourcePath, source)
+    source = rewriteCssAssets(source, assets, options.assetUrl)
     return {
       code: options.platform === 'browser'
         ? browserCssModule(source, projectPath)
         : serverCssModule(source),
-      dependencies: [],
+      dependencies: [...assets.values()].map(asset => asset.projectPath),
       refreshBoundary: false,
+      style: source,
     }
   }
 
@@ -238,6 +355,7 @@ globalThis.__jarRegisterModule(${JSON.stringify(projectPath)}, import.meta.url, 
     code,
     dependencies: [...new Set(localDependencies)],
     refreshBoundary,
+    style: undefined,
   }
 }
 
@@ -280,12 +398,20 @@ export class DevModuleGraph {
     let reload = false
 
     for (const projectPath of changedFiles) {
-      if (!localExtensions.includes(extname(projectPath))
-        || !this.modules.has(projectPath)) continue
+      if (!localExtensions.includes(extname(projectPath).toLowerCase())
+        || (!this.modules.has(projectPath) && !this.importers.has(projectPath))) continue
       invalidated.add(projectPath)
-      if (extname(projectPath) === '.css') {
+      if (extname(projectPath).toLowerCase() === '.css') {
         cssUpdates.add(projectPath)
         continue
+      }
+      if (isStaticAsset(projectPath)) {
+        for (const importer of this.importers.get(projectPath) || []) {
+          if (extname(importer).toLowerCase() === '.css') {
+            invalidated.add(importer)
+            cssUpdates.add(importer)
+          }
+        }
       }
       const result = this.findRefreshBoundaries(projectPath)
       reload ||= result.reload

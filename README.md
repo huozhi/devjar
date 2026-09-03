@@ -166,9 +166,22 @@ The pages directory maps directly to URLs:
 | `pages/docs/start.tsx` | `/docs/start` |
 | `pages/404.tsx` | unmatched routes |
 
-Pages can import local JavaScript, TypeScript, JSX, TSX, and CSS files. Bare
-imports are loaded from esm.sh using versions in `dependencies` or
-`devDependencies`:
+Pages can import local JavaScript, TypeScript, JSX, TSX, and CSS files. Image,
+font, audio, video, and PDF imports export their public URL, and relative
+`url(...)` references in CSS use the same asset pipeline:
+
+```jsx
+import logo from '../assets/logo.svg'
+import '../styles.css'
+
+export default function Page() {
+  return <img src={logo} alt="Logo" />
+}
+```
+
+Production builds copy imported assets to `_jar/assets/` with content-hashed
+filenames so they can be cached as immutable files. Bare imports are loaded
+from esm.sh using versions in `dependencies` or `devDependencies`:
 
 ```json
 {

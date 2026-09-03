@@ -5,11 +5,16 @@ import { dirname, extname, join, normalize, relative, resolve, sep } from 'node:
 import { fileURLToPath } from 'node:url'
 import { CDN_HOST, createEsmShResolver, normalizeCdnHost } from '../cdn'
 import {
+  builtAssetUrl,
   builtModuleUrl,
   collectProjectFiles,
   compileProjectModule,
+  devAssetUrl,
   DevModuleGraph,
+  isStaticAsset,
   moduleAssetName,
+  staticAssetExtensions,
+  staticAssetName,
 } from './modules'
 import type { HmrChange, RouteEntry, RouteManifest } from './protocol'
 import {
@@ -248,6 +253,7 @@ addEventListener('unhandledrejection', event => showBootstrapError(event.reason?
 }
 
 const contentTypes: Record<string, string> = {
+  '.avif': 'image/avif',
   '.css': 'text/css; charset=utf-8',
   '.gif': 'image/gif',
   '.html': 'text/html; charset=utf-8',
@@ -256,10 +262,18 @@ const contentTypes: Record<string, string> = {
   '.jpg': 'image/jpeg',
   '.js': 'text/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
+  '.mp3': 'audio/mpeg',
+  '.mp4': 'video/mp4',
+  '.ogg': 'audio/ogg',
+  '.otf': 'font/otf',
+  '.pdf': 'application/pdf',
   '.png': 'image/png',
   '.svg': 'image/svg+xml',
   '.txt': 'text/plain; charset=utf-8',
+  '.ttf': 'font/ttf',
   '.wasm': 'application/wasm',
+  '.wav': 'audio/wav',
+  '.webm': 'video/webm',
   '.webp': 'image/webp',
   '.woff': 'font/woff',
   '.woff2': 'font/woff2',
@@ -274,14 +288,15 @@ async function serveFile(
   cacheControl: string,
 ) {
   const path = resolve(root, `.${normalize('/' + requestPath)}`)
-  if (!isInside(root, path) || (allowed && !allowed.has(extname(path)))) return false
+  const extension = extname(path).toLowerCase()
+  if (!isInside(root, path) || (allowed && !allowed.has(extension))) return false
   if (!(await fileExists(path))) return false
   const canonicalRoot = await realpath(root)
   const canonicalPath = await realpath(path)
   if (!isInside(canonicalRoot, canonicalPath)) return false
   const info = await stat(canonicalPath)
   response.writeHead(200, {
-    'Content-Type': contentTypes[extname(path)] || 'application/octet-stream',
+    'Content-Type': contentTypes[extension] || 'application/octet-stream',
     'Content-Length': info.size,
     'Cache-Control': cacheControl,
     ...isolationHeaders,
@@ -367,6 +382,7 @@ export async function startDevServer(options: DevServerOptions) {
             dependencies,
             cdn,
             moduleUrl: modules.moduleUrl,
+            assetUrl: (projectPath, contents) => devAssetUrl(projectPath, contents, base),
             runtimeModuleUrl: withBase(base, '/_jar/runtime.js'),
             development: true,
             refresh: true,
@@ -377,6 +393,18 @@ export async function startDevServer(options: DevServerOptions) {
         } catch (error) {
           send(request, response, 404, 'text/javascript; charset=utf-8', `throw new Error(${JSON.stringify(error instanceof Error ? error.message : String(error))})`)
         }
+        return
+      }
+      if (requestPath === '/_jar/asset') {
+        const projectPath = url.searchParams.get('path')
+        if (!projectPath || !await serveFile(
+          request,
+          response,
+          root,
+          projectPath,
+          new Set(staticAssetExtensions),
+          noStore,
+        )) send(request, response, 404, 'text/plain', 'Not found')
         return
       }
       if (requestPath === '/_jar/runtime.js') {
@@ -650,6 +678,7 @@ export async function buildProject(options: BuildOptions) {
         dependencies,
         devjarDependencies,
         cdn,
+        base,
         runtimeModulePath: join(runtime, 'index.js'),
       })
     : Object.fromEntries([...discovered.routes.keys()].map(route => (
@@ -675,14 +704,21 @@ export async function buildProject(options: BuildOptions) {
   }
   await copyRuntimeAssets(join(outDir, '_jar'))
   const modulesRoot = join(outDir, '_jar/modules')
+  const projectAssetsRoot = join(outDir, '_jar/assets')
   await mkdir(modulesRoot, { recursive: true })
+  await mkdir(projectAssetsRoot, { recursive: true })
   for (const projectPath of projectPaths) {
+    if (isStaticAsset(projectPath)) {
+      const contents = await readFile(join(root, projectPath))
+      await writeFile(join(projectAssetsRoot, staticAssetName(projectPath, contents)), contents)
+    }
     const compiled = await compileProjectModule({
       root,
       projectPath,
       dependencies,
       cdn,
       moduleUrl: projectPath => builtModuleUrl(projectPath, base),
+      assetUrl: (projectPath, contents) => builtAssetUrl(projectPath, contents, base),
       runtimeModuleUrl: withBase(base, '/_jar/runtime.js'),
       development: false,
       refresh: false,

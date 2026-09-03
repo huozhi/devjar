@@ -82,6 +82,7 @@ async function assertPage(page: Page, heading: string, title: string) {
 try {
   await mkdir(packageDirectory, { recursive: true })
   await mkdir(join(projectRoot, 'pages/docs'), { recursive: true })
+  await mkdir(join(projectRoot, 'assets'), { recursive: true })
   const packed = await run(
     'npm',
     ['pack', '--json', '--pack-destination', packageDirectory],
@@ -98,8 +99,10 @@ try {
       'react-dom': '19.2.0',
     },
   }))
-  await writeFile(join(projectRoot, 'pages/index.tsx'), `export default function Page() {
-  return <><title>Package home</title><main><h1>Home</h1><a href="/docs/start">Docs</a></main></>
+  await writeFile(join(projectRoot, 'assets/logo.svg'), '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><circle cx="4" cy="4" r="4" /></svg>')
+  await writeFile(join(projectRoot, 'pages/index.tsx'), `import logo from '../assets/logo.svg'
+export default function Page() {
+  return <><title>Package home</title><main><h1>Home</h1><img src={logo} alt="Logo" /><a href="/docs/start">Docs</a></main></>
 }`)
   await writeFile(join(projectRoot, 'pages/docs/start.tsx'), `export default function Page() {
   return <><title>Package docs</title><main><h1>Docs</h1><a href="/">Home</a></main></>
@@ -135,6 +138,12 @@ try {
   assert.equal(homeResponse?.status(), 200)
   await page.waitForFunction('globalThis.__devjarRenderCount > 0')
   await assertPage(page, 'Home', 'Package home')
+  const logoPath = await page.locator('img[alt="Logo"]').getAttribute('src')
+  assert.match(logoPath || '', /^\/preview\/_jar\/assets\/logo-[a-f0-9]{10}\.svg$/)
+  const logoResponse = await page.request.get(new URL(logoPath!, baseUrl).href)
+  assert.equal(logoResponse.status(), 200)
+  assert.match(logoResponse.headers()['content-type'], /image\/svg\+xml/)
+  assert.equal(logoResponse.headers()['cache-control'], 'public, max-age=31536000, immutable')
 
   const homeRenderCount = await page.evaluate('globalThis.__devjarRenderCount') as number
   await page.locator('a[href="/docs/start"]').click()
