@@ -109,6 +109,7 @@ async function run() {
       root: root || process.cwd(),
       outDir: outDir || 'dist',
       cdn,
+      prerender: true,
     })
     console.log(style(1, 'Devjar build complete'))
     console.log('')

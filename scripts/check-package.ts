@@ -2,6 +2,7 @@ import { cpSync, existsSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { testCdnModule } from './test-cdn'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const packageJson = await Bun.file(join(root, 'package.json')).json()
@@ -26,7 +27,9 @@ const files = new Set<string>(pack.files.map((file: { path: string }) => file.pa
 const required = [
   'dist/bin.js',
   'dist/client.js',
+  'dist/http-loader.mjs',
   'dist/index.js',
+  'dist/prerender-runner.mjs',
   'dist/transform-worker.js',
   'dist/transform.wasm32-wasi.wasm',
 ]
@@ -50,21 +53,44 @@ if (help.exitCode !== 0 || !help.stdout.toString().includes('default: localhost'
 
 const cliProject = mkdtempSync(join(tmpdir(), 'devjar-cli-'))
 cpSync(join(root, 'examples/basic'), cliProject, { recursive: true })
-const build = Bun.spawnSync(['node', 'dist/bin.js', 'build', cliProject], {
-  cwd: root,
-  stderr: 'inherit',
+const cdn = Bun.serve({
+  hostname: '127.0.0.1',
+  port: 0,
+  fetch(request) {
+    return new Response(testCdnModule(new URL(request.url).pathname), {
+      headers: { 'Content-Type': 'text/javascript' },
+    })
+  },
 })
+const build = Bun.spawn([
+  'node',
+  'dist/bin.js',
+  'build',
+  cliProject,
+  '--cdn',
+  `http://127.0.0.1:${cdn.port}`,
+], {
+  cwd: root,
+  stdout: 'pipe',
+  stderr: 'pipe',
+})
+const [buildOutput, buildError, buildExitCode] = await Promise.all([
+  new Response(build.stdout).text(),
+  new Response(build.stderr).text(),
+  build.exited,
+])
+cdn.stop(true)
 const usedDefaultOutput = existsSync(join(cliProject, 'dist', 'manifest.json'))
-const buildOutput = build.stdout.toString()
 rmSync(cliProject, { recursive: true, force: true })
 
 if (
-  build.exitCode !== 0
+  buildExitCode !== 0
   || !usedDefaultOutput
   || !buildOutput.includes('Devjar build complete')
   || !buildOutput.includes('Output  ')
   || !buildOutput.includes('Routes  2')
 ) {
+  if (buildError) console.error(buildError)
   throw new Error('The packaged CLI did not report a completed build in dist')
 }
 
