@@ -552,6 +552,7 @@ function useLiveCode({
 
   useEffect(() => {
     return () => {
+      loadIdRef.current++
       transformWorkerRef.current?.terminate()
       transformWorkerRef.current = undefined
       for (const { reject } of transformRequestsRef.current.values()) {
@@ -695,13 +696,14 @@ function useLiveCode({
           if (!script) throw new Error('devjar: application script was not initialized')
           script.onload = () => {
             renderFiles().catch((err) => {
-              setError(err)
+              if (loadId === loadIdRef.current) setError(err)
             })
           }
         }
       }
-      setError(undefined)
+      if (loadId === loadIdRef.current) setError(undefined)
     } catch (e) {
+      if (loadId !== loadIdRef.current) return
       console.warn(e)
       setError(e)
     }
