@@ -160,7 +160,8 @@ export async function loadRouteManifest(
 
 const isolationHeaders = {
   'Cross-Origin-Opener-Policy': 'same-origin',
-  'Cross-Origin-Embedder-Policy': 'credentialless',
+  // Safari does not support COEP credentialless, which leaves SharedArrayBuffer unavailable.
+  'Cross-Origin-Embedder-Policy': 'require-corp',
 }
 const noStore = 'no-store'
 const immutableAsset = 'public, max-age=31536000, immutable'

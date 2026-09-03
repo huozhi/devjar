@@ -10,6 +10,12 @@ const distDirectory = join(root, 'dist')
 const assetsDirectory = join(distDirectory, 'assets')
 const stagingDirectory = await mkdtemp(join(tmpdir(), 'devjar-transform-assets-'))
 
+function replaceRequired(source: string, search: string, replacement: string, description: string) {
+  const contents = source.replace(search, replacement)
+  if (contents === source) throw new Error(`Unable to patch ${description}`)
+  return contents
+}
+
 try {
   const result = await Bun.build({
     entrypoints: [
@@ -28,19 +34,56 @@ try {
         setup(build) {
           build.onLoad({ filter: /transform\.wasi-browser\.js$/ }, async ({ path }) => {
             const source = await Bun.file(path).text()
-            const contents = source
-              .replace(
-                "new URL('./transform.wasm32-wasi.wasm', import.meta.url).href",
-                'globalThis.__devjarOxcWasmUrl',
-              )
-              .replace(
-                "new URL('@oxc-transform/binding-wasm32-wasi/wasi-worker-browser.mjs', import.meta.url)",
-                'globalThis.__devjarOxcWasiWorkerUrl',
-              )
+            const wasmContents = replaceRequired(
+              source,
+              "new URL('./transform.wasm32-wasi.wasm', import.meta.url).href",
+              'globalThis.__devjarOxcWasmUrl',
+              'Oxc WASM asset URL',
+            )
+            const contents = replaceRequired(
+              wasmContents,
+              "new URL('@oxc-transform/binding-wasm32-wasi/wasi-worker-browser.mjs', import.meta.url)",
+              'globalThis.__devjarOxcWasiWorkerUrl',
+              'Oxc WASI worker asset URL',
+            )
 
-            if (contents === source) {
-              throw new Error('Unable to patch Oxc browser asset URLs')
-            }
+            return { contents, loader: 'js' }
+          })
+
+          build.onLoad({ filter: /@emnapi\/wasi-threads\/dist\/wasi-threads\.js$/ }, async ({ path }) => {
+            const source = await Bun.file(path).text()
+            // Safari cannot clone a compiled WebAssembly.Module to a worker.
+            // Send the clone-safe asset URL and compile it in each WASI worker.
+            const contents = replaceRequired(
+              source,
+              'wasmModule: this.wasmModule,',
+              'wasmModule: globalThis.__devjarOxcWasmUrl ?? this.wasmModule,',
+              'Oxc WASM worker payload',
+            )
+
+            return { contents, loader: 'js' }
+          })
+
+          build.onLoad({ filter: /wasi-worker-browser\.mjs$/ }, async ({ path }) => {
+            const source = await Bun.file(path).text()
+            const contents = replaceRequired(
+              source,
+              `  onLoad({ wasmModule, wasmMemory }) {
+    const wasi`,
+              `  async onLoad({ wasmModule, wasmMemory }) {
+    if (typeof wasmModule === 'string') {
+      const response = await fetch(wasmModule)
+      if (!response.ok) {
+        throw new Error(
+          \`devjar: Failed to load WASM module: \${response.status} \${response.statusText}\`,
+        )
+      }
+      wasmModule = await response.arrayBuffer()
+    }
+
+    const wasi`,
+              'Oxc WASI worker module loader',
+            )
 
             return { contents, loader: 'js' }
           })
