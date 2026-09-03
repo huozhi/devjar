@@ -5,7 +5,12 @@ import { extname, join, relative, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { promisify } from 'node:util'
 import { createEsmShResolver } from '../cdn'
-import { collectProjectFiles, compileProjectModule, moduleAssetName } from './modules'
+import {
+  builtAssetUrl,
+  collectProjectFiles,
+  compileProjectModule,
+  moduleAssetName,
+} from './modules'
 
 type PrerenderOptions = {
   root: string
@@ -13,6 +18,7 @@ type PrerenderOptions = {
   dependencies: Record<string, string>
   devjarDependencies: Record<string, string>
   cdn: string
+  base: string
   runtimeModulePath: string
 }
 
@@ -54,6 +60,7 @@ export async function prerender(options: PrerenderOptions) {
   try {
     const projectFiles = new Set<string>()
     const routeFiles = new Map<string, Set<string>>()
+    const projectStyles = new Map<string, string>()
     for (const [route, entry] of options.routes) {
       const files = await collectProjectFiles(options.root, entry)
       routeFiles.set(route, files)
@@ -67,12 +74,18 @@ export async function prerender(options: PrerenderOptions) {
         dependencies: options.dependencies,
         cdn: options.cdn,
         moduleUrl: importedPath => `./${serverModuleName(importedPath)}`,
+        assetUrl: (projectPath, contents) => builtAssetUrl(
+          projectPath,
+          contents,
+          options.base,
+        ),
         runtimeModuleUrl: pathToFileURL(options.runtimeModulePath).href,
         development: false,
         refresh: false,
         platform: 'server',
       })
       await writeFile(join(temporaryRoot, serverModuleName(projectPath)), compiled.code)
+      if (compiled.style !== undefined) projectStyles.set(projectPath, compiled.style)
     }
 
     const outputPath = join(temporaryRoot, 'rendered.json')
@@ -113,7 +126,7 @@ export async function prerender(options: PrerenderOptions) {
       const styles: string[] = []
       for (const projectPath of files) {
         if (extname(projectPath) === '.css') {
-          styles.push(await readFile(join(options.root, projectPath), 'utf8'))
+          styles.push(projectStyles.get(projectPath)!)
         }
       }
       result[route] = { ...rendered[route], styles: styles.join('\n') }

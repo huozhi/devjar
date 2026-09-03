@@ -128,6 +128,7 @@ describe('project loading', () => {
       dependencies: { react: '19.2.0' },
       cdn: 'https://modules.example.test/',
       moduleUrl: testModuleUrl,
+      assetUrl: () => '/assets/test',
       runtimeModuleUrl: '/_jar/runtime.js',
       development: true,
       refresh: false,
@@ -233,6 +234,7 @@ describe('project loading', () => {
         dependencies: {},
         cdn: CDN_HOST,
         moduleUrl: testModuleUrl,
+        assetUrl: () => '/assets/test',
         runtimeModuleUrl: '/_jar/runtime.js',
         development: true,
         refresh: false,
@@ -357,10 +359,14 @@ describe('dev server', () => {
     const projectRoot = await mkdtemp(join(tmpdir(), 'devjar-hmr-'))
     await mkdir(join(projectRoot, 'pages'))
     await mkdir(join(projectRoot, 'components'))
+    await writeFile(join(projectRoot, 'components/icon.svg'), '<svg><title>Icon</title></svg>')
+    await writeFile(join(projectRoot, 'styles.css'), `.hero { background: url('./components/icon.svg'); }`)
     await writeFile(
       join(projectRoot, 'pages/index.tsx'),
       `import { Card } from '../components/card'
-export default function Page() { return <Card /> }`,
+import icon from '../components/icon.svg'
+import '../styles.css'
+export default function Page() { return <><img className="hero" src={icon} /><Card /></> }`,
     )
     const cardPath = join(projectRoot, 'components/card.tsx')
     await writeFile(cardPath, `export function Card() { return <p>one</p> }`)
@@ -379,9 +385,22 @@ export default function Page() { return <Card /> }`,
       const routes = await (await fetch(`${base}/_jar/routes.json`)).json()
       const pageModule = await (await fetch(`${base}${routes.routes['/'].module}`)).text()
       const cardModuleUrl = pageModule.match(/\/_jar\/module\?path=components%2Fcard\.tsx/)?.[0]
+      const assetModuleUrl = pageModule.match(/\/_jar\/module\?path=components%2Ficon\.svg/)?.[0]
+      const cssModuleUrl = pageModule.match(/\/_jar\/module\?path=styles\.css/)?.[0]
       expect(cardModuleUrl).toBeDefined()
+      expect(assetModuleUrl).toBeDefined()
+      expect(cssModuleUrl).toBeDefined()
       const cardModule = await (await fetch(`${base}${cardModuleUrl}`)).text()
       expect(cardModule).toContain('__jarRegisterModule')
+      const assetModule = await (await fetch(`${base}${assetModuleUrl}`)).text()
+      const assetUrl = assetModule.match(/"(\/_jar\/asset\?path=components%2Ficon\.svg&v=[a-f0-9]{10})"/)?.[1]
+      expect(assetUrl).toBeDefined()
+      const asset = await fetch(`${base}${assetUrl}`)
+      expect(asset.headers.get('content-type')).toContain('image/svg+xml')
+      expect(asset.headers.get('cache-control')).toBe('no-store')
+      expect(await asset.text()).toContain('<title>Icon</title>')
+      const cssModule = await (await fetch(`${base}${cssModuleUrl}`)).text()
+      expect(cssModule).toContain('/_jar/asset?path=components%2Ficon.svg')
 
       const eventResponse = await fetch(`${base}/_jar/events`)
       reader = eventResponse.body!.getReader()
@@ -404,6 +423,33 @@ export default function Page() { return <Card /> }`,
           type: 'refresh',
           url: '/_jar/module?path=components%2Fcard.tsx&v=1',
         }],
+      })
+
+      await writeFile(join(projectRoot, 'components/icon.svg'), '<svg><title>Updated</title></svg>')
+      const assetChange = await Promise.race([
+        readChangeEvent(reader),
+        new Promise<never>((_resolve, reject) => {
+          setTimeout(() => reject(new Error('Timed out waiting for asset HMR update')), 2_000)
+        }),
+      ])
+      const { timestamp: assetTimestamp, ...assetChangeWithoutTimestamp } = assetChange
+      expect(assetTimestamp).toBeNumber()
+      expect(assetChangeWithoutTimestamp).toEqual({
+        revision: routes.revision + 2,
+        reload: false,
+        routes: false,
+        updates: [
+          {
+            path: 'styles.css',
+            type: 'css',
+            url: '/_jar/module?path=styles.css&v=1',
+          },
+          {
+            path: 'pages/index.tsx',
+            type: 'refresh',
+            url: '/_jar/module?path=pages%2Findex.tsx&v=1',
+          },
+        ],
       })
     } finally {
       await reader?.cancel()
@@ -536,18 +582,20 @@ describe('static export', () => {
     try {
       await mkdir(join(projectRoot, 'pages'))
       await mkdir(join(projectRoot, 'pages/guides'))
+      await mkdir(join(projectRoot, 'assets'))
       await writeFile(join(projectRoot, 'package.json'), JSON.stringify({
         dependencies: { react: '19.2.0', 'react-dom': '19.2.0' },
       }))
       await writeFile(
         join(projectRoot, 'pages/index.tsx'),
         `import '../styles.css'
+import logo from '../assets/logo.svg'
 import { DevJar } from 'devjar'
 export default function Page() {
   return <>
     <title>Static title</title>
     <meta name="description" content="Static description" />
-    <main className="page"><h1>Static now</h1><DevJar files={{ 'pages/index.jsx': 'export default function Page() {}' }} /></main>
+    <main className="page"><h1>Static now</h1><img src={logo} alt="Logo" /><DevJar files={{ 'pages/index.jsx': 'export default function Page() {}' }} /></main>
   </>
 }`,
       )
@@ -559,7 +607,14 @@ export default function Page() {
         join(projectRoot, 'pages/404.tsx'),
         `export default function NotFound() { return <h1>Static not found</h1> }`,
       )
-      await writeFile(join(projectRoot, 'styles.css'), '.page { color: black; }')
+      await writeFile(
+        join(projectRoot, 'styles.css'),
+        `.page { color: black; background-image: url('./assets/background.png'); }
+@font-face { font-family: Body; src: url("./assets/body.woff2?#iefix") format("woff2"); }`,
+      )
+      await writeFile(join(projectRoot, 'assets/logo.svg'), '<svg><circle r="4" /></svg>')
+      await writeFile(join(projectRoot, 'assets/background.png'), Buffer.from('background'))
+      await writeFile(join(projectRoot, 'assets/body.woff2'), Buffer.from('font'))
 
       const result = await buildProject({
         root: projectRoot,
@@ -573,8 +628,10 @@ export default function Page() {
       expect(document).toContain('<title>Static title</title><meta name="description" content="Static description">')
       expect(document).not.toContain('<div id="__reactRoot"><title>')
       expect(document).toContain('<main class="page"><h1>Static now</h1>')
+      expect(document).toMatch(/<img src="\/_jar\/assets\/logo-[a-f0-9]{10}\.svg" alt="Logo"/)
       expect(document).toContain('<iframe')
-      expect(document).toContain('<style data-devjar-static>.page { color: black; }</style>')
+      expect(document).toMatch(/background-image: url\('\/_jar\/assets\/background-[a-f0-9]{10}\.png'\)/)
+      expect(document).toMatch(/src: url\("\/_jar\/assets\/body-[a-f0-9]{10}\.woff2\?#iefix"\)/)
       expect(document).toContain('<div id="__reactRoot">')
       const aboutDocument = await readFile(join(result.outDir, 'guides/about/index.html'), 'utf8')
       expect(aboutDocument).toContain('<title>About title</title>')
@@ -590,6 +647,10 @@ export default function Page() {
       const pageModule = await readFile(join(result.outDir, manifest.routes['/'].module), 'utf8')
       expect(pageModule).toContain('/_jar/runtime.js')
       expect(pageModule).not.toContain(`${address.port}/devjar`)
+      const assetFiles = await readdir(join(result.outDir, '_jar/assets'))
+      expect(assetFiles.some(file => /^logo-[a-f0-9]{10}\.svg$/.test(file))).toBe(true)
+      expect(assetFiles.some(file => /^background-[a-f0-9]{10}\.png$/.test(file))).toBe(true)
+      expect(assetFiles.some(file => /^body-[a-f0-9]{10}\.woff2$/.test(file))).toBe(true)
     } finally {
       await new Promise<void>(resolvePromise => cdn.close(() => resolvePromise()))
       await rm(projectRoot, { recursive: true, force: true })
