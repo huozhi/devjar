@@ -6,8 +6,8 @@ import { testCdnModule } from './test-cdn'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const packageJson = await Bun.file(join(root, 'package.json')).json()
-if (packageJson.bin?.devjar !== './dist/bin.js') {
-  throw new Error('package.json must expose dist/bin.js as the devjar binary')
+if (packageJson.bin?.jar !== './dist/bin.js') {
+  throw new Error('package.json must expose dist/bin.js as the jar binary')
 }
 
 const cache = mkdtempSync(join(tmpdir(), 'devjar-npm-cache-'))
