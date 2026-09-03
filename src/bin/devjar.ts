@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { buildProject, startBuiltServer, startDevServer } from '../cli'
+import { buildProject, startBuiltServer, startDevServer } from '../cli/index'
 
 type Command = 'dev' | 'build' | 'start'
 

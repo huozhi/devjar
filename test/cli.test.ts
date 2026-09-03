@@ -1,17 +1,17 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
-import { cp, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { init, parse } from 'es-module-lexer'
 import {
   buildProject,
-  compileProjectModule,
   loadRouteManifest,
   startBuiltServer,
   startDevServer,
-} from '../src/cli'
-import { CDN_HOST, createEsmShResolver } from '../src/_cdn'
+} from '../src/cli/index'
+import { CDN_HOST, createEsmShResolver } from '../src/cdn'
 import { replaceImports } from '../src/core'
+import { compileProjectModule } from '../src/cli/modules'
 import { getTailwindBrowserUrl } from '../src/tailwind'
 
 const root = resolve(import.meta.dir, '../examples/basic')
@@ -84,15 +84,15 @@ describe('project loading', () => {
   })
 
   test('uses a custom module CDN', async () => {
-    const code = await compileProjectModule(
+    const compiled = await compileProjectModule({
       root,
-      'pages/about.tsx',
-      { react: '19.2.0' },
-      'https://modules.example.test/',
-      testModuleUrl,
-      false,
-    )
-    expect(code.code).toContain('https://modules.example.test/react@19.2.0/jsx-dev-runtime?dev')
+      projectPath: 'pages/about.tsx',
+      dependencies: { react: '19.2.0' },
+      cdn: 'https://modules.example.test/',
+      moduleUrl: testModuleUrl,
+      refresh: false,
+    })
+    expect(compiled.code).toContain('https://modules.example.test/react@19.2.0/jsx-dev-runtime?dev')
   })
 
   test('loads the hosted dashboard example and its 404 page', async () => {
@@ -121,15 +121,15 @@ describe('project loading', () => {
         `export const loadCard = () => import('../components/card')`,
       )
       await writeFile(join(projectRoot, 'components/card.tsx'), 'export default function Card() {}')
-      const code = await compileProjectModule(
-        await realpath(projectRoot),
-        'pages/index.tsx',
-        {},
-        CDN_HOST,
-        testModuleUrl,
-        false,
-      )
-      expect(code.code).toContain(`import("/modules/components/card.tsx")`)
+      const compiled = await compileProjectModule({
+        root: await realpath(projectRoot),
+        projectPath: 'pages/index.tsx',
+        dependencies: {},
+        cdn: CDN_HOST,
+        moduleUrl: testModuleUrl,
+        refresh: false,
+      })
+      expect(compiled.code).toContain(`import("/modules/components/card.tsx")`)
     } finally {
       await rm(projectRoot, { recursive: true, force: true })
     }
@@ -300,7 +300,8 @@ describe('production build', () => {
     const builtHtml = await readFile(join(buildRoot, 'index.html'), 'utf8')
     expect(builtHtml).toContain('data-devjar-tailwind')
     expect(builtHtml).not.toContain('react-refresh')
-    expect(await readFile(join(buildRoot, '__devjar/_cdn.js'), 'utf8')).toContain('createEsmShResolver')
+    const runtimeFiles = await readdir(join(buildRoot, '__devjar'))
+    expect(runtimeFiles.some(file => /^cdn-.+\.js$/.test(file))).toBe(true)
     expect(await readFile(join(buildRoot, 'api/projects.json'), 'utf8')).toContain('Mobile refresh')
     expect(await readFile(join(buildRoot, 'public/mark.svg'), 'utf8')).toContain('<svg')
   })

@@ -24,7 +24,6 @@ if (result.exitCode !== 0) process.exit(result.exitCode)
 const pack = JSON.parse(result.stdout.toString())[0]
 const files = new Set<string>(pack.files.map((file: { path: string }) => file.path))
 const required = [
-  'dist/_cdn.js',
   'dist/bin.js',
   'dist/client.js',
   'dist/index.js',
@@ -32,8 +31,10 @@ const required = [
   'dist/transform.wasm32-wasi.wasm',
 ]
 const missing = required.filter(file => !files.has(file))
+const hasCdnChunk = [...files].some(file => /^dist\/cdn-.+\.js$/.test(file))
 
-if (missing.length) {
+if (missing.length || !hasCdnChunk) {
+  if (!hasCdnChunk) missing.push('dist/cdn-<hash>.js')
   throw new Error(`Package is missing required files: ${missing.join(', ')}`)
 }
 

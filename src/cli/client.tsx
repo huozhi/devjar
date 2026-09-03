@@ -1,61 +1,12 @@
 import React, { Component, type ElementType, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { createHotUpdater } from './hmr'
+import type { HmrChange, RouteEntry, RouteManifest } from './protocol'
 
 performance.mark('devjar:client-start')
 
-type RouteEntry = {
-  module: string
-  page: string
-}
-
-type RouteManifest = {
-  version: 2
-  liveReload: boolean
-  revision: number
-  routes: Record<string, RouteEntry>
-  notFound: RouteEntry | undefined
-}
-
 type RouteModule = {
   default?: unknown
-}
-
-type ModuleExports = Record<string, unknown>
-
-type RefreshRuntime = {
-  createSignatureFunctionForTransform: (...args: unknown[]) => unknown
-  injectIntoGlobalHook: (target: typeof globalThis) => void
-  isLikelyComponentType: (value: unknown) => boolean
-  performReactRefresh: () => unknown
-  register: (type: unknown, id: string) => void
-}
-
-type HmrUpdate = {
-  path: string
-  url: string
-  type: 'css' | 'refresh'
-}
-
-type HmrChange = {
-  revision: number
-  reload: boolean
-  routes: boolean
-  timestamp: number
-  updates: HmrUpdate[]
-}
-
-type RegisteredModule = {
-  exports: ModuleExports
-  url: string
-}
-
-declare global {
-  var __devjarRefreshRuntime: RefreshRuntime
-  var __devjarRegisterModule: (
-    path: string,
-    url: string,
-    exports: ModuleExports,
-  ) => void
 }
 
 type ErrorBoundaryProps = {
@@ -108,13 +59,6 @@ let loadRevision = 0
 let renderRevision = 0
 let routeManifest: RouteManifest
 const routeModules = new Map<string, Promise<RouteModule>>()
-const registeredModules = new Map<string, RegisteredModule>()
-const pendingModules = new Map<string, {
-  previous: RegisteredModule
-  next: RegisteredModule
-}>()
-const refreshRuntime = globalThis.__devjarRefreshRuntime as RefreshRuntime | undefined
-let hmrQueue = Promise.resolve()
 
 function normalizeRoute(route: string) {
   const cleanRoute = route.replace(/^\/+|\/+$/g, '')
@@ -143,86 +87,6 @@ function importRoute(entry: RouteEntry) {
     promise.catch(() => routeModules.delete(entry.module))
   }
   return promise
-}
-
-function isRefreshRuntime(value: unknown): value is RefreshRuntime {
-  if (typeof value !== 'object' || value === null) return false
-  return 'injectIntoGlobalHook' in value
-    && typeof value.injectIntoGlobalHook === 'function'
-    && 'isLikelyComponentType' in value
-    && typeof value.isLikelyComponentType === 'function'
-    && 'performReactRefresh' in value
-    && typeof value.performReactRefresh === 'function'
-    && 'register' in value
-    && typeof value.register === 'function'
-}
-
-function installModuleRegistration() {
-  if (!refreshRuntime) return
-  if (!isRefreshRuntime(refreshRuntime)) throw new Error('Devjar could not load React Refresh')
-  globalThis.__devjarRegisterModule = (path, url, exports) => {
-    for (const [name, value] of Object.entries(exports)) {
-      if (refreshRuntime.isLikelyComponentType(value)) {
-        refreshRuntime.register(value, `${path} export ${name}`)
-      }
-    }
-    const next = { exports, url }
-    const previous = registeredModules.get(path)
-    registeredModules.set(path, next)
-    if (previous && previous.url !== url) {
-      pendingModules.set(path, { previous, next })
-    }
-  }
-}
-
-function acceptsRefresh(path: string) {
-  if (!refreshRuntime) return false
-  const update = pendingModules.get(path)
-  if (!update) return false
-  const previousNames = Object.keys(update.previous.exports)
-  const nextNames = Object.keys(update.next.exports)
-  if (previousNames.length !== nextNames.length) return false
-  if (previousNames.some(name => !Object.prototype.hasOwnProperty.call(update.next.exports, name))) return false
-  return nextNames.every(name => (
-    refreshRuntime.isLikelyComponentType(update.previous.exports[name])
-    && refreshRuntime.isLikelyComponentType(update.next.exports[name])
-  ))
-}
-
-async function applyHmrChange(change: HmrChange) {
-  const start = performance.now()
-  if (change.reload) {
-    location.reload()
-    return
-  }
-  if (change.routes) routeManifest = await getRouteManifest(change.revision)
-  if (!change.updates.length) return
-
-  pendingModules.clear()
-  const refreshUpdates: HmrUpdate[] = []
-  for (const update of change.updates) {
-    await import(/* webpackIgnore: true */ /* @vite-ignore */ update.url)
-    if (update.type === 'refresh') refreshUpdates.push(update)
-  }
-  if (refreshUpdates.some(update => !acceptsRefresh(update.path))) {
-    location.reload()
-    return
-  }
-  if (refreshUpdates.length) {
-    if (!refreshRuntime) {
-      location.reload()
-      return
-    }
-    refreshRuntime.performReactRefresh()
-    hideError()
-    dispatchEvent(new CustomEvent('devjar:render', {
-      detail: {
-        duration: performance.now() - start,
-        totalDuration: Date.now() - change.timestamp,
-        updates: change.updates,
-      },
-    }))
-  }
 }
 
 function preloadRoute(route: string) {
@@ -327,8 +191,19 @@ function preloadNavigation(event: Event) {
 }
 
 async function start() {
-  installModuleRegistration()
   routeManifest = await getRouteManifest(0)
+  const hotUpdater = routeManifest.liveReload
+    ? createHotUpdater({
+        refreshRuntime: globalThis.__devjarRefreshRuntime,
+        reloadRoutes: async revision => {
+          routeManifest = await getRouteManifest(revision)
+        },
+        onRefresh: detail => {
+          hideError()
+          dispatchEvent(new CustomEvent('devjar:render', { detail }))
+        },
+      })
+    : undefined
   document.addEventListener('click', navigate)
   document.addEventListener('pointerover', preloadNavigation)
   document.addEventListener('focusin', preloadNavigation)
@@ -337,11 +212,11 @@ async function start() {
   })
 
   await load(location.pathname)
-  if (routeManifest.liveReload) {
+  if (hotUpdater) {
     const events = new EventSource('/__devjar/events')
     events.addEventListener('change', event => {
       const change = JSON.parse((event as MessageEvent).data) as HmrChange
-      hmrQueue = hmrQueue.then(() => applyHmrChange(change)).catch(showError)
+      hotUpdater.enqueue(change, showError)
     })
   }
 }

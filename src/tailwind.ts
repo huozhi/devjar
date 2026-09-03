@@ -1,4 +1,4 @@
-import { createEsmShResolver } from './_cdn'
+import { createEsmShResolver } from './cdn'
 
 export function getTailwindBrowserUrl(
   dependencies: Record<string, string>,

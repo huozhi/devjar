@@ -2,7 +2,7 @@ import { useEffect, useCallback, useState, useId, useMemo, useRef } from 'react'
 import { createModule } from './module'
 import type { ModuleRuntime } from './module'
 import { init, parse } from 'es-module-lexer'
-import { CDN_HOST, createEsmShResolver } from './_cdn'
+import { CDN_HOST, createEsmShResolver } from './cdn'
 
 type ResolveModule = (specifier: string) => string
 type RenderFunction = (

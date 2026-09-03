@@ -1,61 +1,26 @@
-import { createReadStream } from 'node:fs'
+import { createReadStream, watch } from 'node:fs'
 import { cp, mkdir, readdir, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { dirname, extname, join, normalize, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { watch } from 'node:fs'
-import { transformSync } from 'oxc-transform'
-import { init, parse } from 'es-module-lexer'
-import { CDN_HOST, createEsmShResolver, normalizeCdnHost } from './_cdn'
-import { getTailwindBrowserUrl } from './tailwind'
-import { getTransformErrorMessage, getTransformOptions } from './_transform'
+import { CDN_HOST, createEsmShResolver, normalizeCdnHost } from '../cdn'
+import {
+  builtModuleUrl,
+  collectProjectFiles,
+  compileProjectModule,
+  DevModuleGraph,
+  moduleAssetName,
+  sourceExtensions,
+} from './modules'
+import type { HmrChange, RouteEntry, RouteManifest } from './protocol'
+import { getTailwindBrowserUrl } from '../tailwind'
 
-const sourceExtensions = ['.tsx', '.ts', '.jsx', '.js']
-const localExtensions = [...sourceExtensions, '.css']
 type PackageJson = {
   dependencies?: Record<string, string>
   devDependencies?: Record<string, string>
   devjar?: {
     cdn?: string
   }
-}
-
-type RouteEntry = {
-  module: string
-  page: string
-}
-
-type RouteManifest = {
-  version: 2
-  liveReload: boolean
-  revision: number
-  routes: Record<string, RouteEntry>
-  notFound: RouteEntry | undefined
-}
-
-type ModuleGraphEntry = {
-  dependencies: Set<string>
-  refreshBoundary: boolean
-}
-
-export type CompiledProjectModule = {
-  code: string
-  dependencies: string[]
-  refreshBoundary: boolean
-}
-
-type HmrUpdate = {
-  path: string
-  url: string
-  type: 'css' | 'refresh'
-}
-
-type HmrChange = {
-  revision: number
-  reload: boolean
-  routes: boolean
-  timestamp: number
-  updates: HmrUpdate[]
 }
 
 export type DevServerOptions = {
@@ -115,62 +80,12 @@ async function runtimeRoot() {
   const moduleRoot = fileURLToPath(new URL('.', import.meta.url))
   return await fileExists(join(moduleRoot, 'index.js'))
     ? moduleRoot
-    : resolve(moduleRoot, '../dist')
+    : resolve(moduleRoot, '../../dist')
 }
 
 function normalizeRoute(route: string) {
   const cleanRoute = route.replace(/^\/+|\/+$/g, '')
   return cleanRoute ? `/${cleanRoute}` : '/'
-}
-
-async function findSourceFile(path: string) {
-  if (await fileExists(path) && localExtensions.includes(extname(path))) return path
-  if (!extname(path)) {
-    for (const extension of localExtensions) {
-      if (await fileExists(path + extension)) return path + extension
-    }
-    for (const extension of localExtensions) {
-      const indexPath = join(path, `index${extension}`)
-      if (await fileExists(indexPath)) return indexPath
-    }
-  }
-}
-
-function localImports(source: string) {
-  const imports = new Set<string>()
-  const pattern = /(?:import\s+(?:[^'";]*?\s+from\s*)?|export\s+[^'";]*?\s+from\s*|import\s*\()(['"])(\.{1,2}\/[^'"]+)\1/g
-  for (const match of source.matchAll(pattern)) imports.add(match[2])
-  return [...imports]
-}
-
-async function collectFiles(root: string, entry: string) {
-  const files: Record<string, string> = {}
-  const queue = [entry]
-  const visited = new Set<string>()
-
-  while (queue.length) {
-    const path = queue.shift()!
-    const canonicalPath = await realpath(path)
-    if (!isInside(root, canonicalPath)) {
-      throw new Error(`Local import escapes the project root: ${relative(root, path)}`)
-    }
-    if (visited.has(canonicalPath)) continue
-    visited.add(canonicalPath)
-
-    const source = await readFile(canonicalPath, 'utf8')
-    const projectPath = relative(root, canonicalPath).split(sep).join('/')
-    files[`./${projectPath}`] = source
-    if (extname(canonicalPath) === '.css') continue
-
-    for (const specifier of localImports(source)) {
-      const imported = await findSourceFile(resolve(canonicalPath, '..', specifier))
-      if (!imported) {
-        throw new Error(`Cannot resolve ${specifier} imported by ${projectPath}`)
-      }
-      queue.push(imported)
-    }
-  }
-  return files
 }
 
 async function readPackage(root: string): Promise<PackageJson> {
@@ -218,187 +133,6 @@ export async function loadRouteManifest(
       ? { module: options.moduleUrl(notFoundPath), page: notFoundPath }
       : undefined,
   }
-}
-
-function devModuleUrl(projectPath: string, revision: number) {
-  const parameters = new URLSearchParams({ path: projectPath })
-  if (revision) parameters.set('v', String(revision))
-  return `/__devjar/module?${parameters}`
-}
-
-function moduleAssetName(projectPath: string) {
-  return `${Buffer.from(projectPath).toString('base64url')}.js`
-}
-
-function builtModuleUrl(projectPath: string) {
-  return `/__devjar/modules/${moduleAssetName(projectPath)}`
-}
-
-function cssModule(source: string, projectPath: string) {
-  return `const sheet = new CSSStyleSheet()
-sheet.replaceSync(${JSON.stringify(source)})
-globalThis.__devjarStyleSheets ||= new Map()
-const previous = globalThis.__devjarStyleSheets.get(${JSON.stringify(projectPath)})
-const sheets = [...document.adoptedStyleSheets]
-const index = sheets.indexOf(previous)
-if (index < 0) sheets.push(sheet)
-else sheets[index] = sheet
-document.adoptedStyleSheets = sheets
-globalThis.__devjarStyleSheets.set(${JSON.stringify(projectPath)}, sheet)
-export default sheet
-`
-}
-
-async function resolveProjectSource(root: string, projectPath: string) {
-  const requestedPath = resolve(root, projectPath)
-  if (!isInside(root, requestedPath)) {
-    throw new Error(`Local module escapes the project root: ${projectPath}`)
-  }
-  const sourcePath = await findSourceFile(requestedPath)
-  if (!sourcePath) throw new Error(`Module not found: ${projectPath}`)
-  const canonicalPath = await realpath(sourcePath)
-  if (!isInside(root, canonicalPath)) {
-    throw new Error(`Local module escapes the project root: ${projectPath}`)
-  }
-  return canonicalPath
-}
-
-export async function compileProjectModule(
-  root: string,
-  projectPath: string,
-  dependencies: Record<string, string>,
-  cdn: string,
-  moduleUrl: (projectPath: string) => string,
-  refresh: boolean,
-): Promise<CompiledProjectModule> {
-  const sourcePath = await resolveProjectSource(root, projectPath)
-  const canonicalProjectPath = relative(root, sourcePath).split(sep).join('/')
-  const source = await readFile(sourcePath, 'utf8')
-  if (extname(sourcePath) === '.css') {
-    return {
-      code: cssModule(source, canonicalProjectPath),
-      dependencies: [],
-      refreshBoundary: false,
-    }
-  }
-
-  const output = transformSync(
-    canonicalProjectPath,
-    source,
-    getTransformOptions(canonicalProjectPath, refresh),
-  )
-  const error = getTransformErrorMessage(output.errors)
-  if (error) throw new Error(error)
-
-  await init
-  const [imports, exports] = parse(output.code)
-  const replacements: Array<{ start: number, end: number, value: string }> = []
-  const localDependencies: string[] = []
-  const resolveModule = createEsmShResolver(dependencies, cdn)
-  for (const imported of imports) {
-    if (!imported.n) continue
-    let value: string
-    if (imported.n.startsWith('./') || imported.n.startsWith('../')) {
-      const importedPath = await resolveProjectSource(
-        root,
-        relative(root, resolve(sourcePath, '..', imported.n)),
-      )
-      const importedProjectPath = relative(root, importedPath).split(sep).join('/')
-      value = moduleUrl(importedProjectPath)
-      localDependencies.push(importedProjectPath)
-    } else {
-      value = resolveModule(imported.n)
-    }
-    replacements.push({
-      start: imported.s,
-      end: imported.e,
-      value: imported.d >= 0 ? JSON.stringify(value) : value,
-    })
-  }
-
-  let code = output.code
-  for (const replacement of replacements.reverse()) {
-    code = code.slice(0, replacement.start) + replacement.value + code.slice(replacement.end)
-  }
-
-  const refreshNames = new Set(
-    [...output.code.matchAll(/\$RefreshReg\$\([^,]+,\s*["']([^"']+)["']\)/g)]
-      .map(match => match[1]),
-  )
-  const refreshBoundary = refresh
-    && exports.length > 0
-    && exports.every(exported => Boolean(exported.ln && refreshNames.has(exported.ln)))
-  if (refresh) {
-    const registeredExports = exports
-      .filter(exported => exported.ln)
-      .map(exported => `${JSON.stringify(exported.n)}: ${exported.ln}`)
-      .join(', ')
-    code = `const $RefreshReg$ = (type, id) => globalThis.__devjarRefreshRuntime.register(type, ${JSON.stringify(`${canonicalProjectPath} `)} + id)
-const $RefreshSig$ = globalThis.__devjarRefreshRuntime.createSignatureFunctionForTransform
-${code}
-globalThis.__devjarRegisterModule(${JSON.stringify(canonicalProjectPath)}, import.meta.url, { ${registeredExports} })
-`
-  }
-  return {
-    code,
-    dependencies: [...new Set(localDependencies)],
-    refreshBoundary,
-  }
-}
-
-function updateModuleGraph(
-  graph: Map<string, ModuleGraphEntry>,
-  importers: Map<string, Set<string>>,
-  projectPath: string,
-  compiled: CompiledProjectModule,
-) {
-  const previous = graph.get(projectPath)
-  for (const dependency of previous?.dependencies || []) {
-    importers.get(dependency)?.delete(projectPath)
-  }
-
-  const dependencies = new Set(compiled.dependencies)
-  graph.set(projectPath, {
-    dependencies,
-    refreshBoundary: compiled.refreshBoundary,
-  })
-  for (const dependency of dependencies) {
-    let dependencyImporters = importers.get(dependency)
-    if (!dependencyImporters) {
-      dependencyImporters = new Set()
-      importers.set(dependency, dependencyImporters)
-    }
-    dependencyImporters.add(projectPath)
-  }
-}
-
-function findRefreshBoundaries(
-  projectPath: string,
-  graph: Map<string, ModuleGraphEntry>,
-  importers: Map<string, Set<string>>,
-) {
-  const boundaries = new Set<string>()
-  const visited = new Set<string>()
-  const queue = [projectPath]
-  let reload = false
-
-  while (queue.length) {
-    const current = queue.shift()!
-    if (visited.has(current)) continue
-    visited.add(current)
-    const entry = graph.get(current)
-    if (entry?.refreshBoundary) {
-      boundaries.add(current)
-      continue
-    }
-    const currentImporters = importers.get(current)
-    if (!currentImporters?.size) {
-      reload = true
-      continue
-    }
-    queue.push(...currentImporters)
-  }
-  return { boundaries, reload }
 }
 
 function send(
@@ -516,13 +250,8 @@ export async function startDevServer(options: DevServerOptions) {
   const port = options.port
   const events = new Set<ServerResponse>()
   const assetsRoot = await runtimeRoot()
-  const moduleGraph = new Map<string, ModuleGraphEntry>()
-  const moduleImporters = new Map<string, Set<string>>()
-  const moduleVersions = new Map<string, number>()
+  const modules = new DevModuleGraph()
   let revision = 0
-  const currentModuleUrl = (projectPath: string) => (
-    devModuleUrl(projectPath, moduleVersions.get(projectPath) || 0)
-  )
 
   if (!(await fileExists(join(root, 'pages/index.tsx')))
     && !(await fileExists(join(root, 'pages/index.ts')))
@@ -559,7 +288,7 @@ export async function startDevServer(options: DevServerOptions) {
           const manifest = await loadRouteManifest(root, {
             liveReload: true,
             revision,
-            moduleUrl: currentModuleUrl,
+            moduleUrl: modules.moduleUrl,
           })
           send(request, response, 200, 'application/json; charset=utf-8', JSON.stringify(manifest))
         } catch (error) {
@@ -577,20 +306,15 @@ export async function startDevServer(options: DevServerOptions) {
           const packageJson = await readPackage(root)
           const dependencies = packageDependencies(packageJson)
           const cdn = projectCdn(packageJson, options.cdn)
-          const compiled = await compileProjectModule(
+          const compiled = await compileProjectModule({
             root,
             projectPath,
             dependencies,
             cdn,
-            currentModuleUrl,
-            true,
-          )
-          updateModuleGraph(
-            moduleGraph,
-            moduleImporters,
-            projectPath,
-            compiled,
-          )
+            moduleUrl: modules.moduleUrl,
+            refresh: true,
+          })
+          modules.update(projectPath, compiled)
           send(request, response, 200, 'text/javascript; charset=utf-8', compiled.code)
         } catch (error) {
           send(request, response, 404, 'text/javascript; charset=utf-8', `throw new Error(${JSON.stringify(error instanceof Error ? error.message : String(error))})`)
@@ -646,48 +370,16 @@ export async function startDevServer(options: DevServerOptions) {
       const routes = changedFiles.some(filename => (
         filename.startsWith('pages/') && sourceExtensions.includes(extname(filename))
       ))
-      const invalidated = new Set<string>()
-      const cssUpdates = new Set<string>()
-      const refreshBoundaries = new Set<string>()
-
-      for (const projectPath of changedFiles) {
-        if (!localExtensions.includes(extname(projectPath)) || !moduleGraph.has(projectPath)) continue
-        invalidated.add(projectPath)
-        if (extname(projectPath) === '.css') {
-          cssUpdates.add(projectPath)
-          continue
-        }
-        const result = findRefreshBoundaries(projectPath, moduleGraph, moduleImporters)
-        reload ||= result.reload
-        for (const boundary of result.boundaries) {
-          invalidated.add(boundary)
-          refreshBoundaries.add(boundary)
-        }
-      }
-
-      if (!reload && !routes && !invalidated.size) return
+      const invalidation = modules.invalidate(changedFiles)
+      reload ||= invalidation.reload
+      if (!reload && !routes && !invalidation.invalidated) return
       revision++
-      for (const projectPath of invalidated) {
-        moduleVersions.set(projectPath, (moduleVersions.get(projectPath) || 0) + 1)
-      }
-      const updates: HmrUpdate[] = [
-        ...[...cssUpdates].map(path => ({
-          path,
-          type: 'css' as const,
-          url: currentModuleUrl(path),
-        })),
-        ...[...refreshBoundaries].map(path => ({
-          path,
-          type: 'refresh' as const,
-          url: currentModuleUrl(path),
-        })),
-      ]
       const change: HmrChange = {
         revision,
         reload,
         routes,
         timestamp,
-        updates,
+        updates: invalidation.updates,
       }
       for (const response of events) {
         response.write(`event: change\ndata: ${JSON.stringify(change)}\n\n`)
@@ -785,15 +477,20 @@ async function copyApiFiles(source: string, destination: string) {
 async function copyRuntimeAssets(destination: string) {
   const source = await runtimeRoot()
   await mkdir(destination, { recursive: true })
-  const assets = [
+  const assets: Array<[string, string]> = [
     ['index.js', 'runtime.js'],
-    ['_cdn.js', '_cdn.js'],
     ['client.js', 'client.js'],
     ['transform-worker.js', 'transform-worker.js'],
     ['transform.wasi-browser.js', 'transform.wasi-browser.js'],
     ['transform.wasm32-wasi.wasm', 'transform.wasm32-wasi.wasm'],
     ['wasi-worker-browser.js', 'wasi-worker-browser.js'],
-  ] as const
+  ]
+  const entryFiles = new Set(assets.map(([sourceName]) => sourceName))
+  for (const name of await readdir(source)) {
+    if (name.endsWith('.js') && !entryFiles.has(name) && name !== 'bin.js') {
+      assets.push([name, name])
+    }
+  }
   for (const [sourceName, destinationName] of assets) {
     const sourcePath = join(source, sourceName)
     if (!await fileExists(sourcePath)) throw new Error(`Devjar runtime asset is missing: ${sourceName}`)
@@ -820,8 +517,8 @@ export async function buildProject(options: BuildOptions) {
   })
   const projectPaths = new Set<string>()
   for (const page of discovered.routes.values()) {
-    const files = await collectFiles(root, page)
-    for (const projectPath of Object.keys(files)) projectPaths.add(projectPath.slice(2))
+    const files = await collectProjectFiles(root, page)
+    for (const projectPath of files) projectPaths.add(projectPath)
   }
 
   await rm(outDir, { recursive: true, force: true })
@@ -832,15 +529,15 @@ export async function buildProject(options: BuildOptions) {
   const modulesRoot = join(outDir, '__devjar/modules')
   await mkdir(modulesRoot, { recursive: true })
   for (const projectPath of projectPaths) {
-    const code = await compileProjectModule(
+    const compiled = await compileProjectModule({
       root,
       projectPath,
       dependencies,
       cdn,
-      builtModuleUrl,
-      false,
-    )
-    await writeFile(join(modulesRoot, moduleAssetName(projectPath)), code.code)
+      moduleUrl: builtModuleUrl,
+      refresh: false,
+    })
+    await writeFile(join(modulesRoot, moduleAssetName(projectPath)), compiled.code)
   }
   await writeFile(join(outDir, '__devjar/routes.json'), JSON.stringify(manifest))
   if (await directoryExists(join(root, 'public'))) {
