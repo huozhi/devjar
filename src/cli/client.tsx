@@ -25,7 +25,7 @@ function getRoot(id: string) {
 }
 
 const hostRoot = getRoot('root')
-const errorRoot = getRoot('__devjarError')
+const errorRoot = getRoot('__jarError')
 let appRoot = document.getElementById('__reactRoot')
 if (!appRoot) {
   appRoot = document.createElement('div')
@@ -69,7 +69,7 @@ function normalizeRoute(route: string) {
 }
 
 async function getRouteManifest(revision: number) {
-  const url = new URL('/__devjar/routes.json', location.origin)
+  const url = new URL('/_jar/routes.json', location.origin)
   if (revision) url.searchParams.set('v', String(revision))
   const response = await fetch(url)
   const data = await response.json()
@@ -187,7 +187,7 @@ function routeAnchor(target: EventTarget | null) {
   if (!anchor) return
   const url = new URL(anchor.href, location.href)
   if (url.origin !== location.origin) return
-  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/__devjar/')) return
+  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/_jar/')) return
   if (/\.[^/]+$/.test(url.pathname)) return
   return { anchor, url }
 }
@@ -220,7 +220,7 @@ async function start() {
   routeManifest = await getRouteManifest(0)
   const hotUpdater = routeManifest.liveReload
     ? createHotUpdater({
-        refreshRuntime: globalThis.__devjarRefreshRuntime,
+        refreshRuntime: globalThis.__jarRefreshRuntime,
         reloadRoutes: async revision => {
           routeManifest = await getRouteManifest(revision)
         },
@@ -240,7 +240,7 @@ async function start() {
 
   await load(location.pathname)
   if (hotUpdater) {
-    const events = new EventSource('/__devjar/events')
+    const events = new EventSource('/_jar/events')
     events.addEventListener('change', event => {
       const change = JSON.parse((event as MessageEvent).data) as HmrChange
       hotUpdater.enqueue(change, showError)

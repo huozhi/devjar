@@ -26,8 +26,8 @@ type HotUpdaterOptions = {
 }
 
 declare global {
-  var __devjarRefreshRuntime: RefreshRuntime
-  var __devjarRegisterModule: (
+  var __jarRefreshRuntime: RefreshRuntime
+  var __jarRegisterModule: (
     path: string,
     url: string,
     exports: ModuleExports,
@@ -59,7 +59,7 @@ export function createHotUpdater(options: HotUpdaterOptions) {
   }>()
   let queue = Promise.resolve()
 
-  globalThis.__devjarRegisterModule = (path, url, exports) => {
+  globalThis.__jarRegisterModule = (path, url, exports) => {
     for (const [name, value] of Object.entries(exports)) {
       if (refreshRuntime.isLikelyComponentType(value)) {
         refreshRuntime.register(value, `${path} export ${name}`)
