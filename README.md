@@ -233,7 +233,7 @@ transforms:
 
 ```sh
 jar build
-jar start dist
+jar start
 ```
 
 The build writes the initial React content and imported CSS into an HTML file for
@@ -242,6 +242,11 @@ HTML therefore shows page content before client JavaScript runs. Package imports
 are loaded from the selected CDN during the build and emitted as local files, so
 the project does not need a local `node_modules` directory and the deployed site
 does not need the CDN.
+
+`jar start [root]` treats `root` as the project directory and serves its `dist`
+build by default. Pass the same `--out-dir <directory>` used for the build when
+using a custom output directory. A build directory passed directly remains
+supported for compatibility.
 
 Files from `public/` are copied to the root of the output directory. For example,
 `public/logo.svg` becomes `dist/logo.svg` and remains available at `/logo.svg`.

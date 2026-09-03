@@ -119,8 +119,8 @@ export default function Page() {
   assert(!builtRuntimeFiles.includes('runtime.js'))
   assert(!builtRuntimeFiles.includes('transform-assets.json'))
 
-  server = spawn(jar, ['start', 'dist', '--host', '127.0.0.1', '--port', '0'], {
-    cwd: projectRoot,
+  server = spawn(jar, ['start', 'project', '--host', '127.0.0.1', '--port', '0'], {
+    cwd: temporaryRoot,
     stdio: ['ignore', 'pipe', 'pipe'],
   })
   const baseUrl = await serverUrl(server)
