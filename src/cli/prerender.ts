@@ -68,6 +68,7 @@ export async function prerender(options: PrerenderOptions) {
         cdn: options.cdn,
         moduleUrl: importedPath => `./${serverModuleName(importedPath)}`,
         runtimeModuleUrl: pathToFileURL(options.runtimeModulePath).href,
+        development: false,
         refresh: false,
         platform: 'server',
       })
@@ -75,11 +76,11 @@ export async function prerender(options: PrerenderOptions) {
     }
 
     const outputPath = join(temporaryRoot, 'rendered.json')
-    const resolveModule = createEsmShResolver(options.dependencies, options.cdn)
+    const resolveModule = createEsmShResolver(options.dependencies, options.cdn, false)
     const resolveRuntimeModule = createEsmShResolver({
       ...options.dependencies,
       ...options.devjarDependencies,
-    }, options.cdn)
+    }, options.cdn, false)
     const input: RenderInput = {
       routes: Object.fromEntries([...options.routes].map(([route, entry]) => {
         const projectPath = relative(options.root, entry).split(sep).join('/')
@@ -90,7 +91,6 @@ export async function prerender(options: PrerenderOptions) {
       imports: {
         react: resolveModule('react'),
         'react/jsx-runtime': resolveModule('react/jsx-runtime'),
-        'react/jsx-dev-runtime': resolveModule('react/jsx-dev-runtime'),
         'es-module-lexer': resolveRuntimeModule('es-module-lexer'),
       },
       outputPath,

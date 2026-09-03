@@ -27,6 +27,7 @@ export type CompileProjectModuleOptions = {
   cdn: string
   moduleUrl: (projectPath: string) => string
   runtimeModuleUrl: string
+  development: boolean
   refresh: boolean
   platform: 'browser' | 'server'
 }
@@ -61,7 +62,7 @@ async function localImports(projectPath: string, source: string) {
   const output = transformSync(
     projectPath,
     source,
-    getTransformOptions(projectPath, false),
+    getTransformOptions(projectPath, false, false),
   )
   const error = getTransformErrorMessage(output.errors)
   if (error) throw new Error(error)
@@ -173,7 +174,7 @@ export async function compileProjectModule(
   const output = transformSync(
     projectPath,
     source,
-    getTransformOptions(projectPath, options.refresh),
+    getTransformOptions(projectPath, options.development, options.refresh),
   )
   const error = getTransformErrorMessage(output.errors)
   if (error) throw new Error(error)
@@ -182,7 +183,11 @@ export async function compileProjectModule(
   const [imports, exports] = parse(output.code)
   const replacements: Array<{ start: number, end: number, value: string }> = []
   const localDependencies: string[] = []
-  const resolveModule = createEsmShResolver(options.dependencies, options.cdn)
+  const resolveModule = createEsmShResolver(
+    options.dependencies,
+    options.cdn,
+    options.development,
+  )
   for (const imported of imports) {
     if (!imported.n) continue
     let value: string
