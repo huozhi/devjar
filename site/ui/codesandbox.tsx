@@ -109,6 +109,14 @@ export function Codesandbox({
   const [previewReady, setPreviewReady] = useState(false)
   const [loaderFrame, setLoaderFrame] = useState(0)
   const activeExtension = activeFile?.split('.').pop() || ''
+  const projectFolders = [...new Set([
+    ...folders,
+    ...Object.keys(files).flatMap((filename) => {
+      const path = normalizeFilename(filename)
+      const separator = path.indexOf('/')
+      return separator === -1 ? [] : [path.slice(0, separator)]
+    }),
+  ])]
 
   useEffect(() => {
     if (previewReady) return
@@ -324,14 +332,14 @@ export function Codesandbox({
             />
           </div>
           <div className="filetree-files">
-            {folders.map((folderName) => {
-              const folderFiles = Object.keys(files).filter(f => f.startsWith(folderName + '/'))
+            {projectFolders.map((folderName) => {
+              const folderFiles = Object.keys(files).filter(f => normalizeFilename(f).startsWith(folderName + '/'))
               const isActiveFolder = activeFolder === folderName
               return (
                 <div key={folderName}>
                   <div
                     role="button"
-                    className={'filetree-item ' + (isActiveFolder ? 'active' : '') + (deletingItems.has(folderName) ? ' filetree-item--deleting' : '')}
+                    className={'filetree-item filetree-item--folder ' + (isActiveFolder ? 'active' : '') + (deletingItems.has(folderName) ? ' filetree-item--deleting' : '')}
                     onClick={() => {
                       setActiveFolder(folderName)
                       setActiveFile(null)
@@ -342,35 +350,61 @@ export function Codesandbox({
                     </svg>
                     <span className="filetree-item-name">{folderName}</span>
                   </div>
-                  {folderFiles.map((filename) => {
-                    const displayName = getDisplayName(filename.replace(folderName + '/', ''))
-                    return (
-                      <div
-                        role="button"
-                        key={filename}
-                        className={'filetree-item filetree-item--nested ' + (filename === activeFile ? 'active' : '') + (deletingItems.has(filename) ? ' filetree-item--deleting' : '')}
-                        onClick={() => {
-                          setActiveFile(filename)
-                          setActiveFolder(null)
-                        }}
-                      >
+                  <div className="filetree-children">
+                    {folderFiles.map((filename) => {
+                      const path = normalizeFilename(filename)
+                      const displayName = getDisplayName(path.slice(folderName.length + 1))
+                      return (
+                        <div
+                          role="button"
+                          key={filename}
+                          className={'filetree-item filetree-item--nested ' + (filename === activeFile ? 'active' : '') + (deletingItems.has(filename) ? ' filetree-item--deleting' : '')}
+                          onClick={() => {
+                            setActiveFile(filename)
+                            setActiveFolder(null)
+                          }}
+                        >
+                          <FileIcon />
+                          <span className="filetree-item-name">{displayName}</span>
+                        </div>
+                      )
+                    })}
+                    {isActiveFolder && editingNewItem && editingNewItem.type === 'file' && (
+                      <div className="filetree-item filetree-item--editing filetree-item--nested">
                         <FileIcon />
-                        <span className="filetree-item-name">{displayName}</span>
-                      </div>
-                    )
-                  })}
-                  {isActiveFolder && editingNewItem && editingNewItem.type === 'file' && (
-                    <div className="filetree-item filetree-item--editing filetree-item--nested">
-                      <FileIcon />
-                      <input
-                        type="text"
-                        className="filetree-item-input"
-                        value={newItemName}
-                        placeholder=""
-                        autoFocus
-                        onChange={(e) => setNewItemName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
+                        <input
+                          type="text"
+                          className="filetree-item-input"
+                          value={newItemName}
+                          placeholder=""
+                          autoFocus
+                          onChange={(e) => setNewItemName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              const trimmed = newItemName.trim()
+                              if (!trimmed) {
+                                setEditingNewItem(null)
+                                setNewItemName('')
+                                return
+                              }
+
+                              const baseFilename = trimmed.includes('.') ? trimmed : trimmed + '.js'
+                              const filename = `${folderName}/${baseFilename}`
+                              const fileBaseName = removeExtension(baseFilename)
+                              setFiles({
+                                ...files,
+                                [filename]: `export default function ${kebabCase(fileBaseName)}() {}`,
+                              })
+                              setActiveFile(filename)
+                              setActiveFolder(null)
+                              setEditingNewItem(null)
+                              setNewItemName('')
+                            } else if (e.key === 'Escape') {
+                              setEditingNewItem(null)
+                              setNewItemName('')
+                            }
+                          }}
+                          onBlur={() => {
                             const trimmed = newItemName.trim()
                             if (!trimmed) {
                               setEditingNewItem(null)
@@ -389,38 +423,15 @@ export function Codesandbox({
                             setActiveFolder(null)
                             setEditingNewItem(null)
                             setNewItemName('')
-                          } else if (e.key === 'Escape') {
-                            setEditingNewItem(null)
-                            setNewItemName('')
-                          }
-                        }}
-                        onBlur={() => {
-                          const trimmed = newItemName.trim()
-                          if (!trimmed) {
-                            setEditingNewItem(null)
-                            setNewItemName('')
-                            return
-                          }
-                          
-                          const baseFilename = trimmed.includes('.') ? trimmed : trimmed + '.js'
-                          const filename = `${folderName}/${baseFilename}`
-                          const fileBaseName = removeExtension(baseFilename)
-                          setFiles({
-                            ...files,
-                            [filename]: `export default function ${kebabCase(fileBaseName)}() {}`,
-                          })
-                          setActiveFile(filename)
-                          setActiveFolder(null)
-                          setEditingNewItem(null)
-                          setNewItemName('')
-                        }}
-                      />
-                    </div>
-                  )}
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
               )
             })}
-            {Object.keys(files).filter(f => !folders.some(folder => f.startsWith(folder + '/'))).map((filename) => {
+            {Object.keys(files).filter(f => !projectFolders.some(folder => normalizeFilename(f).startsWith(folder + '/'))).map((filename) => {
               const displayName = getDisplayName(filename)
               return (
                 <div
