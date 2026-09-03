@@ -17,27 +17,6 @@ devjar is a library that enables you to live test and share your code snippets a
 
 **Notice:** devjar requires React 19 and only works for browser runtime at the moment. It will always render the default export component in `index.js` as the app entry.
 
-Devjar packages its browser transformer, WASM binary, and helper worker as lazy
-runtime assets. Compatible bundlers emit these files automatically; applications
-do not need to copy them into a public directory.
-
-The Oxc transformer uses shared WebAssembly memory, so the page must be
-cross-origin isolated. For example, configure these response headers in Next.js:
-
-```js
-const nextConfig = {
-  async headers() {
-    return [{
-      source: '/:path*',
-      headers: [
-        { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
-        { key: 'Cross-Origin-Embedder-Policy', value: 'credentialless' },
-      ],
-    }]
-  },
-}
-```
-
 ## Install
 
 ```sh
@@ -241,6 +220,34 @@ icon package, Tailwind, static API data, and a public SVG asset.
 ```sh
 devjar dev [root] --host localhost --port 3000
 ```
+
+## Notice: iframe cross-origin isolation
+
+This notice applies to the `<DevJar>` iframe runtime, not the Devjar CLI.
+
+The iframe transforms code in the browser using Oxc and shared WebAssembly
+memory, so its host page must be cross-origin isolated. Devjar packages the
+browser transformer, WASM binary, and helper worker as lazy runtime assets;
+compatible bundlers emit these files without requiring a manual copy step.
+
+<details>
+<summary>Next.js headers example</summary>
+
+```js
+const nextConfig = {
+  async headers() {
+    return [{
+      source: '/:path*',
+      headers: [
+        { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+        { key: 'Cross-Origin-Embedder-Policy', value: 'credentialless' },
+      ],
+    }]
+  },
+}
+```
+
+</details>
 
 ## License
 
