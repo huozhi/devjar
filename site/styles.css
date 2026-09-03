@@ -106,6 +106,60 @@ footer {
   color: #fff;
 }
 
+.intro-section {
+  position: relative;
+  width: 100%;
+  max-width: 680px;
+  margin: 5rem auto 4rem;
+  padding: 0 0.5rem;
+  color: #171717;
+}
+
+.intro-links {
+  position: absolute;
+  top: 0;
+  right: 0.5rem;
+  display: flex;
+  gap: 0.875rem;
+  color: #737373;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.intro-links a {
+  text-decoration: none;
+}
+
+.intro-links a:hover {
+  color: #171717;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.intro-section h1 {
+  max-width: 620px;
+  margin: 0;
+  color: #171717;
+  font-size: clamp(2.5rem, 7vw, 4.25rem);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 0.98;
+}
+
+.intro-copy {
+  max-width: 580px;
+  margin: 1.25rem 0 0;
+  color: #57534e;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.section-links a {
+  color: #404756;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-underline-offset: 3px;
+}
 
 .playground-container {
   display: flex;
@@ -114,6 +168,13 @@ footer {
   justify-content: flex-start;
   width: 100%;
   padding: 0 0 2rem;
+}
+
+.section-intro {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.9375rem;
+  line-height: 1.6;
 }
 
 .playground-wrapper {
@@ -140,7 +201,8 @@ footer {
   margin: 0 0 1rem 0;
 }
 
-.usage-example h3 {
+.usage-example h3,
+.section h3 {
   font-size: 18px;
   font-weight: 500;
   color: #404756;
@@ -154,9 +216,16 @@ footer {
   margin: 1.5rem 0 0.75rem 0;
 }
 
-.usage-example p {
+.usage-example p,
+.section p {
   color: #6b7280;
   margin: 0 0 1rem 0;
+  line-height: 1.6;
+}
+
+.section p code {
+  color: #404756;
+  font-size: 0.875em;
 }
 
 .code-block {
@@ -214,12 +283,27 @@ footer {
   padding: 32px 0;
 }
 
+.section:last-child {
+  border-bottom: 0;
+}
+
 @media (max-width: 640px) {
   main {
     padding: 0 0.5rem;
   }
   footer {
     padding: 0 0.5rem 2rem;
+  }
+  .intro-section {
+    margin: 3.5rem auto 3rem;
+    padding: 0 0.5rem;
+  }
+  .intro-section h1 {
+    font-size: clamp(2.5rem, 13vw, 3.5rem);
+  }
+  .usage-section {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
   }
   .site-footer {
     align-items: flex-start;
