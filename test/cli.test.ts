@@ -122,19 +122,21 @@ describe('project loading', () => {
       dependencies: { react: '19.2.0' },
       cdn: 'https://modules.example.test/',
       moduleUrl: testModuleUrl,
+      runtimeModuleUrl: '/__devjar/runtime.js',
       refresh: false,
       platform: 'browser',
     })
     expect(compiled.code).toContain('https://modules.example.test/react@19.2.0/jsx-dev-runtime?dev')
   })
 
-  test('ignores package configuration outside dependency versions', async () => {
+  test('uses project dependencies for the app and Devjar dependencies for its runtime', async () => {
     const projectRoot = await mkdtemp(join(tmpdir(), 'devjar-zero-config-'))
     try {
       await cp(root, projectRoot, { recursive: true })
       const packageJsonPath = join(projectRoot, 'package.json')
       const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8'))
       packageJson.devjar = { cdn: 'https://modules.example.test/' }
+      packageJson.dependencies['es-module-lexer'] = '9.9.9'
       await writeFile(packageJsonPath, JSON.stringify(packageJson))
 
       const result = await buildProject({
@@ -145,8 +147,15 @@ describe('project loading', () => {
       })
       const manifest = JSON.parse(await readFile(join(result.outDir, 'manifest.json'), 'utf8'))
       const entry = await readFile(join(result.outDir, manifest.routes['/'].module), 'utf8')
+      const document = await readFile(join(result.outDir, 'index.html'), 'utf8')
+      const devjarPackage = JSON.parse(
+        await readFile(resolve(import.meta.dir, '../package.json'), 'utf8'),
+      )
+      const lexerVersion = encodeURIComponent(devjarPackage.dependencies['es-module-lexer'])
       expect(entry).toContain('https://esm.sh/react@19.2.0/jsx-dev-runtime?dev')
       expect(entry).not.toContain('modules.example.test')
+      expect(document).toContain(`https://esm.sh/es-module-lexer@${lexerVersion}`)
+      expect(document).not.toContain('es-module-lexer@9.9.9')
     } finally {
       await rm(projectRoot, { recursive: true, force: true })
     }
@@ -184,6 +193,7 @@ describe('project loading', () => {
         dependencies: {},
         cdn: CDN_HOST,
         moduleUrl: testModuleUrl,
+        runtimeModuleUrl: '/__devjar/runtime.js',
         refresh: false,
         platform: 'browser',
       })
@@ -418,7 +428,10 @@ describe('static export', () => {
       await writeFile(
         join(projectRoot, 'pages/index.tsx'),
         `import '../styles.css'
-export default function Page() { return <main className="page"><h1>Static now</h1></main> }`,
+import { DevJar } from 'devjar'
+export default function Page() {
+  return <main className="page"><h1>Static now</h1><DevJar files={{ 'pages/index.jsx': 'export default function Page() {}' }} /></main>
+}`,
       )
       await writeFile(
         join(projectRoot, 'pages/guides/about.tsx'),
@@ -437,7 +450,8 @@ export default function Page() { return <main className="page"><h1>Static now</h
         prerender: true,
       })
       const document = await readFile(join(result.outDir, 'index.html'), 'utf8')
-      expect(document).toContain('<main class="page"><h1>Static now</h1></main>')
+      expect(document).toContain('<main class="page"><h1>Static now</h1>')
+      expect(document).toContain('<iframe')
       expect(document).toContain('<style data-devjar-static>.page { color: black; }</style>')
       expect(document).toContain('<div id="__reactRoot">')
       expect(await readFile(join(result.outDir, 'guides/about/index.html'), 'utf8'))
@@ -448,6 +462,10 @@ export default function Page() { return <main className="page"><h1>Static now</h
         .toContain('<h1>Static not found</h1>')
       expect(await readFile(join(result.outDir, '__devjar/client.js'), 'utf8'))
         .toContain('hydrateRoot')
+      const manifest = JSON.parse(await readFile(join(result.outDir, 'manifest.json'), 'utf8'))
+      const pageModule = await readFile(join(result.outDir, manifest.routes['/'].module), 'utf8')
+      expect(pageModule).toContain('/__devjar/runtime.js')
+      expect(pageModule).not.toContain(`${address.port}/devjar`)
     } finally {
       await new Promise<void>(resolvePromise => cdn.close(() => resolvePromise()))
       await rm(projectRoot, { recursive: true, force: true })

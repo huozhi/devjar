@@ -1,4 +1,13 @@
+let imports = {}
+
+export function initialize(data) {
+  imports = data.imports
+}
+
 export async function resolve(specifier, context, nextResolve) {
+  if (imports[specifier]) {
+    return { url: imports[specifier], shortCircuit: true }
+  }
   if (specifier.startsWith('http://') || specifier.startsWith('https://')) {
     return { url: specifier, shortCircuit: true }
   }
