@@ -71,8 +71,8 @@ export const demoFiles = {
   'components/routes.jsx': source`\
   import { useEffect, useState } from 'react'
 
-  const pixels = '░▒▓█▄▀■□▪▫'
-  const lowPixels = '·.ˑ'
+  const pixels = '░▒▪▫'
+  const lowPixels = '·.  '
 
   function TerminalIcon() {
     return (
@@ -93,9 +93,9 @@ export const demoFiles = {
   }
 
   function transformCharacter(character, column, row, frame) {
-    const wave = (frame % 48) - 8 + Math.sin(row * 1.35) * 2.4
+    const wave = (frame % 88) - 8 + Math.sin(row * 1.35) * 1.4
     const distance = Math.abs(column - wave)
-    if (distance > 2.2) return character
+    if (distance > 1.1) return character
 
     if (character === ' ') {
       return lowPixels[(frame + column + row) % lowPixels.length]
@@ -109,7 +109,7 @@ export const demoFiles = {
     useEffect(() => {
       const timer = setInterval(() => {
         setFrame((current) => current + 1)
-      }, 80)
+      }, 45)
 
       return () => clearInterval(timer)
     }, [])
@@ -304,8 +304,8 @@ export const demoFiles = {
   }
 
   .route-heading svg:last-child {
-    grid-column: 3;
-    justify-self: start;
+    grid-column: 2;
+    justify-self: center;
   }
 
   .route-heading circle {

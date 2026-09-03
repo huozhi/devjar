@@ -91,9 +91,6 @@ npx devjar start`}</code></pre>
             <a href="https://github.com/huozhi/devjar" target="_blank" rel="noopener noreferrer">
               GitHub
             </a>
-            <a href="https://github.com/huozhi/devjar/blob/main/API.md" target="_blank" rel="noopener noreferrer">
-              API.md
-            </a>
             <a href="https://x.com/huozhi" target="_blank" rel="noopener noreferrer">
               X
             </a>
