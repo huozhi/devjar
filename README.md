@@ -223,15 +223,18 @@ during render will fail the build with the affected route.
 Use `--out-dir <directory>` to change the build location. The output directory
 must remain inside the project root.
 
-The repository includes two runnable examples:
+The repository includes three runnable examples:
 
 ```sh
 devjar dev examples/basic
 devjar dev examples/dashboard
+devjar dev examples/website
 ```
 
 The dashboard demonstrates page navigation, shared components, a CDN-loaded
 icon package, Tailwind, static API data, and a public SVG asset.
+The website example runs Devjar's own editor and live preview as a pages-based
+Devjar project.
 
 ```sh
 devjar dev [root] --host localhost --port 3000
@@ -239,12 +242,13 @@ devjar dev [root] --host localhost --port 3000
 
 ## Notice: iframe cross-origin isolation
 
-This notice applies to the `<DevJar>` iframe runtime, not the Devjar CLI.
-
 The iframe transforms code in the browser using Oxc and shared WebAssembly
 memory, so its host page must be cross-origin isolated. Devjar packages the
 browser transformer, WASM binary, and helper worker as lazy runtime assets;
 compatible bundlers emit these files without requiring a manual copy step.
+The `devjar dev` and `devjar start` servers send the required headers
+automatically. Static deployments must configure equivalent headers on their
+hosting platform.
 
 <details>
 <summary>Next.js headers example</summary>

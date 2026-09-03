@@ -33,6 +33,12 @@ export function createEsmShResolver(
     }
     const subpath = specifier.slice(name.length)
     const dev = name === 'react' || name === 'react-dom' || name === 'react-refresh'
-    return `${host}/${name}@${encodeURIComponent(version)}${subpath}${dev ? '?dev' : ''}`
+    const externalizeReact = host === CDN_HOST && name !== 'react'
+    const parameters = [
+      ...(dev ? ['dev'] : []),
+      ...(externalizeReact ? ['external=react'] : []),
+    ]
+    const query = parameters.length ? `?${parameters.join('&')}` : ''
+    return `${host}/${name}@${encodeURIComponent(version)}${subpath}${query}`
   }
 }
