@@ -313,6 +313,7 @@ export async function startDevServer(options: DevServerOptions) {
             dependencies,
             cdn,
             moduleUrl: modules.moduleUrl,
+            runtimeModuleUrl: '/__devjar/runtime.js',
             refresh: true,
             platform: 'browser',
           })
@@ -555,7 +556,13 @@ export async function buildProject(options: BuildOptions) {
     moduleUrl: builtModuleUrl,
   })
   const renderedRoutes = options.prerender
-    ? await prerender({ root, routes: discovered.routes, dependencies, cdn })
+    ? await prerender({
+        root,
+        routes: discovered.routes,
+        dependencies,
+        cdn,
+        runtimeModulePath: join(await runtimeRoot(), 'index.js'),
+      })
     : Object.fromEntries([...discovered.routes.keys()].map(route => (
         [route, { markup: '', styles: '' }]
       )))
@@ -582,6 +589,7 @@ export async function buildProject(options: BuildOptions) {
       dependencies,
       cdn,
       moduleUrl: builtModuleUrl,
+      runtimeModuleUrl: '/__devjar/runtime.js',
       refresh: false,
       platform: 'browser',
     })

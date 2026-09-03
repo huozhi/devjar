@@ -12,6 +12,7 @@ type PrerenderOptions = {
   routes: Map<string, string>
   dependencies: Record<string, string>
   cdn: string
+  runtimeModulePath: string
 }
 
 export type PrerenderedRoute = {
@@ -23,6 +24,7 @@ type RenderInput = {
   routes: Record<string, string>
   react: string
   reactDomServer: string
+  imports: Record<string, string>
   outputPath: string
 }
 
@@ -61,6 +63,7 @@ export async function prerender(options: PrerenderOptions) {
         dependencies: options.dependencies,
         cdn: options.cdn,
         moduleUrl: importedPath => `./${serverModuleName(importedPath)}`,
+        runtimeModuleUrl: pathToFileURL(options.runtimeModulePath).href,
         refresh: false,
         platform: 'server',
       })
@@ -76,6 +79,15 @@ export async function prerender(options: PrerenderOptions) {
       })),
       react: resolveModule('react'),
       reactDomServer: resolveModule('react-dom/server'),
+      imports: {
+        react: resolveModule('react'),
+        'react/jsx-runtime': resolveModule('react/jsx-runtime'),
+        'react/jsx-dev-runtime': resolveModule('react/jsx-dev-runtime'),
+        'es-module-lexer': createEsmShResolver({
+          ...options.dependencies,
+          'es-module-lexer': '1.6.0',
+        }, options.cdn)('es-module-lexer'),
+      },
       outputPath,
     }
     const inputPath = join(temporaryRoot, 'input.json')

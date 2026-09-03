@@ -1,9 +1,10 @@
 import { readFile, writeFile } from 'node:fs/promises'
 import { register } from 'node:module'
 
-register(new URL('./http-loader.mjs', import.meta.url))
-
 const input = JSON.parse(await readFile(process.argv[2], 'utf8'))
+register(new URL('./http-loader.mjs', import.meta.url), {
+  data: { imports: input.imports },
+})
 const reactModule = await import(input.react)
 const serverModule = await import(input.reactDomServer)
 const React = reactModule.default || reactModule

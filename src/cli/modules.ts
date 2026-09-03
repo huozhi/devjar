@@ -26,6 +26,7 @@ export type CompileProjectModuleOptions = {
   dependencies: Record<string, string>
   cdn: string
   moduleUrl: (projectPath: string) => string
+  runtimeModuleUrl: string
   refresh: boolean
   platform: 'browser' | 'server'
 }
@@ -172,7 +173,9 @@ export async function compileProjectModule(
   for (const imported of imports) {
     if (!imported.n) continue
     let value: string
-    if (imported.n.startsWith('./') || imported.n.startsWith('../')) {
+    if (imported.n === 'devjar') {
+      value = options.runtimeModuleUrl
+    } else if (imported.n.startsWith('./') || imported.n.startsWith('../')) {
       const importedPath = await resolveProjectSource(
         options.root,
         relative(options.root, resolve(sourcePath, '..', imported.n)),

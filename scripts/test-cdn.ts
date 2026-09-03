@@ -1,7 +1,13 @@
 export function testCdnModule(pathname: string) {
-  if (pathname.includes('/jsx-dev-runtime')) {
+  if (pathname.includes('/es-module-lexer@')) {
+    return `export const init = Promise.resolve()
+export function parse() { return [[], []] }`
+  }
+  if (pathname.includes('/jsx-runtime') || pathname.includes('/jsx-dev-runtime')) {
     return `export const Fragment = Symbol.for('react.fragment')
-export function jsxDEV(type, props) { return { type, props: props || {} } }`
+export function jsx(type, props) { return { type, props: props || {} } }
+export const jsxs = jsx
+export const jsxDEV = jsx`
   }
   if (pathname.includes('/react-dom@') && pathname.includes('/server')) {
     return `function escape(value) {
@@ -23,6 +29,13 @@ export function renderToString(node) { return render(node) }`
   }
   if (pathname.includes('/react@')) {
     return `export function createElement(type, props) { return { type, props: props || {} } }
+export function useCallback(callback) { return callback }
+export function useEffect() {}
+export function useId() { return 'test-id' }
+export function useImperativeHandle() {}
+export function useMemo(factory) { return factory() }
+export function useRef(value) { return { current: value } }
+export function useState(value) { return [typeof value === 'function' ? value() : value, () => {}] }
 export default { createElement }`
   }
   return `throw new Error('Unknown test CDN module: ${pathname}')`

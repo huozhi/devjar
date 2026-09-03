@@ -213,6 +213,8 @@ the project does not need a local `node_modules` directory.
 
 Files from `public/` are copied to the root of the output directory. For example,
 `public/logo.svg` becomes `dist/logo.svg` and remains available at `/logo.svg`.
+Imports from `devjar` use the runtime and worker assets included in the build
+instead of loading another copy of Devjar from the package CDN.
 
 Static rendering executes every page once during the build. Browser APIs can be
 used in effects and event handlers, but using `window` or `document` directly

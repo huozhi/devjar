@@ -122,6 +122,7 @@ describe('project loading', () => {
       dependencies: { react: '19.2.0' },
       cdn: 'https://modules.example.test/',
       moduleUrl: testModuleUrl,
+      runtimeModuleUrl: '/__devjar/runtime.js',
       refresh: false,
       platform: 'browser',
     })
@@ -184,6 +185,7 @@ describe('project loading', () => {
         dependencies: {},
         cdn: CDN_HOST,
         moduleUrl: testModuleUrl,
+        runtimeModuleUrl: '/__devjar/runtime.js',
         refresh: false,
         platform: 'browser',
       })
@@ -418,7 +420,10 @@ describe('static export', () => {
       await writeFile(
         join(projectRoot, 'pages/index.tsx'),
         `import '../styles.css'
-export default function Page() { return <main className="page"><h1>Static now</h1></main> }`,
+import { DevJar } from 'devjar'
+export default function Page() {
+  return <main className="page"><h1>Static now</h1><DevJar files={{ 'pages/index.jsx': 'export default function Page() {}' }} /></main>
+}`,
       )
       await writeFile(
         join(projectRoot, 'pages/guides/about.tsx'),
@@ -437,7 +442,8 @@ export default function Page() { return <main className="page"><h1>Static now</h
         prerender: true,
       })
       const document = await readFile(join(result.outDir, 'index.html'), 'utf8')
-      expect(document).toContain('<main class="page"><h1>Static now</h1></main>')
+      expect(document).toContain('<main class="page"><h1>Static now</h1>')
+      expect(document).toContain('<iframe')
       expect(document).toContain('<style data-devjar-static>.page { color: black; }</style>')
       expect(document).toContain('<div id="__reactRoot">')
       expect(await readFile(join(result.outDir, 'guides/about/index.html'), 'utf8'))
@@ -448,6 +454,10 @@ export default function Page() { return <main className="page"><h1>Static now</h
         .toContain('<h1>Static not found</h1>')
       expect(await readFile(join(result.outDir, '__devjar/client.js'), 'utf8'))
         .toContain('hydrateRoot')
+      const manifest = JSON.parse(await readFile(join(result.outDir, 'manifest.json'), 'utf8'))
+      const pageModule = await readFile(join(result.outDir, manifest.routes['/'].module), 'utf8')
+      expect(pageModule).toContain('/__devjar/runtime.js')
+      expect(pageModule).not.toContain(`${address.port}/devjar`)
     } finally {
       await new Promise<void>(resolvePromise => cdn.close(() => resolvePromise()))
       await rm(projectRoot, { recursive: true, force: true })
