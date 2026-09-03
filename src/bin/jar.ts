@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { join, relative } from 'node:path'
 import { buildProject, startBuiltServer, startDevServer } from '../cli/index'
 
 type Command = 'dev' | 'build' | 'start'
@@ -18,14 +18,14 @@ Turn a folder of React pages into a prototype.
 Commands:
   dev      Start a development server (default)
   build    Create production output in <root>/dist
-  start    Serve a directory created by jar build
+  start    Serve the production build from <root>/dist
 
 Options:
   --cdn <url>      ESM-compatible module CDN (dev and build)
   --base <path>    Public base path (dev and build; default: /)
   --host <host>    Host to listen on (dev and start; default: localhost)
   --port <port>    Port to listen on (dev and start; default: 3000)
-  -o, --out-dir   Build output relative to the project root (default: dist)
+  -o, --out-dir   Build output relative to the project root (build and start; default: dist)
   -v, --version    Show the installed version
   -h, --help       Show this help
 
@@ -33,7 +33,7 @@ Examples:
   jar
   jar dev examples/dashboard
   jar build examples/dashboard
-  jar start examples/dashboard/dist`)
+  jar start examples/dashboard`)
 }
 
 function valueAfter(args: string[], index: number) {
@@ -61,6 +61,26 @@ function friendlyError(error: unknown) {
     return 'Port is already in use. Choose another one with --port <port>.'
   }
   return error instanceof Error ? error.message : String(error)
+}
+
+function routeTree(routes: string[]) {
+  return [...routes]
+    .sort((a, b) => a === '/' ? -1 : b === '/' ? 1 : a.localeCompare(b))
+    .map((route, index, sortedRoutes) => (
+      `${index === sortedRoutes.length - 1 ? '└──' : '├──'} ${route}`
+    ))
+    .join('\n')
+}
+
+async function startRoot(root: string, outDir: string | undefined) {
+  if (outDir) return join(root, outDir)
+  try {
+    await readFile(join(root, 'manifest.json'))
+    return root
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+    return join(root, 'dist')
+  }
 }
 
 async function run() {
@@ -101,8 +121,8 @@ async function run() {
   if (command === 'build' && (host || port !== undefined)) {
     throw new Error('build does not accept --host or --port')
   }
-  if (command === 'start' && (cdn || base || outDir)) {
-    throw new Error('start does not accept --cdn, --base, or --out-dir; configure these when building')
+  if (command === 'start' && (cdn || base)) {
+    throw new Error('start does not accept --cdn or --base; configure these when building')
   }
   if (command === 'dev' && outDir) throw new Error('dev does not accept --out-dir')
 
@@ -116,14 +136,16 @@ async function run() {
     })
     console.log(style(1, 'Devjar build complete'))
     console.log('')
-    console.log(`Output  ${style(36, result.outDir)}`)
-    console.log(`Routes  ${result.routes.length}`)
+    console.log(`Output  ${style(36, relative(process.cwd(), result.outDir) || '.')}`)
+    console.log('')
+    console.log('Routes')
+    console.log(routeTree(result.routes))
     return
   }
 
   const server = command === 'start'
     ? await startBuiltServer({
-        root: root || join(process.cwd(), 'dist'),
+        root: await startRoot(root || process.cwd(), outDir),
         host: host || 'localhost',
         port: port ?? 3000,
       })

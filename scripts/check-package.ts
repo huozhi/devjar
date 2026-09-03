@@ -1,6 +1,6 @@
-import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { cpSync, existsSync, mkdtempSync, readFileSync, realpathSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { testCdnModule } from './test-cdn'
 
@@ -87,14 +87,15 @@ const [buildOutput, buildError, buildExitCode] = await Promise.all([
 ])
 cdn.stop(true)
 const usedDefaultOutput = existsSync(join(cliProject, 'dist', 'manifest.json'))
+const displayedOutput = relative(root, realpathSync(join(cliProject, 'dist')))
 rmSync(cliProject, { recursive: true, force: true })
 
 if (
   buildExitCode !== 0
   || !usedDefaultOutput
   || !buildOutput.includes('Devjar build complete')
-  || !buildOutput.includes('Output  ')
-  || !buildOutput.includes('Routes  2')
+  || !buildOutput.includes(`Output  ${displayedOutput}`)
+  || !buildOutput.includes('Routes\n├── /\n└── /about')
 ) {
   if (buildError) console.error(buildError)
   throw new Error('The packaged CLI did not report a completed build in dist')

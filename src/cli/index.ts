@@ -8,6 +8,7 @@ import {
   builtAssetUrl,
   builtModuleUrl,
   collectProjectFiles,
+  collectPackageImports,
   compileProjectModule,
   devAssetUrl,
   DevModuleGraph,
@@ -28,6 +29,7 @@ import {
 } from '../project'
 import { getTailwindBrowserUrl } from '../tailwind'
 import { prerender, type PrerenderedRoute } from './prerender'
+import { vendorModules } from './vendor'
 
 type PackageJson = {
   dependencies?: Record<string, string>
@@ -179,9 +181,9 @@ function sendResponse(
 }
 
 type HtmlOptions = {
-  dependencies: Record<string, string>
-  devjarDependencies: Record<string, string>
-  cdn: string
+  resolveModule: (specifier: string) => string
+  resolveRuntimeModule: (specifier: string) => string
+  tailwindUrl: string | undefined
   base: string
   devjarRuntime: boolean
   liveReload: boolean
@@ -191,43 +193,29 @@ type HtmlOptions = {
 }
 
 function html(options: HtmlOptions) {
-  const resolveModule = createEsmShResolver(
-    options.dependencies,
-    options.cdn,
-    options.liveReload,
-  )
-  const resolveRuntimeModule = createEsmShResolver({
-    ...options.dependencies,
-    ...options.devjarDependencies,
-  }, options.cdn, options.liveReload)
   const imports = {
-    react: resolveModule('react'),
-    'react-dom': resolveModule('react-dom'),
-    'react/jsx-runtime': resolveModule('react/jsx-runtime'),
-    'react-dom/client': resolveModule('react-dom/client'),
+    react: options.resolveModule('react'),
+    'react-dom': options.resolveModule('react-dom'),
+    'react/jsx-runtime': options.resolveModule('react/jsx-runtime'),
+    'react-dom/client': options.resolveModule('react-dom/client'),
     ...(options.devjarRuntime
       ? {
-          'es-module-lexer': resolveRuntimeModule('es-module-lexer'),
+          'es-module-lexer': options.resolveRuntimeModule('es-module-lexer'),
           devjar: withBase(options.base, '/_jar/runtime.js'),
         }
       : {}),
     ...(options.liveReload
       ? {
-          'react/jsx-dev-runtime': resolveModule('react/jsx-dev-runtime'),
-          'react-refresh/runtime': resolveRuntimeModule('react-refresh/runtime'),
+          'react/jsx-dev-runtime': options.resolveModule('react/jsx-dev-runtime'),
+          'react-refresh/runtime': options.resolveRuntimeModule('react-refresh/runtime'),
         }
       : {}),
   }
-  const tailwindUrl = getTailwindBrowserUrl(
-    options.dependencies,
-    options.cdn,
-    options.liveReload,
-  )
-  const tailwindPreload = tailwindUrl
-    ? `<link rel="modulepreload" href="${tailwindUrl}">`
+  const tailwindPreload = options.tailwindUrl
+    ? `<link rel="modulepreload" href="${options.tailwindUrl}">`
     : ''
-  const tailwindScript = tailwindUrl
-    ? `<script data-devjar-tailwind type="module" src="${tailwindUrl}"></script>`
+  const tailwindScript = options.tailwindUrl
+    ? `<script data-devjar-tailwind type="module" src="${options.tailwindUrl}"></script>`
     : ''
   const clientScript = options.liveReload
     ? `<script type="module">
@@ -420,8 +408,7 @@ export async function startDevServer(options: DevServerOptions) {
           const compiled = await compileProjectModule({
             root,
             projectPath,
-            dependencies,
-            cdn,
+            resolveModule: createEsmShResolver(dependencies, cdn, true),
             moduleUrl: modules.moduleUrl,
             assetUrl: (projectPath, contents) => devAssetUrl(projectPath, contents, base),
             runtimeModuleUrl: withBase(base, '/_jar/runtime.js'),
@@ -453,7 +440,10 @@ export async function startDevServer(options: DevServerOptions) {
         return
       }
       if (requestPath.startsWith('/_jar/')) {
-        const cacheControl = requestPath.startsWith('/_jar/assets/') ? immutableAsset : noStore
+        const cacheControl = requestPath.startsWith('/_jar/assets/')
+          || requestPath.startsWith('/_jar/vendor/')
+          ? immutableAsset
+          : noStore
         if (!await serveFile(request, response, assetsRoot, requestPath.slice('/_jar/'.length), undefined, cacheControl)) send(request, response, 404, 'text/plain', 'Not found')
         return
       }
@@ -465,6 +455,8 @@ export async function startDevServer(options: DevServerOptions) {
       }
       if (await serveFile(request, response, join(root, 'public'), requestPath.slice(1), undefined, noStore)) return
       const packageJson = await readPackage(root)
+      const dependencies = packageDependencies(packageJson)
+      const cdn = resolveCdn(options.cdn)
       send(
         request,
         response,
@@ -472,9 +464,12 @@ export async function startDevServer(options: DevServerOptions) {
         'text/html; charset=utf-8',
         html(
           {
-            dependencies: packageDependencies(packageJson),
-            devjarDependencies,
-            cdn: resolveCdn(options.cdn),
+            resolveModule: createEsmShResolver(dependencies, cdn, true),
+            resolveRuntimeModule: createEsmShResolver({
+              ...dependencies,
+              ...devjarDependencies,
+            }, cdn, true),
+            tailwindUrl: getTailwindBrowserUrl(dependencies, cdn, true),
             base,
             devjarRuntime: true,
             liveReload: true,
@@ -680,15 +675,19 @@ async function writeRouteHtml(
   rendered: PrerenderedRoute,
   options: Pick<
     HtmlOptions,
-    'dependencies' | 'devjarDependencies' | 'cdn' | 'base' | 'devjarRuntime'
+    | 'resolveModule'
+    | 'resolveRuntimeModule'
+    | 'tailwindUrl'
+    | 'base'
+    | 'devjarRuntime'
   >,
 ) {
   const outputPath = routeHtmlPath(outDir, route)
   await mkdir(dirname(outputPath), { recursive: true })
   const document = html({
-    dependencies: options.dependencies,
-    devjarDependencies: options.devjarDependencies,
-    cdn: options.cdn,
+    resolveModule: options.resolveModule,
+    resolveRuntimeModule: options.resolveRuntimeModule,
+    tailwindUrl: options.tailwindUrl,
     base: options.base,
     devjarRuntime: options.devjarRuntime,
     liveReload: false,
@@ -723,6 +722,30 @@ export async function buildProject(options: BuildOptions) {
   const devjarDependencies = devjarRuntime
     ? await readDevjarDependencies(runtime)
     : {}
+  const resolveSourceModule = createEsmShResolver(dependencies, cdn, false)
+  const resolveSourceRuntimeModule = createEsmShResolver({
+    ...dependencies,
+    ...devjarDependencies,
+  }, cdn, false)
+  const packageImports = await collectPackageImports(root, projectPaths)
+  const htmlImports = ['react', 'react-dom', 'react/jsx-runtime', 'react-dom/client']
+  const tailwindSourceUrl = getTailwindBrowserUrl(dependencies, cdn, false)
+  const sourceUrls = new Set([
+    ...htmlImports.map(resolveSourceModule),
+    ...[...packageImports].map(resolveSourceModule),
+    ...(devjarRuntime ? [resolveSourceRuntimeModule('es-module-lexer')] : []),
+    ...(tailwindSourceUrl ? [tailwindSourceUrl] : []),
+  ])
+  const vendored = await vendorModules({
+    moduleUrls: [...sourceUrls],
+    resolveModule: resolveSourceModule,
+  })
+  const resolveBuiltModule = (specifier: string) => (
+    vendored.moduleUrl(resolveSourceModule(specifier), base)
+  )
+  const resolveBuiltRuntimeModule = (specifier: string) => (
+    vendored.moduleUrl(resolveSourceRuntimeModule(specifier), base)
+  )
   const manifest = await loadRouteManifest(root, {
     liveReload: false,
     revision: 0,
@@ -748,14 +771,17 @@ export async function buildProject(options: BuildOptions) {
   await writeFile(join(outDir, 'manifest.json'), JSON.stringify(manifest))
   for (const route of Object.keys(manifest.routes)) {
     await writeRouteHtml(outDir, route, renderedRoutes[route], {
-      dependencies,
-      devjarDependencies,
-      cdn,
+      resolveModule: resolveBuiltModule,
+      resolveRuntimeModule: resolveBuiltRuntimeModule,
+      tailwindUrl: tailwindSourceUrl
+        ? vendored.moduleUrl(tailwindSourceUrl, base)
+        : undefined,
       base,
       devjarRuntime,
     })
   }
   await copyRuntimeAssets(join(outDir, '_jar'), devjarRuntime)
+  await vendored.write(join(outDir, '_jar/vendor'), base)
   const modulesRoot = join(outDir, '_jar/modules')
   const projectAssetsRoot = join(outDir, '_jar/assets')
   await mkdir(modulesRoot, { recursive: true })
@@ -768,8 +794,7 @@ export async function buildProject(options: BuildOptions) {
     const compiled = await compileProjectModule({
       root,
       projectPath,
-      dependencies,
-      cdn,
+      resolveModule: resolveBuiltModule,
       moduleUrl: projectPath => builtModuleUrl(projectPath, base),
       assetUrl: (projectPath, contents) => builtAssetUrl(projectPath, contents, base),
       runtimeModuleUrl: withBase(base, '/_jar/runtime.js'),
@@ -820,7 +845,10 @@ export async function startBuiltServer(options: StartServerOptions) {
         return
       }
       if (requestPath.startsWith('/_jar/')) {
-        const cacheControl = requestPath.startsWith('/_jar/assets/') ? immutableAsset : noStore
+        const cacheControl = requestPath.startsWith('/_jar/assets/')
+          || requestPath.startsWith('/_jar/vendor/')
+          ? immutableAsset
+          : noStore
         if (!await serveFile(request, response, join(root, '_jar'), requestPath.slice('/_jar/'.length), undefined, cacheControl)) {
           send(request, response, 404, 'text/plain; charset=utf-8', 'Not found')
         }

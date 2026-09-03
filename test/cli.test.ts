@@ -125,8 +125,11 @@ describe('project loading', () => {
     const compiled = await compileProjectModule({
       root,
       projectPath: 'pages/about.tsx',
-      dependencies: { react: '19.2.0' },
-      cdn: 'https://modules.example.test/',
+      resolveModule: createEsmShResolver(
+        { react: '19.2.0' },
+        'https://modules.example.test/',
+        true,
+      ),
       moduleUrl: testModuleUrl,
       assetUrl: () => '/assets/test',
       runtimeModuleUrl: '/_jar/runtime.js',
@@ -138,6 +141,18 @@ describe('project loading', () => {
   })
 
   test('uses project dependencies for the app and Devjar dependencies for its runtime', async () => {
+    const requests: string[] = []
+    const cdn = createHttpServer((request, response) => {
+      const pathname = new URL(request.url || '/', 'http://localhost').pathname
+      requests.push(pathname)
+      response.writeHead(200, { 'Content-Type': 'text/javascript' })
+      response.end(testCdnModule(pathname))
+    })
+    await new Promise<void>((resolvePromise, reject) => {
+      cdn.once('error', reject)
+      cdn.listen(0, '127.0.0.1', resolvePromise)
+    })
+    const address = cdn.address() as import('node:net').AddressInfo
     const projectRoot = await mkdtemp(join(tmpdir(), 'devjar-zero-config-'))
     try {
       await cp(root, projectRoot, { recursive: true })
@@ -152,24 +167,25 @@ describe('project loading', () => {
       const result = await buildProject({
         root: projectRoot,
         outDir: 'dist',
-        cdn: undefined,
+        cdn: `http://127.0.0.1:${address.port}`,
         prerender: false,
         base: '/',
       })
       const manifest = JSON.parse(await readFile(join(result.outDir, 'manifest.json'), 'utf8'))
       const entry = await readFile(join(result.outDir, manifest.routes['/'].module), 'utf8')
       const document = await readFile(join(result.outDir, 'index.html'), 'utf8')
-      const devjarPackage = JSON.parse(
-        await readFile(resolve(import.meta.dir, '../package.json'), 'utf8'),
-      )
-      const lexerVersion = encodeURIComponent(devjarPackage.dependencies['es-module-lexer'])
-      expect(entry).toContain('https://esm.sh/react@19.2.0/jsx-runtime')
+      expect(entry).toMatch(/\/_jar\/vendor\/[a-f0-9]{12}\/[a-f0-9]{12}\.js/)
+      expect(entry).not.toContain('http://')
+      expect(entry).not.toContain('https://')
       expect(entry).not.toContain('jsx-dev-runtime')
       expect(entry).not.toContain('?dev')
       expect(entry).not.toContain('modules.example.test')
-      expect(document).toContain(`https://esm.sh/es-module-lexer@${lexerVersion}`)
-      expect(document).not.toContain('es-module-lexer@9.9.9')
+      expect(document).not.toContain('http://')
+      expect(document).not.toContain('https://')
+      expect(requests.some(path => path.includes('/es-module-lexer@1.6.0'))).toBe(true)
+      expect(requests.some(path => path.includes('/es-module-lexer@9.9.9'))).toBe(false)
     } finally {
+      await new Promise<void>(resolvePromise => cdn.close(() => resolvePromise()))
       await rm(projectRoot, { recursive: true, force: true })
     }
   })
@@ -233,8 +249,7 @@ describe('project loading', () => {
       const compiled = await compileProjectModule({
         root: await realpath(projectRoot),
         projectPath: 'pages/index.tsx',
-        dependencies: {},
-        cdn: CDN_HOST,
+        resolveModule: createEsmShResolver({}, CDN_HOST, true),
         moduleUrl: testModuleUrl,
         assetUrl: () => '/assets/test',
         runtimeModuleUrl: '/_jar/runtime.js',
@@ -464,15 +479,25 @@ export default function Page() { return <><img className="hero" src={icon} /><Ca
 describe('production build', () => {
   let projectRoot = ''
   let buildRoot = ''
+  let cdn: ReturnType<typeof createHttpServer> | undefined
   let server: Awaited<ReturnType<typeof startBuiltServer>> | undefined
 
   beforeAll(async () => {
+    cdn = createHttpServer((request, response) => {
+      response.writeHead(200, { 'Content-Type': 'text/javascript' })
+      response.end(testCdnModule(new URL(request.url || '/', 'http://localhost').pathname))
+    })
+    await new Promise<void>((resolvePromise, reject) => {
+      cdn!.once('error', reject)
+      cdn!.listen(0, '127.0.0.1', resolvePromise)
+    })
+    const address = cdn.address() as import('node:net').AddressInfo
     projectRoot = await mkdtemp(join(tmpdir(), 'devjar-build-'))
     await cp(dashboardRoot, projectRoot, { recursive: true })
     const result = await buildProject({
       root: projectRoot,
       outDir: 'dist',
-      cdn: 'https://modules.example.test/',
+      cdn: `http://127.0.0.1:${address.port}`,
       prerender: false,
       base: '/preview/',
     })
@@ -481,6 +506,7 @@ describe('production build', () => {
 
   afterAll(async () => {
     await server?.close()
+    if (cdn) await new Promise<void>(resolvePromise => cdn!.close(() => resolvePromise()))
     if (projectRoot) await rm(projectRoot, { recursive: true, force: true })
   })
 
@@ -497,7 +523,9 @@ describe('production build', () => {
       join(buildRoot, withoutBase(manifest.base, manifest.routes['/'].module)!),
       'utf8',
     )
-    expect(entryModule).toContain('https://modules.example.test/react@19.2.0/jsx-runtime')
+    expect(entryModule).toMatch(/\/preview\/_jar\/vendor\/[a-f0-9]{12}\/[a-f0-9]{12}\.js/)
+    expect(entryModule).not.toContain('http://')
+    expect(entryModule).not.toContain('https://')
     expect(entryModule).not.toContain('jsx-dev-runtime')
     expect(entryModule).not.toContain('?dev')
     expect(entryModule).not.toContain('__jarRegisterModule')
@@ -513,6 +541,7 @@ describe('production build', () => {
     expect(builtHtml).not.toContain('es-module-lexer')
     const runtimeFiles = await readdir(join(buildRoot, '_jar'))
     expect(runtimeFiles).toContain('client.js')
+    expect(runtimeFiles).toContain('vendor')
     expect(runtimeFiles).not.toContain('runtime.js')
     expect(runtimeFiles).not.toContain('transform-assets.json')
     expect(await readdir(join(buildRoot, '_jar/assets'))).toEqual([])
@@ -543,8 +572,14 @@ describe('production build', () => {
     expect(document.headers.get('cross-origin-embedder-policy')).toBeNull()
 
     const shell = await (await fetch(`${origin}/preview/projects`)).text()
-    expect(shell).toContain('https://modules.example.test/react@19.2.0')
+    expect(shell).toMatch(/\/preview\/_jar\/vendor\/[a-f0-9]{12}\/[a-f0-9]{12}\.js/)
+    expect(shell).not.toContain('http://')
+    expect(shell).not.toContain('https://')
     expect(shell).not.toContain('?dev')
+    const vendorPath = shell.match(/\/preview\/_jar\/vendor\/[a-f0-9]{12}\/[a-f0-9]{12}\.js/)![0]
+    const vendorModule = await fetch(`${origin}${vendorPath}`)
+    expect(vendorModule.status).toBe(200)
+    expect(vendorModule.headers.get('cache-control')).toBe('public, max-age=31536000, immutable')
     const routes = await (await fetch(`${origin}/preview/_jar/routes.json`)).json()
     expect(routes.routes['/projects'].page).toBe('pages/projects.tsx')
     expect(routes.liveReload).toBe(false)

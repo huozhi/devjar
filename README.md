@@ -180,8 +180,10 @@ export default function Page() {
 ```
 
 Production builds copy imported assets to `_jar/assets/` with content-hashed
-filenames so they can be cached as immutable files. Bare imports are loaded
-from esm.sh using versions in `dependencies` or `devDependencies`:
+filenames so they can be cached as immutable files. Production builds also
+vendor bare imports and their transitive assets under `_jar/vendor/`; deployed
+sites do not depend on the module CDN. Dependency versions come from
+`dependencies` or `devDependencies`:
 
 ```json
 {
@@ -198,8 +200,9 @@ are available at their corresponding `/api/` URLs. Executable API routes are
 not supported.
 
 For CLI projects, add `tailwindcss` or `@tailwindcss/browser` to the dependency
-list to enable Tailwind. Bare imports use esm.sh by default. Select a different
-ESM-compatible CDN with the `--cdn` flag:
+list to enable Tailwind. Bare imports use esm.sh in development and as the
+source for vendored production modules. Select a different ESM-compatible CDN
+with the `--cdn` flag:
 
 ```sh
 jar dev --cdn https://modules.example.com
@@ -207,7 +210,10 @@ jar build --cdn https://modules.example.com
 ```
 
 The CLI applies dependency versions to CDN URLs using the
-`package@version/subpath` convention.
+`package@version/subpath` convention. During `jar build`, the selected CDN must
+be available while dependencies are collected, but it is not contacted by the
+deployed site. Modules and their referenced assets are stored below a
+content-hashed directory and can be cached as immutable files.
 
 Use `--base <path>` when the site will be hosted below the domain root. The
 same base is embedded in the build, so `jar start` reads it automatically:
@@ -227,14 +233,20 @@ transforms:
 
 ```sh
 jar build
-jar start dist
+jar start
 ```
 
 The build writes the initial React content and imported CSS into an HTML file for
 each route, then hydrates that content in the browser. Opening or hosting the
 HTML therefore shows page content before client JavaScript runs. Package imports
-are loaded from the selected CDN during static rendering and in the browser, so
-the project does not need a local `node_modules` directory.
+are loaded from the selected CDN during the build and emitted as local files, so
+the project does not need a local `node_modules` directory and the deployed site
+does not need the CDN.
+
+`jar start [root]` treats `root` as the project directory and serves its `dist`
+build by default. Pass the same `--out-dir <directory>` used for the build when
+using a custom output directory. A build directory passed directly remains
+supported for compatibility.
 
 Files from `public/` are copied to the root of the output directory. For example,
 `public/logo.svg` becomes `dist/logo.svg` and remains available at `/logo.svg`.

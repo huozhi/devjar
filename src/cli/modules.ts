@@ -3,7 +3,6 @@ import { readFile, realpath, stat } from 'node:fs/promises'
 import { basename, extname, relative, resolve, sep } from 'node:path'
 import { init, parse } from 'es-module-lexer'
 import { transformSync } from 'oxc-transform'
-import { createEsmShResolver } from '../cdn'
 import { sourceExtensions, withBase } from '../project'
 import { getTransformErrorMessage, getTransformOptions } from '../transform'
 import type { HmrUpdate } from './protocol'
@@ -45,8 +44,7 @@ export type CompiledProjectModule = {
 export type CompileProjectModuleOptions = {
   root: string
   projectPath: string
-  dependencies: Record<string, string>
-  cdn: string
+  resolveModule: (specifier: string) => string
   moduleUrl: (projectPath: string) => string
   assetUrl: (projectPath: string, contents: Buffer) => string
   runtimeModuleUrl: string
@@ -195,6 +193,31 @@ export async function usesDevjarRuntime(root: string, projectPaths: Set<string>)
   return false
 }
 
+export async function collectPackageImports(root: string, projectPaths: Set<string>) {
+  const specifiers = new Set<string>()
+  for (const projectPath of projectPaths) {
+    if (!sourceExtensions.includes(extname(projectPath))) continue
+    const source = await readFile(resolve(root, projectPath), 'utf8')
+    const output = transformSync(
+      projectPath,
+      source,
+      getTransformOptions(projectPath, false, false),
+    )
+    const error = getTransformErrorMessage(output.errors)
+    if (error) throw new Error(error)
+
+    await init
+    const [imports] = parse(output.code)
+    for (const imported of imports) {
+      if (imported.n
+        && imported.n !== 'devjar'
+        && !imported.n.startsWith('./')
+        && !imported.n.startsWith('../')) specifiers.add(imported.n)
+    }
+  }
+  return specifiers
+}
+
 export async function collectProjectFiles(root: string, entry: string) {
   const projectPaths = new Set<string>()
   const queue = [entry]
@@ -319,11 +342,6 @@ export async function compileProjectModule(
   const [imports, exports] = parse(output.code)
   const replacements: Array<{ start: number, end: number, value: string }> = []
   const localDependencies: string[] = []
-  const resolveModule = createEsmShResolver(
-    options.dependencies,
-    options.cdn,
-    options.development,
-  )
   for (const imported of imports) {
     if (!imported.n) continue
     let value: string
@@ -338,7 +356,7 @@ export async function compileProjectModule(
       value = options.moduleUrl(importedProjectPath)
       localDependencies.push(importedProjectPath)
     } else {
-      value = resolveModule(imported.n)
+      value = options.resolveModule(imported.n)
     }
     replacements.push({
       start: imported.s,
