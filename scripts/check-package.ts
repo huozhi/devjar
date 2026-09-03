@@ -36,6 +36,7 @@ const required = [
   'dist/http-loader.mjs',
   'dist/index.js',
   'dist/prerender-runner.mjs',
+  'dist/tailwind-runner.mjs',
   'dist/transform-assets.json',
   ...Object.values(transformAssets).map(file => `dist/${file}`),
 ]

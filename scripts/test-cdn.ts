@@ -1,4 +1,16 @@
 export function testCdnModule(pathname: string) {
+  if (pathname.includes('/tailwindcss@') && pathname.endsWith('/index.css')) {
+    return '@tailwind utilities;'
+  }
+  if (pathname.includes('/tailwindcss@')) {
+    return `export async function compile() {
+  return {
+    build(candidates) {
+      return '/* ' + JSON.stringify(candidates) + ' */\\nbody { --devjar-tailwind-test: 1; }'
+    },
+  }
+}`
+  }
   if (pathname.includes('/es-module-lexer@')) {
     return `export const init = Promise.resolve()
 export function parse() { return [[], []] }`

@@ -27,8 +27,9 @@ import {
   withBase,
   withoutBase,
 } from '../project'
-import { getTailwindBrowserUrl } from '../tailwind'
+import { getTailwindBrowserUrl, getTailwindBuildUrls } from '../tailwind'
 import { prerender, type PrerenderedRoute } from './prerender'
+import { compileTailwind } from './tailwind-build'
 import { vendorModules } from './vendor'
 
 type PackageJson = {
@@ -184,6 +185,7 @@ type HtmlOptions = {
   resolveModule: (specifier: string) => string
   resolveRuntimeModule: (specifier: string) => string
   tailwindUrl: string | undefined
+  tailwindStylesheetUrl: string | undefined
   base: string
   devjarRuntime: boolean
   liveReload: boolean
@@ -217,6 +219,9 @@ function html(options: HtmlOptions) {
   const tailwindScript = options.tailwindUrl
     ? `<script data-devjar-tailwind type="module" src="${options.tailwindUrl}"></script>`
     : ''
+  const tailwindStylesheet = options.tailwindStylesheetUrl
+    ? `<link data-devjar-tailwind rel="stylesheet" href="${options.tailwindStylesheetUrl}">`
+    : ''
   const clientScript = options.liveReload
     ? `<script type="module">
 import * as RefreshModule from 'react-refresh/runtime'
@@ -236,7 +241,7 @@ await import(${JSON.stringify(withBase(options.base, '/_jar/client.js'))})
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="devjar-base" content="${options.base}">${documentHead}${tailwindPreload}<script type="importmap">${JSON.stringify({ imports })}</script>
 <style>html,body,#root,#__reactRoot{width:100%;min-height:100%;margin:0}.devjar-error{box-sizing:border-box;position:fixed;z-index:10;inset:auto 16px 16px;padding:14px 16px;border:1px solid #ffb4ab;border-radius:8px;background:#330a08;color:#ffdad6;font:13px/1.5 ui-monospace,monospace;white-space:pre-wrap}</style>${staticStyles}
-</head><body><div id="root"><div id="__reactRoot">${options.content}</div></div><pre id="__jarError" class="devjar-error" hidden></pre><script>
+${tailwindStylesheet}</head><body><div id="root"><div id="__reactRoot">${options.content}</div></div><pre id="__jarError" class="devjar-error" hidden></pre><script>
 const errorRoot = document.getElementById('__jarError')
 const showBootstrapError = value => {
   errorRoot.hidden = false
@@ -470,6 +475,7 @@ export async function startDevServer(options: DevServerOptions) {
               ...devjarDependencies,
             }, cdn, true),
             tailwindUrl: getTailwindBrowserUrl(dependencies, cdn, true),
+            tailwindStylesheetUrl: undefined,
             base,
             devjarRuntime: true,
             liveReload: true,
@@ -678,6 +684,7 @@ async function writeRouteHtml(
     | 'resolveModule'
     | 'resolveRuntimeModule'
     | 'tailwindUrl'
+    | 'tailwindStylesheetUrl'
     | 'base'
     | 'devjarRuntime'
   >,
@@ -688,6 +695,7 @@ async function writeRouteHtml(
     resolveModule: options.resolveModule,
     resolveRuntimeModule: options.resolveRuntimeModule,
     tailwindUrl: options.tailwindUrl,
+    tailwindStylesheetUrl: options.tailwindStylesheetUrl,
     base: options.base,
     devjarRuntime: options.devjarRuntime,
     liveReload: false,
@@ -729,12 +737,11 @@ export async function buildProject(options: BuildOptions) {
   }, cdn, false)
   const packageImports = await collectPackageImports(root, projectPaths)
   const htmlImports = ['react', 'react-dom', 'react/jsx-runtime', 'react-dom/client']
-  const tailwindSourceUrl = getTailwindBrowserUrl(dependencies, cdn, false)
+  const tailwindBuildUrls = getTailwindBuildUrls(dependencies, cdn)
   const sourceUrls = new Set([
     ...htmlImports.map(resolveSourceModule),
     ...[...packageImports].map(resolveSourceModule),
     ...(devjarRuntime ? [resolveSourceRuntimeModule('es-module-lexer')] : []),
-    ...(tailwindSourceUrl ? [tailwindSourceUrl] : []),
   ])
   const vendored = await vendorModules({
     moduleUrls: [...sourceUrls],
@@ -765,6 +772,18 @@ export async function buildProject(options: BuildOptions) {
     : Object.fromEntries([...discovered.routes.keys()].map(route => (
         [route, { head: '', markup: '', styles: '' }]
       )))
+  const tailwindCss = tailwindBuildUrls
+    ? await compileTailwind({
+        root,
+        projectPaths,
+        renderedMarkup: Object.values(renderedRoutes).map(route => route.markup),
+        compilerUrl: tailwindBuildUrls.compiler,
+        stylesheetUrl: tailwindBuildUrls.stylesheet,
+      })
+    : undefined
+  const tailwindStylesheetUrl = tailwindCss
+    ? builtAssetUrl('tailwind.css', tailwindCss, base)
+    : undefined
   await rm(outDir, { recursive: true, force: true })
   await mkdir(outDir, { recursive: true })
   await copyPublicFiles(join(root, 'public'), outDir)
@@ -773,9 +792,8 @@ export async function buildProject(options: BuildOptions) {
     await writeRouteHtml(outDir, route, renderedRoutes[route], {
       resolveModule: resolveBuiltModule,
       resolveRuntimeModule: resolveBuiltRuntimeModule,
-      tailwindUrl: tailwindSourceUrl
-        ? vendored.moduleUrl(tailwindSourceUrl, base)
-        : undefined,
+      tailwindUrl: undefined,
+      tailwindStylesheetUrl,
       base,
       devjarRuntime,
     })
@@ -786,6 +804,9 @@ export async function buildProject(options: BuildOptions) {
   const projectAssetsRoot = join(outDir, '_jar/assets')
   await mkdir(modulesRoot, { recursive: true })
   await mkdir(projectAssetsRoot, { recursive: true })
+  if (tailwindCss) {
+    await writeFile(join(projectAssetsRoot, staticAssetName('tailwind.css', tailwindCss)), tailwindCss)
+  }
   for (const projectPath of projectPaths) {
     if (isStaticAsset(projectPath)) {
       const contents = await readFile(join(root, projectPath))
