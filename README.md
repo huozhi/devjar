@@ -196,6 +196,17 @@ jar build --cdn https://modules.example.com
 The CLI applies dependency versions to CDN URLs using the
 `package@version/subpath` convention.
 
+Use `--base <path>` when the site will be hosted below the domain root. The
+same base is embedded in the build, so `jar start` reads it automatically:
+
+```sh
+jar dev --base /preview/
+jar build --base /preview/
+```
+
+Pages, public files, API files, and Devjar runtime assets are then served below
+`/preview/`. Base paths are normalized with one leading and trailing slash.
+
 ### Build and host
 
 Create a static build, then serve it without source-file watching or on-request

@@ -4,7 +4,8 @@ export type RouteEntry = {
 }
 
 export type RouteManifest = {
-  version: 2
+  version: 3
+  base: string
   liveReload: boolean
   revision: number
   routes: Record<string, RouteEntry>
