@@ -239,7 +239,8 @@ the project does not need a local `node_modules` directory.
 Files from `public/` are copied to the root of the output directory. For example,
 `public/logo.svg` becomes `dist/logo.svg` and remains available at `/logo.svg`.
 Imports from `devjar` use the runtime and worker assets included in the build
-instead of loading another copy of Devjar from the package CDN.
+instead of loading another copy of Devjar from the package CDN. Builds without
+a `devjar` import omit the Devjar runtime, transformer workers, and WASM.
 
 Pages can render React 19 document metadata directly. Devjar preserves these
 elements in each route's `<head>` during static export:
@@ -286,9 +287,10 @@ The iframe transforms code in the browser using Oxc and shared WebAssembly
 memory, so its host page must be cross-origin isolated. Devjar packages the
 browser transformer, WASM binary, and helper worker as lazy runtime assets;
 compatible bundlers emit these files without requiring a manual copy step.
-The `jar dev` and `jar start` servers send the required headers
-automatically. Static deployments must configure equivalent headers on their
-hosting platform.
+The `jar dev` server sends the required headers so an editor can be added while
+it is running. `jar start` sends them only for builds that use the editor.
+Static deployments that use `devjar` must configure equivalent headers on
+their hosting platform; sites without the editor do not need them.
 
 <details>
 <summary>Next.js headers example</summary>

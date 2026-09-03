@@ -15,6 +15,7 @@ import {
   moduleAssetName,
   staticAssetExtensions,
   staticAssetName,
+  usesDevjarRuntime,
 } from './modules'
 import type { HmrChange, RouteEntry, RouteManifest } from './protocol'
 import {
@@ -161,17 +162,18 @@ const isolationHeaders = {
 const noStore = 'no-store'
 const immutableAsset = 'public, max-age=31536000, immutable'
 
-function send(
+function sendResponse(
   request: IncomingMessage,
   response: ServerResponse,
   status: number,
   type: string,
   body: string | Buffer,
+  headers: Record<string, string>,
 ) {
   response.writeHead(status, {
     'Content-Type': type,
     'Cache-Control': noStore,
-    ...isolationHeaders,
+    ...headers,
   })
   response.end(request.method === 'HEAD' ? undefined : body)
 }
@@ -181,6 +183,7 @@ type HtmlOptions = {
   devjarDependencies: Record<string, string>
   cdn: string
   base: string
+  devjarRuntime: boolean
   liveReload: boolean
   head: string
   content: string
@@ -202,8 +205,12 @@ function html(options: HtmlOptions) {
     'react-dom': resolveModule('react-dom'),
     'react/jsx-runtime': resolveModule('react/jsx-runtime'),
     'react-dom/client': resolveModule('react-dom/client'),
-    'es-module-lexer': resolveRuntimeModule('es-module-lexer'),
-    devjar: withBase(options.base, '/_jar/runtime.js'),
+    ...(options.devjarRuntime
+      ? {
+          'es-module-lexer': resolveRuntimeModule('es-module-lexer'),
+          devjar: withBase(options.base, '/_jar/runtime.js'),
+        }
+      : {}),
     ...(options.liveReload
       ? {
           'react/jsx-dev-runtime': resolveModule('react/jsx-dev-runtime'),
@@ -279,13 +286,14 @@ const contentTypes: Record<string, string> = {
   '.woff2': 'font/woff2',
 }
 
-async function serveFile(
+async function serveResponseFile(
   request: IncomingMessage,
   response: ServerResponse,
   root: string,
   requestPath: string,
   allowed: Set<string> | undefined,
   cacheControl: string,
+  headers: Record<string, string>,
 ) {
   const path = resolve(root, `.${normalize('/' + requestPath)}`)
   const extension = extname(path).toLowerCase()
@@ -299,11 +307,43 @@ async function serveFile(
     'Content-Type': contentTypes[extension] || 'application/octet-stream',
     'Content-Length': info.size,
     'Cache-Control': cacheControl,
-    ...isolationHeaders,
+    ...headers,
   })
   if (request.method === 'HEAD') response.end()
   else createReadStream(canonicalPath).pipe(response)
   return true
+}
+
+function createResponder(headers: Record<string, string>) {
+  return {
+    send(
+      request: IncomingMessage,
+      response: ServerResponse,
+      status: number,
+      type: string,
+      body: string | Buffer,
+    ) {
+      sendResponse(request, response, status, type, body, headers)
+    },
+    serveFile(
+      request: IncomingMessage,
+      response: ServerResponse,
+      root: string,
+      requestPath: string,
+      allowed: Set<string> | undefined,
+      cacheControl: string,
+    ) {
+      return serveResponseFile(
+        request,
+        response,
+        root,
+        requestPath,
+        allowed,
+        cacheControl,
+        headers,
+      )
+    },
+  }
 }
 
 export async function startDevServer(options: DevServerOptions) {
@@ -315,6 +355,7 @@ export async function startDevServer(options: DevServerOptions) {
   const assetsRoot = await runtimeRoot()
   const devjarDependencies = await readDevjarDependencies(assetsRoot)
   const modules = new DevModuleGraph(base)
+  const { send, serveFile } = createResponder(isolationHeaders)
   let revision = 0
 
   if (!(await fileExists(join(root, 'pages/index.tsx')))
@@ -435,6 +476,7 @@ export async function startDevServer(options: DevServerOptions) {
             devjarDependencies,
             cdn: resolveCdn(options.cdn),
             base,
+            devjarRuntime: true,
             liveReload: true,
             head: '',
             content: '',
@@ -598,10 +640,14 @@ async function readTransformAssetManifest(source: string): Promise<TransformAsse
   return Object.fromEntries(names.map(name => [name, value[name]])) as TransformAssetManifest
 }
 
-async function copyRuntimeAssets(destination: string) {
+async function copyRuntimeAssets(destination: string, devjarRuntime: boolean) {
   const source = await runtimeRoot()
-  const transformAssets = await readTransformAssetManifest(source)
   await mkdir(destination, { recursive: true })
+  if (!devjarRuntime) {
+    await cp(join(source, 'client.js'), join(destination, 'client.js'))
+    return
+  }
+  const transformAssets = await readTransformAssetManifest(source)
   const assets: Array<[string, string]> = [
     ['index.js', 'runtime.js'],
     ['client.js', 'client.js'],
@@ -632,7 +678,10 @@ async function writeRouteHtml(
   outDir: string,
   route: string,
   rendered: PrerenderedRoute,
-  options: Pick<HtmlOptions, 'dependencies' | 'devjarDependencies' | 'cdn' | 'base'>,
+  options: Pick<
+    HtmlOptions,
+    'dependencies' | 'devjarDependencies' | 'cdn' | 'base' | 'devjarRuntime'
+  >,
 ) {
   const outputPath = routeHtmlPath(outDir, route)
   await mkdir(dirname(outputPath), { recursive: true })
@@ -641,6 +690,7 @@ async function writeRouteHtml(
     devjarDependencies: options.devjarDependencies,
     cdn: options.cdn,
     base: options.base,
+    devjarRuntime: options.devjarRuntime,
     liveReload: false,
     head: rendered.head,
     content: rendered.markup,
@@ -662,9 +712,17 @@ export async function buildProject(options: BuildOptions) {
   const packageJson = await readPackage(root)
   const dependencies = packageDependencies(packageJson)
   const runtime = await runtimeRoot()
-  const devjarDependencies = await readDevjarDependencies(runtime)
   const cdn = resolveCdn(options.cdn)
   const discovered = await discoverRoutes(root)
+  const projectPaths = new Set<string>()
+  for (const page of discovered.routes.values()) {
+    const files = await collectProjectFiles(root, page)
+    for (const projectPath of files) projectPaths.add(projectPath)
+  }
+  const devjarRuntime = await usesDevjarRuntime(root, projectPaths)
+  const devjarDependencies = devjarRuntime
+    ? await readDevjarDependencies(runtime)
+    : {}
   const manifest = await loadRouteManifest(root, {
     liveReload: false,
     revision: 0,
@@ -684,12 +742,6 @@ export async function buildProject(options: BuildOptions) {
     : Object.fromEntries([...discovered.routes.keys()].map(route => (
         [route, { head: '', markup: '', styles: '' }]
       )))
-  const projectPaths = new Set<string>()
-  for (const page of discovered.routes.values()) {
-    const files = await collectProjectFiles(root, page)
-    for (const projectPath of files) projectPaths.add(projectPath)
-  }
-
   await rm(outDir, { recursive: true, force: true })
   await mkdir(outDir, { recursive: true })
   await copyPublicFiles(join(root, 'public'), outDir)
@@ -700,9 +752,10 @@ export async function buildProject(options: BuildOptions) {
       devjarDependencies,
       cdn,
       base,
+      devjarRuntime,
     })
   }
-  await copyRuntimeAssets(join(outDir, '_jar'))
+  await copyRuntimeAssets(join(outDir, '_jar'), devjarRuntime)
   const modulesRoot = join(outDir, '_jar/modules')
   const projectAssetsRoot = join(outDir, '_jar/assets')
   await mkdir(modulesRoot, { recursive: true })
@@ -729,7 +782,7 @@ export async function buildProject(options: BuildOptions) {
   await writeFile(join(outDir, '_jar/routes.json'), JSON.stringify(manifest))
   await copyApiFiles(join(root, 'api'), join(outDir, 'api'))
 
-  return { root, outDir, routes: Object.keys(manifest.routes), base }
+  return { root, outDir, routes: Object.keys(manifest.routes), base, devjarRuntime }
 }
 
 export async function startBuiltServer(options: StartServerOptions) {
@@ -743,6 +796,8 @@ export async function startBuiltServer(options: StartServerOptions) {
   const manifest = JSON.parse(await readFile(join(root, 'manifest.json'), 'utf8')) as RouteManifest
   if (manifest.version !== 3) throw new Error(`Unsupported Devjar build version: ${manifest.version}`)
   const base = normalizeBase(manifest.base)
+  const devjarRuntime = await fileExists(join(root, '_jar/runtime.js'))
+  const { send, serveFile } = createResponder(devjarRuntime ? isolationHeaders : {})
   const fallbackHtml = await readFile(join(root, 'index.html'), 'utf8')
   const routeHtml = new Map<string, string>()
   for (const route of Object.keys(manifest.routes)) {
@@ -822,6 +877,7 @@ export async function startBuiltServer(options: StartServerOptions) {
     port: (server.address() as import('node:net').AddressInfo).port,
     root,
     base,
+    devjarRuntime,
     close,
   }
 }
