@@ -141,6 +141,8 @@ describe('project loading', () => {
     const projectRoot = await mkdtemp(join(tmpdir(), 'devjar-zero-config-'))
     try {
       await cp(root, projectRoot, { recursive: true })
+      const indexPath = join(projectRoot, 'pages/index.tsx')
+      await writeFile(indexPath, `import 'devjar'\n${await readFile(indexPath, 'utf8')}`)
       const packageJsonPath = join(projectRoot, 'package.json')
       const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8'))
       packageJson.devjar = { cdn: 'https://modules.example.test/' }
@@ -482,7 +484,7 @@ describe('production build', () => {
     if (projectRoot) await rm(projectRoot, { recursive: true, force: true })
   })
 
-  test('writes routes, runtime assets, public files, and static APIs', async () => {
+  test('omits the unused Devjar runtime while writing the static site', async () => {
     const manifest = JSON.parse(await readFile(join(buildRoot, 'manifest.json'), 'utf8'))
     expect(Object.keys(manifest.routes).sort()).toEqual(['/', '/404', '/projects', '/settings'])
     expect(manifest.version).toBe(3)
@@ -507,18 +509,13 @@ describe('production build', () => {
     expect(builtHtml).not.toContain('react-refresh')
     expect(builtHtml).not.toContain('jsx-dev-runtime')
     expect(builtHtml).not.toContain('?dev')
-    const transformAssets = JSON.parse(
-      await readFile(join(buildRoot, '_jar/transform-assets.json'), 'utf8'),
-    )
-    expect(Object.values(transformAssets)).toHaveLength(4)
-    for (const asset of Object.values(transformAssets) as string[]) {
-      expect(asset).toMatch(/^assets\/[a-z0-9.-]+-[a-z0-9]+\.(?:js|wasm)$/)
-      expect((await readFile(join(buildRoot, '_jar', asset))).byteLength).toBeGreaterThan(0)
-    }
+    expect(builtHtml).not.toContain('/_jar/runtime.js')
+    expect(builtHtml).not.toContain('es-module-lexer')
     const runtimeFiles = await readdir(join(buildRoot, '_jar'))
-    expect(runtimeFiles.some(file => /^.+-[a-z0-9]+\.js$/.test(file))).toBe(true)
-    expect(runtimeFiles).not.toContain('transform-worker.js')
-    expect(runtimeFiles).not.toContain('wasi-worker-browser.js')
+    expect(runtimeFiles).toContain('client.js')
+    expect(runtimeFiles).not.toContain('runtime.js')
+    expect(runtimeFiles).not.toContain('transform-assets.json')
+    expect(await readdir(join(buildRoot, '_jar/assets'))).toEqual([])
     expect(await readFile(join(buildRoot, 'api/projects.json'), 'utf8')).toContain('Mobile refresh')
     expect(await readFile(join(buildRoot, 'mark.svg'), 'utf8')).toContain('<svg')
   })
@@ -539,10 +536,11 @@ describe('production build', () => {
     server = await startBuiltServer({ root: buildRoot, host: '127.0.0.1', port: 0 })
     const origin = `http://${server.host}:${server.port}`
     expect(server.base).toBe('/preview/')
+    expect(server.devjarRuntime).toBe(false)
     expect((await fetch(origin)).status).toBe(404)
     const document = await fetch(`${origin}/preview/`)
-    expect(document.headers.get('cross-origin-opener-policy')).toBe('same-origin')
-    expect(document.headers.get('cross-origin-embedder-policy')).toBe('credentialless')
+    expect(document.headers.get('cross-origin-opener-policy')).toBeNull()
+    expect(document.headers.get('cross-origin-embedder-policy')).toBeNull()
 
     const shell = await (await fetch(`${origin}/preview/projects`)).text()
     expect(shell).toContain('https://modules.example.test/react@19.2.0')
@@ -555,10 +553,7 @@ describe('production build', () => {
     expect(projectModule.status).toBe(200)
     expect(projectModule.headers.get('content-type')).toContain('text/javascript')
     const transformAssetsResponse = await fetch(`${origin}/preview/_jar/transform-assets.json`)
-    expect(transformAssetsResponse.headers.get('cache-control')).toBe('no-store')
-    const transformAssets = await transformAssetsResponse.json()
-    const worker = await fetch(`${origin}/preview/_jar/${transformAssets.wasiWorker}`)
-    expect(worker.headers.get('cache-control')).toBe('public, max-age=31536000, immutable')
+    expect(transformAssetsResponse.status).toBe(404)
     expect((await fetch(`${origin}/preview/_jar/events`)).status).toBe(404)
     expect(await (await fetch(`${origin}/preview/api/projects.json`)).json()).toHaveLength(4)
     expect(await (await fetch(`${origin}/preview/mark.svg`)).text()).toContain('<svg')
@@ -623,6 +618,7 @@ export default function Page() {
         prerender: true,
         base: '/',
       })
+      expect(result.devjarRuntime).toBe(true)
       const document = await readFile(join(result.outDir, 'index.html'), 'utf8')
       expect(document).toContain('<head><meta charset="utf-8"')
       expect(document).toContain('<title>Static title</title><meta name="description" content="Static description">')
@@ -651,6 +647,23 @@ export default function Page() {
       expect(assetFiles.some(file => /^logo-[a-f0-9]{10}\.svg$/.test(file))).toBe(true)
       expect(assetFiles.some(file => /^background-[a-f0-9]{10}\.png$/.test(file))).toBe(true)
       expect(assetFiles.some(file => /^body-[a-f0-9]{10}\.woff2$/.test(file))).toBe(true)
+      const transformAssets = JSON.parse(
+        await readFile(join(result.outDir, '_jar/transform-assets.json'), 'utf8'),
+      )
+      expect(Object.values(transformAssets)).toHaveLength(4)
+      const builtServer = await startBuiltServer({
+        root: result.outDir,
+        host: '127.0.0.1',
+        port: 0,
+      })
+      try {
+        expect(builtServer.devjarRuntime).toBe(true)
+        const response = await fetch(`http://${builtServer.host}:${builtServer.port}`)
+        expect(response.headers.get('cross-origin-opener-policy')).toBe('same-origin')
+        expect(response.headers.get('cross-origin-embedder-policy')).toBe('credentialless')
+      } finally {
+        await builtServer.close()
+      }
     } finally {
       await new Promise<void>(resolvePromise => cdn.close(() => resolvePromise()))
       await rm(projectRoot, { recursive: true, force: true })

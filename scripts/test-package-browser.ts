@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { execFile, spawn, type ChildProcess } from 'node:child_process'
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -114,6 +114,10 @@ export default function Page() {
   await run('npm', ['install', '--ignore-scripts', tarball], projectRoot)
   const jar = join(projectRoot, 'node_modules', '.bin', executable('jar'))
   await run(jar, ['build', '--base', '/preview/'], projectRoot)
+  const builtRuntimeFiles = await readdir(join(projectRoot, 'dist/_jar'))
+  assert(builtRuntimeFiles.includes('client.js'))
+  assert(!builtRuntimeFiles.includes('runtime.js'))
+  assert(!builtRuntimeFiles.includes('transform-assets.json'))
 
   server = spawn(jar, ['start', 'dist', '--host', '127.0.0.1', '--port', '0'], {
     cwd: projectRoot,

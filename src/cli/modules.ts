@@ -176,6 +176,25 @@ function rewriteCssAssets(
   )
 }
 
+export async function usesDevjarRuntime(root: string, projectPaths: Set<string>) {
+  for (const projectPath of projectPaths) {
+    if (!sourceExtensions.includes(extname(projectPath))) continue
+    const source = await readFile(resolve(root, projectPath), 'utf8')
+    const output = transformSync(
+      projectPath,
+      source,
+      getTransformOptions(projectPath, false, false),
+    )
+    const error = getTransformErrorMessage(output.errors)
+    if (error) return true
+
+    await init
+    const [imports] = parse(output.code)
+    if (imports.some(imported => imported.n === 'devjar')) return true
+  }
+  return false
+}
+
 export async function collectProjectFiles(root: string, entry: string) {
   const projectPaths = new Set<string>()
   const queue = [entry]
