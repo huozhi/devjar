@@ -12,12 +12,13 @@ import {
 } from '../src/cli/index'
 import { CDN_HOST, createEsmShResolver } from '../src/cdn'
 import { createIframeRouteManifest, linkModules } from '../src/core'
-import { compileProjectModule } from '../src/cli/modules'
+import { collectProjectFiles, compileProjectModule } from '../src/cli/modules'
 import { getTailwindBrowserUrl } from '../src/tailwind'
 import { testCdnModule } from '../scripts/test-cdn'
 
 const root = resolve(import.meta.dir, '../examples/basic')
 const dashboardRoot = resolve(import.meta.dir, '../examples/dashboard')
+const websiteRoot = resolve(import.meta.dir, '../examples/website')
 
 function testModuleUrl(projectPath: string) {
   return `/modules/${projectPath}`
@@ -97,7 +98,8 @@ describe('project loading', () => {
       CDN_HOST,
     )
     expect(resolveModule('react/jsx-runtime')).toBe('https://esm.sh/react@19.1.0/jsx-runtime?dev')
-    expect(resolveModule('@scope/pkg/subpath')).toBe('https://esm.sh/@scope/pkg@%5E2.0.0/subpath')
+    expect(resolveModule('react-dom/client')).toBe('https://esm.sh/react-dom@19.2.0/client?dev&external=react')
+    expect(resolveModule('@scope/pkg/subpath')).toBe('https://esm.sh/@scope/pkg@%5E2.0.0/subpath?external=react')
   })
 
   test('loads a route manifest with module entries', async () => {
@@ -167,6 +169,25 @@ describe('project loading', () => {
     expect(manifest.notFound?.page).toBe('pages/404.tsx')
   })
 
+  test('loads the website example and its editable source files', async () => {
+    const manifest = await loadTestRouteManifest(websiteRoot)
+    expect(manifest.routes['/'].page).toBe('pages/index.tsx')
+
+    const files = await collectProjectFiles(
+      await realpath(websiteRoot),
+      join(websiteRoot, 'pages/index.tsx'),
+    )
+    expect([...files].sort()).toEqual([
+      'components/codesandbox.css',
+      'components/codesandbox.tsx',
+      'components/file-icon.tsx',
+      'components/root-actions.tsx',
+      'lib/demo-files.ts',
+      'pages/index.tsx',
+      'styles.css',
+    ])
+  })
+
   test('uses the project Tailwind version for the cached browser runtime', () => {
     expect(getTailwindBrowserUrl(
       { tailwindcss: '^4.1.0' },
@@ -202,6 +223,34 @@ describe('project loading', () => {
       await rm(projectRoot, { recursive: true, force: true })
     }
   })
+
+  test('ignores import-like text inside project source strings', async () => {
+    const projectRoot = await mkdtemp(join(tmpdir(), 'devjar-source-strings-'))
+    try {
+      await mkdir(join(projectRoot, 'pages'))
+      await mkdir(join(projectRoot, 'lib'))
+      await writeFile(
+        join(projectRoot, 'pages/index.tsx'),
+        `import { example } from '../lib/example'
+export default function Page() { return <pre>{example}</pre> }`,
+      )
+      await writeFile(
+        join(projectRoot, 'lib/example.ts'),
+        "export const example = `import Missing from '../components/missing'`",
+      )
+
+      const files = await collectProjectFiles(
+        await realpath(projectRoot),
+        join(projectRoot, 'pages/index.tsx'),
+      )
+      expect([...files].sort()).toEqual([
+        'lib/example.ts',
+        'pages/index.tsx',
+      ])
+    } finally {
+      await rm(projectRoot, { recursive: true, force: true })
+    }
+  })
 })
 
 describe('dev server', () => {
@@ -219,7 +268,8 @@ describe('dev server', () => {
 
     const shell = await fetch(`${base}/about`)
     expect(shell.status).toBe(200)
-    expect(shell.headers.get('cross-origin-embedder-policy')).toBeNull()
+    expect(shell.headers.get('cross-origin-opener-policy')).toBe('same-origin')
+    expect(shell.headers.get('cross-origin-embedder-policy')).toBe('credentialless')
     const shellSource = await shell.text()
     expect(shellSource).toContain('/__devjar/client.js')
     expect(shellSource).toContain("import * as RefreshModule from 'react-refresh/runtime'")
@@ -267,6 +317,7 @@ describe('dev server', () => {
 
     const worker = await fetch(`${base}/__devjar/transform-worker.js`)
     expect(worker.headers.get('content-type')).toContain('text/javascript')
+    expect(worker.headers.get('cross-origin-embedder-policy')).toBe('credentialless')
     const wasm = await fetch(`${base}/__devjar/transform.wasm32-wasi.wasm`)
     expect(wasm.headers.get('content-type')).toBe('application/wasm')
 
@@ -389,6 +440,9 @@ describe('production build', () => {
   test('serves prebuilt projects without development events', async () => {
     server = await startBuiltServer({ root: buildRoot, host: '127.0.0.1', port: 0 })
     const base = `http://${server.host}:${server.port}`
+    const document = await fetch(base)
+    expect(document.headers.get('cross-origin-opener-policy')).toBe('same-origin')
+    expect(document.headers.get('cross-origin-embedder-policy')).toBe('credentialless')
 
     const shell = await (await fetch(`${base}/projects`)).text()
     expect(shell).toContain('https://modules.example.test/react@19.2.0?dev')

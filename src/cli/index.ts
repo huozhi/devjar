@@ -138,6 +138,11 @@ export async function loadRouteManifest(
   }
 }
 
+const isolationHeaders = {
+  'Cross-Origin-Opener-Policy': 'same-origin',
+  'Cross-Origin-Embedder-Policy': 'credentialless',
+}
+
 function send(
   request: IncomingMessage,
   response: ServerResponse,
@@ -148,6 +153,7 @@ function send(
   response.writeHead(status, {
     'Content-Type': type,
     'Cache-Control': 'no-store',
+    ...isolationHeaders,
   })
   response.end(request.method === 'HEAD' ? undefined : body)
 }
@@ -249,6 +255,7 @@ async function serveFile(
     'Content-Type': contentTypes[extname(path)] || 'application/octet-stream',
     'Content-Length': info.size,
     'Cache-Control': 'no-store',
+    ...isolationHeaders,
   })
   if (request.method === 'HEAD') response.end()
   else createReadStream(canonicalPath).pipe(response)

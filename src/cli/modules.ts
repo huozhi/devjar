@@ -57,10 +57,23 @@ async function findSourceFile(path: string) {
   }
 }
 
-function localImports(source: string) {
+async function localImports(projectPath: string, source: string) {
+  const output = transformSync(
+    projectPath,
+    source,
+    getTransformOptions(projectPath, false),
+  )
+  const error = getTransformErrorMessage(output.errors)
+  if (error) throw new Error(error)
+
+  await init
+  const [parsedImports] = parse(output.code)
   const imports = new Set<string>()
-  const pattern = /(?:import\s+(?:[^'";]*?\s+from\s*)?|export\s+[^'";]*?\s+from\s*|import\s*\()(['"])(\.{1,2}\/[^'"]+)\1/g
-  for (const match of source.matchAll(pattern)) imports.add(match[2])
+  for (const imported of parsedImports) {
+    if (imported.n?.startsWith('./') || imported.n?.startsWith('../')) {
+      imports.add(imported.n)
+    }
+  }
   return imports
 }
 
@@ -83,7 +96,7 @@ export async function collectProjectFiles(root: string, entry: string) {
     if (extname(canonicalPath) === '.css') continue
 
     const source = await readFile(canonicalPath, 'utf8')
-    for (const specifier of localImports(source)) {
+    for (const specifier of await localImports(projectPath, source)) {
       const imported = await findSourceFile(resolve(canonicalPath, '..', specifier))
       if (!imported) {
         throw new Error(`Cannot resolve ${specifier} imported by ${projectPath}`)
