@@ -219,8 +219,8 @@ textarea:focus-visible {
 .filetree {
   display: flex;
   flex-direction: column;
-  width: 200px;
-  min-width: 200px;
+  width: 210px;
+  min-width: 210px;
   border-right: 1px solid #e5e7eb;
   background-color: #fafafa;
   flex-shrink: 0;
@@ -289,13 +289,15 @@ textarea:focus-visible {
   flex: 1;
   overflow-y: auto;
   min-height: 0;
+  padding: 6px 0;
 }
 
 .filetree-item {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 12px;
+  min-height: 28px;
+  padding: 4px 10px;
   cursor: pointer;
   color: #374151;
   font-size: 13px;
@@ -311,12 +313,12 @@ textarea:focus-visible {
 }
 
 .filetree-item.active {
-  color: #374151;
-  background-color: #f3f4f6;
+  color: #171717;
+  background-color: #e7e7e7;
 }
 
 .filetree-item.active:hover {
-  background-color: #f3f4f6;
+  background-color: #e7e7e7;
 }
 
 .file-icon {
@@ -333,8 +335,27 @@ textarea:focus-visible {
   flex: 1;
 }
 
+.filetree-item--folder {
+  font-weight: 600;
+  color: #262626;
+}
+
+.filetree-children {
+  position: relative;
+}
+
+.filetree-children::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 17px;
+  border-left: 1px solid #dedede;
+  pointer-events: none;
+}
+
 .filetree-item--nested {
-  padding-left: 24px;
+  padding-left: 26px;
 }
 
 .filetree-item--editing {
