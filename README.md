@@ -15,7 +15,8 @@
 
 devjar is a library that enables you to live test and share your code snippets and examples with others. devjar will generate a live code editor where you can run your code snippets and view the results in real-time based on the provided code content of your React app.
 
-**Notice:** devjar requires React 19 and only works for browser runtime at the moment. It will always render the default export component in `index.js` as the app entry.
+**Notice:** devjar requires React 19 and only renders in the browser. Projects
+use the same `pages/` convention in the iframe runtime and CLI.
 
 ## Install
 
@@ -31,11 +32,15 @@ pnpm add devjar
 
 **Props**
 
-* `files`: An object that specifies the files you want to include in your development environment.
+* `files`: Project files using the same `pages/` convention as the CLI.
 * `dependencies`: Optional package name/version map. Packages load from esm.sh.
 * `resolveModule`: Optional override that maps module specifiers to browser-loadable module URLs.
 * `onError`: Callback function of error event from the iframe sandbox. By default `console.log`.
 * `transformWorkerUrl`: Optional custom URL for the packaged transform worker.
+
+`pages/index.*` maps to `/`, nested page files map to nested routes, and
+relative page links navigate without leaving the iframe. Unmatched links render
+a built-in 404 page unless the project provides `pages/404.*`.
 
 **Example**
 
@@ -45,7 +50,7 @@ import { DevJar } from 'devjar'
 const CDN_HOST = 'https://esm.sh'
 
 const files = {
-  'index.js': `export default function App() { return 'hello world' }`
+  'pages/index.jsx': `export default function Page() { return 'hello world' }`
 }
 
 function App() {
@@ -99,11 +104,11 @@ function Playground() {
   // load code files and execute them as live code
   function run() {
     load({
-      // `index.js` is the entry of every project
-      'index.js': `export default function App() { return 'hello world' }`,
-
-      // other relative modules can be used in the live coding
-      './mod': `export default function Mod() { return 'mod' }`,
+      'pages/index.jsx': `import Message from '../components/message'
+export default function Page() { return <Message /> }`,
+      'components/message.jsx': `export default function Message() {
+  return 'hello world'
+}`,
     })
   }
 

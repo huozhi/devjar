@@ -10,9 +10,9 @@ import {
   compileProjectModule,
   DevModuleGraph,
   moduleAssetName,
-  sourceExtensions,
 } from './modules'
 import type { HmrChange, RouteEntry, RouteManifest } from './protocol'
+import { normalizeRoute, routeFromPagePath, sourceExtensions } from '../project'
 import { getTailwindBrowserUrl } from '../tailwind'
 
 type PackageJson = {
@@ -78,11 +78,6 @@ async function runtimeRoot() {
   return await fileExists(join(moduleRoot, 'index.js'))
     ? moduleRoot
     : resolve(moduleRoot, '../../dist')
-}
-
-function normalizeRoute(route: string) {
-  const cleanRoute = route.replace(/^\/+|\/+$/g, '')
-  return cleanRoute ? `/${cleanRoute}` : '/'
 }
 
 async function readPackage(root: string): Promise<PackageJson> {
@@ -442,10 +437,9 @@ async function discoverRoutes(root: string) {
   const routes = new Map<string, string>()
   let notFound: string | undefined
   for (const path of files.sort()) {
-    let pagePath = relative(pagesRoot, path).split(sep).join('/')
-    pagePath = pagePath.slice(0, -extname(pagePath).length)
-    if (pagePath === '404') notFound = path
-    const route = normalizeRoute(pagePath.replace(/(?:^|\/)index$/, ''))
+    const pagePath = relative(pagesRoot, path).split(sep).join('/')
+    if (pagePath.slice(0, -extname(pagePath).length) === '404') notFound = path
+    const route = routeFromPagePath(pagePath)!
     if (routes.has(route)) {
       throw new Error(`Multiple pages resolve to ${route}: ${relative(root, routes.get(route)!)} and ${relative(root, path)}`)
     }

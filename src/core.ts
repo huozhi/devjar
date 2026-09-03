@@ -3,11 +3,17 @@ import { createModule } from './module'
 import type { ModuleRuntime } from './module'
 import { init, parse } from 'es-module-lexer'
 import { CDN_HOST, createEsmShResolver } from './cdn'
+import { routeFromPagePath, sourceExtensions } from './project'
 
 type ResolveModule = (specifier: string) => string
+export type IframeRouteManifest = {
+  routes: Record<string, string>
+  notFound: string | undefined
+}
 type RenderFunction = (
   files: Record<string, string>,
-  dependencies: Record<string, string[]>
+  dependencies: Record<string, string[]>,
+  manifest: IframeRouteManifest,
 ) => Promise<void>
 
 declare global {
@@ -29,12 +35,26 @@ type TransformWorkerResponse = {
 
 let esModuleLexerInit = false
 const isRelative = (specifier: string) => specifier.startsWith('./') || specifier.startsWith('../')
-const removeExtension = (str: string) => str.replace(/\.[^/.]+$/, '')
 const localImportPrefix = '__DEVJAR_LOCAL_IMPORT__'
 const tailwindSrc = 'https://unpkg.com/@tailwindcss/browser@4'
+const localExtensions = [...sourceExtensions, '.css']
 
 function createLocalImportPlaceholder(moduleKey: string) {
   return `${localImportPrefix}${encodeURIComponent(moduleKey)}__`
+}
+
+function normalizeProjectPath(filename: string) {
+  const parts: string[] = []
+  for (const part of filename.replace(/\\/g, '/').split('/')) {
+    if (!part || part === '.') continue
+    if (part === '..') {
+      if (!parts.length) throw new Error(`devjar: File escapes the project root: ${filename}`)
+      parts.pop()
+    } else {
+      parts.push(part)
+    }
+  }
+  return parts.join('/')
 }
 
 function createTransformWorker(transformWorkerUrl?: string | URL) {
@@ -62,23 +82,44 @@ function createTransformWorker(transformWorkerUrl?: string | URL) {
 }
 
 function getModuleKey(filename: string) {
-  const key = isRelative(filename) ? '@' + filename.slice(2) : filename
-  return filename.endsWith('.css') ? key : removeExtension(key)
+  return `@${normalizeProjectPath(filename)}`
 }
 
-function resolveRelativeModule(importer: string, imported: string) {
-  const importerPath = importer.startsWith('./') ? importer.slice(2) : importer
-  const parts = importerPath.split('/')
+function resolveRelativePath(importer: string, imported: string) {
+  const parts = normalizeProjectPath(importer).split('/')
   parts.pop()
 
   for (const part of imported.split('/')) {
     if (!part || part === '.') continue
-    if (part === '..') parts.pop()
-    else parts.push(part)
+    if (part === '..') {
+      if (!parts.length) {
+        throw new Error(`devjar: Local import escapes the project root: ${imported}`)
+      }
+      parts.pop()
+    } else {
+      parts.push(part)
+    }
   }
+  return parts.join('/')
+}
 
-  const path = parts.join('/')
-  return imported.endsWith('.css') ? '@' + path : removeExtension('@' + path)
+function resolveRelativeModule(
+  importer: string,
+  imported: string,
+  localFiles: ReadonlyMap<string, string>,
+) {
+  const requestedPath = resolveRelativePath(importer, imported)
+  const candidates = /\.[^/]+$/.test(requestedPath)
+    ? [requestedPath]
+    : [
+        ...localExtensions.map(extension => requestedPath + extension),
+        ...localExtensions.map(extension => `${requestedPath}/index${extension}`),
+      ]
+  for (const candidate of candidates) {
+    const moduleKey = localFiles.get(candidate)
+    if (moduleKey) return moduleKey
+  }
+  throw new Error(`devjar: Cannot resolve ${imported} imported by ${importer}`)
 }
 
 function replaceImports(
@@ -86,7 +127,7 @@ function replaceImports(
   filename: string,
   moduleKey: string,
   resolveModule: ResolveModule,
-  localModules: ReadonlySet<string>
+  localFiles: ReadonlyMap<string, string>,
 ) {
   let code = ''
   let lastIndex = 0
@@ -94,15 +135,15 @@ function replaceImports(
   const [imports] = parse(source)
   const cssImports: string[] = []
   const dependencies: string[] = []
-  
+
   // start, end, statementStart, statementEnd, assertion, name
-  imports.forEach(({ s, e, ss, se, a, n }) => {
+  imports.forEach(({ s, e, ss, se, n }) => {
     if (!n) return
-    code += source.slice(lastIndex, ss) // content from last import to beginning of this line 
+    code += source.slice(lastIndex, ss) // content from last import to beginning of this line
 
     const localModuleKey = isRelative(n)
-      ? resolveRelativeModule(filename, n)
-      : localModules.has(n) ? n : undefined
+      ? resolveRelativeModule(filename, n, localFiles)
+      : undefined
 
     // handle imports
     if (localModuleKey && localModuleKey.endsWith('.css')) {
@@ -164,7 +205,9 @@ async function linkModules(
     esModuleLexerInit = true
   }
 
-  const localModules = new Set(Object.keys(files).map(getModuleKey))
+  const localFiles = new Map(
+    Object.keys(files).map(filename => [normalizeProjectPath(filename), getModuleKey(filename)]),
+  )
   const dependencies: Record<string, string[]> = {}
   const linkedFiles: Record<string, string> = {}
 
@@ -181,7 +224,7 @@ async function linkModules(
       filename,
       moduleKey,
       resolveModule,
-      localModules,
+      localFiles,
     )
     linkedFiles[moduleKey] = linked.code
     dependencies[moduleKey] = linked.dependencies
@@ -190,7 +233,38 @@ async function linkModules(
   return { files: linkedFiles, dependencies }
 }
 
-// This is used directly by the CLI client and stringified for the iframe runtime.
+function createIframeRouteManifest(files: Record<string, string>): IframeRouteManifest {
+  const routes: Record<string, string> = {}
+  let notFound: string | undefined
+
+  for (const filename of Object.keys(files).sort()) {
+    const projectPath = normalizeProjectPath(filename)
+    if (!projectPath.startsWith('pages/')) continue
+    const pagePath = projectPath.slice('pages/'.length)
+    const route = routeFromPagePath(pagePath)
+    if (!route) continue
+    if (routes[route]) {
+      throw new Error(`devjar: Multiple pages resolve to ${route}`)
+    }
+    routes[route] = getModuleKey(projectPath)
+    if (route === '/404' && !pagePath.includes('/')) {
+      notFound = routes[route]
+    }
+  }
+
+  if (!routes['/']) {
+    // Keep existing single-file projects working while pages/ is canonical.
+    const legacyEntry = sourceExtensions
+      .map(extension => `index${extension}`)
+      .find(filename => filename in files || `./${filename}` in files)
+    if (legacyEntry) routes['/'] = getModuleKey(legacyEntry)
+    else throw new Error('devjar: Expected an index page in pages/')
+  }
+
+  return { routes, notFound }
+}
+
+// This function is stringified into the iframe runtime.
 function createRenderer(createModule_: typeof createModule, resolveModule: ResolveModule) {
   function isElementType(value: unknown): value is React.ElementType {
     return typeof value === 'string'
@@ -227,12 +301,34 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
   ]> | undefined
   let revision = 0
   const moduleRuntime: ModuleRuntime = {}
+  let currentFiles: Record<string, string> = {}
+  let currentDependencies: Record<string, string[]> = {}
+  let currentManifest: IframeRouteManifest | undefined
+  let currentRoute = '/'
+  let renderedEntry = ''
   const setErrorBoundaryRef = (value: ErrorBoundaryInstance | null) => {
     errorBoundary = value
   }
 
-  async function render(files: Record<string, string>, dependencies: Record<string, string[]>) {
-    const result = await createModule_(files, { resolveModule, dependencies, runtime: moduleRuntime })
+  async function render(
+    files: Record<string, string>,
+    dependencies: Record<string, string[]>,
+    manifest: IframeRouteManifest,
+  ) {
+    currentFiles = files
+    currentDependencies = dependencies
+    currentManifest = manifest
+    const cleanRoute = currentRoute.replace(/^\/+|\/+$/g, '')
+    const route = cleanRoute ? `/${cleanRoute}` : '/'
+    const entry = manifest.routes[route] || manifest.notFound
+    const result = entry
+      ? await createModule_(files, {
+          resolveModule,
+          dependencies,
+          runtime: moduleRuntime,
+          entry,
+        })
+      : undefined
     const nextReactModuleUrl = resolveModule('react')
     const nextReactDomModuleUrl = resolveModule('react-dom/client')
     if (!rendererModules
@@ -250,10 +346,21 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
     const _jsx = ReactMod.createElement
     const root = document.getElementById('__reactRoot')
     if (!root) throw new Error('devjar: render root was not found')
-    if (!isElementType(result.module.default)) {
-      throw new Error('devjar: index must have a default React component export')
+    let App: React.ElementType
+    if (entry) {
+      if (!isElementType(result?.module.default)) {
+        throw new Error(`devjar: Page ${entry.slice(1)} must have a default React component export`)
+      }
+      App = result.module.default
+    } else {
+      App = function NotFound() {
+        return _jsx('main', null,
+          _jsx('h1', null, '404'),
+          _jsx('p', null, `No page found for ${route}`),
+        )
+      }
     }
-    const App = result.module.default
+    const renderedPage = entry || `__devjar_not_found__${route}`
 
     if (!ErrorBoundary) {
       ErrorBoundary = class extends ReactMod.Component<ErrorBoundaryProps, ErrorBoundaryState> {
@@ -292,11 +399,24 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
         { revision, ref: setErrorBoundaryRef },
         _jsx(App)
       ))
+      renderedEntry = renderedPage
       moduleRuntime.hasRendered = true
       return
     }
 
-    if (result.changed) {
+    if (renderedEntry !== renderedPage) {
+      revision++
+      renderedEntry = renderedPage
+      errorBoundary?.reset()
+      reactRoot.render(_jsx(
+        ErrorBoundary,
+        { revision, ref: setErrorBoundaryRef },
+        _jsx(App)
+      ))
+      return
+    }
+
+    if (result?.changed) {
       errorBoundary?.reset()
       const refreshRuntime = moduleRuntime.refreshRuntime
       if (!refreshRuntime) throw new Error('devjar: refresh runtime was not initialized')
@@ -315,6 +435,28 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
       }
     }
   }
+
+  document.addEventListener('click', (event) => {
+    if (event.defaultPrevented || event.button !== 0) return
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+    const anchor = event.target instanceof Element
+      ? event.target.closest<HTMLAnchorElement>('a[href]')
+      : null
+    if (!anchor || anchor.hasAttribute('download')) return
+    if (anchor.target && anchor.target !== '_self') return
+    const href = anchor.getAttribute('href')
+    if (!href || href.startsWith('#')) return
+    const url = new URL(href, `https://devjar.local${currentRoute}`)
+    if (url.origin !== 'https://devjar.local') return
+    if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/__devjar/')) return
+    if (/\.[^/]+$/.test(url.pathname)) return
+
+    event.preventDefault()
+    currentRoute = url.pathname
+    if (currentManifest) {
+      void render(currentFiles, currentDependencies, currentManifest)
+    }
+  })
 
   return render
 }
@@ -494,103 +636,74 @@ function useLiveCode({
 
   const load = useCallback(async (files: Record<string, string>) => {
     const loadId = ++loadIdRef.current
-    if (!esModuleLexerInit) {
-      await init
-      esModuleLexerInit = true
-    }
 
-    if (files) {
+    try {
       const resolveModuleForLoad = resolveModule
-      const localModules = new Set(Object.keys(files).map(getModuleKey))
+      const manifest = createIframeRouteManifest(files)
 
-      try {
-        const filesToTransform = Object.fromEntries(
-          Object.entries(files).filter(([filename, source]) => {
-            return !filename.endsWith('.css') && transformCacheRef.current.get(filename)?.source !== source
-          })
-        )
-        const newTransforms = Object.keys(filesToTransform).length
-          ? transform ? await transformFiles(filesToTransform) : filesToTransform
-          : {}
+      const filesToTransform = Object.fromEntries(
+        Object.entries(files).filter(([filename, source]) => {
+          return !filename.endsWith('.css') && transformCacheRef.current.get(filename)?.source !== source
+        })
+      )
+      const newTransforms = Object.keys(filesToTransform).length
+        ? transform ? await transformFiles(filesToTransform) : filesToTransform
+        : {}
 
-        if (loadId !== loadIdRef.current) return
-        for (const [filename, code] of Object.entries(newTransforms)) {
-          transformCacheRef.current.set(filename, { source: files[filename], code })
-        }
-        for (const filename of transformCacheRef.current.keys()) {
-          if (!(filename in files)) transformCacheRef.current.delete(filename)
-        }
-
-        /**
-         * transformedFiles
-         * {
-         *  'index.js': '...',
-         *  '@mod1': '...',
-         *  '@mod2': '...',
-         */
-        const dependencies: Record<string, string[]> = {}
-        const transformedFiles: Record<string, string> = {}
-        for (const filename of Object.keys(files)) {
-          // 1. Remove ./
-          // 2. For non css files, remove extension
-          // e.g. './styles.css' -> '@styles.css'
-          // e.g. './foo.js' -> '@foo'
-          const moduleKey = getModuleKey(filename)
-          
-          if (filename.endsWith('.css')) {
-            transformedFiles[moduleKey] = files[filename]
-            dependencies[moduleKey] = []
-          } else {
-            // JS or TS files
-            const cachedTransform = transformCacheRef.current.get(filename)
-            if (!cachedTransform) {
-              throw new Error(`devjar: Missing transform for ${filename}`)
-            }
-            const transformed = replaceImports(
-              cachedTransform.code,
-              filename,
-              moduleKey,
-              resolveModuleForLoad,
-              localModules
-            )
-            transformedFiles[moduleKey] = transformed.code
-            dependencies[moduleKey] = transformed.dependencies
-          }
-        }
-
-        const iframe = iframeRef.current
-        const script = appScriptRef.current
-        if (iframe) {
-          const contentWindow = iframe.contentWindow
-          if (!contentWindow) throw new Error('devjar: iframe window is unavailable')
-          const renderFiles = async () => {
-            await tailwindReadyRef.current
-            const render = contentWindow.__render__
-            if (!render) throw new Error('devjar: renderer was not initialized')
-            await render(transformedFiles, dependencies)
-            if (loadId === loadIdRef.current) {
-              iframe.dispatchEvent(new CustomEvent('devjar:render'))
-            }
-          }
-
-          const render = contentWindow.__render__
-          if (render) {
-            await renderFiles()
-          } else {
-            // if render is not loaded yet, wait until it's loaded
-            if (!script) throw new Error('devjar: application script was not initialized')
-            script.onload = () => {
-              renderFiles().catch((err) => {
-                setError(err)
-              })
-            }
-          }
-        }
-        setError(undefined)
-      } catch (e) {
-        console.warn(e)
-        setError(e)
+      if (loadId !== loadIdRef.current) return
+      for (const [filename, code] of Object.entries(newTransforms)) {
+        transformCacheRef.current.set(filename, { source: files[filename], code })
       }
+      for (const filename of transformCacheRef.current.keys()) {
+        if (!(filename in files)) transformCacheRef.current.delete(filename)
+      }
+
+      const transformedSources: Record<string, string> = {}
+      for (const filename of Object.keys(files)) {
+        if (filename.endsWith('.css')) {
+          transformedSources[filename] = files[filename]
+        } else {
+          const cachedTransform = transformCacheRef.current.get(filename)
+          if (!cachedTransform) {
+            throw new Error(`devjar: Missing transform for ${filename}`)
+          }
+          transformedSources[filename] = cachedTransform.code
+        }
+      }
+      const linked = await linkModules(transformedSources, resolveModuleForLoad)
+
+      const iframe = iframeRef.current
+      const script = appScriptRef.current
+      if (iframe) {
+        const contentWindow = iframe.contentWindow
+        if (!contentWindow) throw new Error('devjar: iframe window is unavailable')
+        const renderFiles = async () => {
+          await tailwindReadyRef.current
+          const render = contentWindow.__render__
+          if (!render) throw new Error('devjar: renderer was not initialized')
+          await render(linked.files, linked.dependencies, manifest)
+          if (loadId === loadIdRef.current) {
+            iframe.dispatchEvent(new CustomEvent('devjar:render'))
+          }
+        }
+
+        const render = contentWindow.__render__
+        if (render) {
+          await renderFiles()
+        } else {
+          // if render is not loaded yet, wait until it's loaded
+          if (!script) throw new Error('devjar: application script was not initialized')
+          script.onload = () => {
+            renderFiles().catch((err) => {
+              setError(err)
+            })
+          }
+        }
+      }
+      setError(undefined)
+    } catch (e) {
+      console.warn(e)
+      setError(e)
     }
     rerender({})
   }, [resolveModule, transform, transformFiles])
@@ -600,6 +713,7 @@ function useLiveCode({
 
 export { 
   createModule,
+  createIframeRouteManifest,
   createRenderer,
   linkModules,
   replaceImports,

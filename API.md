@@ -1,6 +1,7 @@
 # Devjar API
 
-Devjar runs editable React code in a browser iframe. The runtime renders the default export from `index.js`.
+Devjar runs editable React code in a browser iframe. Projects use the same
+file-based `pages/` convention as the Devjar CLI.
 
 Devjar requires React 19.
 
@@ -18,7 +19,7 @@ pnpm add devjar
 import { DevJar } from 'devjar'
 
 const files = {
-  'index.js': `export default function App() {
+  'pages/index.tsx': `export default function Page() {
     return <h1>Hello world</h1>
   }`,
 }
@@ -35,22 +36,30 @@ export function Preview() {
 
 Props:
 
-- `files: Record<string, string>`: files available to the runtime. `index.js` is the entry file.
+- `files: Record<string, string>`: project files available to the runtime. `pages/index.*` is the root page.
 - `dependencies?: Record<string, string>`: package versions loaded from esm.sh when no custom resolver is supplied.
 - `resolveModule?: (specifier: string) => string`: overrides the default CDN resolver for bare imports.
 - `onError?: (...data: any[]) => void`: receives runtime or transform errors.
 
-File keys can include relative modules and CSS:
+Page files, shared modules, and CSS use project-relative paths:
 
 ```ts
 const files = {
-  'index.js': `import './styles.css'
-export default function App() {
-  return <button className="button">Save</button>
+  'pages/index.tsx': `import '../styles.css'
+import { Button } from '../components/button'
+export default function Page() {
+  return <Button>Save</Button>
 }`,
-  './styles.css': `.button { font: inherit; }`,
+  'components/button.tsx': `export function Button({ children }) {
+  return <button className="button">{children}</button>
+}`,
+  'styles.css': `.button { font: inherit; }`,
 }
 ```
+
+`pages/index.*` maps to `/`, nested page files map to nested routes, and
+relative page links navigate without leaving the iframe. Unmatched links render
+a built-in 404 page unless the project provides `pages/404.*`.
 
 ### `useLiveCode(options)`
 

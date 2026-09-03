@@ -10,7 +10,7 @@ import {
   startDevServer,
 } from '../src/cli/index'
 import { CDN_HOST, createEsmShResolver } from '../src/cdn'
-import { replaceImports } from '../src/core'
+import { createIframeRouteManifest, linkModules } from '../src/core'
 import { compileProjectModule } from '../src/cli/modules'
 import { getTailwindBrowserUrl } from '../src/tailwind'
 
@@ -48,15 +48,44 @@ async function readChangeEvent(
 describe('project loading', () => {
   test('keeps parent-directory imports in the local module graph', async () => {
     await init
-    const transformed = replaceImports(
-      `import { Card } from '../components/card'; import '../styles.css'`,
-      './pages/index.tsx',
-      '@pages/index',
+    const linked = await linkModules(
+      {
+        'pages/index.tsx': `import { Card } from '../components/card'; import '../styles.css'`,
+        'components/card.tsx': 'export function Card() {}',
+        'styles.css': 'body {}',
+      },
       specifier => `https://esm.sh/${specifier}`,
-      new Set(['@components/card', '@styles.css'])
     )
-    expect(transformed.dependencies).toEqual(['@components/card', '@styles.css'])
-    expect(transformed.code).not.toContain('https://esm.sh/../')
+    expect(linked.dependencies['@pages/index.tsx']).toEqual([
+      '@components/card.tsx',
+      '@styles.css',
+    ])
+    expect(linked.files['@pages/index.tsx']).not.toContain('https://esm.sh/../')
+  })
+
+  test('uses CLI page conventions for iframe projects', () => {
+    expect(createIframeRouteManifest({
+      'pages/index.tsx': '',
+      'pages/about.tsx': '',
+      'pages/docs/index.jsx': '',
+      'pages/404.tsx': '',
+      'components/card.tsx': '',
+    })).toEqual({
+      routes: {
+        '/': '@pages/index.tsx',
+        '/404': '@pages/404.tsx',
+        '/about': '@pages/about.tsx',
+        '/docs': '@pages/docs/index.jsx',
+      },
+      notFound: '@pages/404.tsx',
+    })
+  })
+
+  test('keeps single-file iframe projects compatible', () => {
+    expect(createIframeRouteManifest({ 'index.js': '' })).toEqual({
+      routes: { '/': '@index.js' },
+      notFound: undefined,
+    })
   })
 
   test('shares the runtime CDN resolver', () => {
@@ -324,7 +353,7 @@ describe('production build', () => {
     expect(builtHtml).toContain('data-devjar-tailwind')
     expect(builtHtml).not.toContain('react-refresh')
     const runtimeFiles = await readdir(join(buildRoot, '__devjar'))
-    expect(runtimeFiles.some(file => /^cdn-.+\.js$/.test(file))).toBe(true)
+    expect(runtimeFiles.some(file => /^.+-[a-z0-9]+\.js$/.test(file))).toBe(true)
     expect(await readFile(join(buildRoot, 'api/projects.json'), 'utf8')).toContain('Mobile refresh')
     expect(await readFile(join(buildRoot, 'public/mark.svg'), 'utf8')).toContain('<svg')
   })

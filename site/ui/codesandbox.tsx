@@ -87,11 +87,13 @@ export function Codesandbox({
 }: {
   files: Record<string, string>
 }) {
-  // Initialize activeFile with first available file, preferring index.js
+  // Initialize activeFile with the root page when available.
   const getInitialActiveFile = (files: Record<string, string>) => {
-    if (files['index.js']) return 'index.js'
+    const rootPage = ['pages/index.tsx', 'pages/index.ts', 'pages/index.jsx', 'pages/index.js']
+      .find(filename => filename in files)
+    if (rootPage) return rootPage
     const firstKey = Object.keys(files)[0]
-    return firstKey || 'index.js'
+    return firstKey || 'pages/index.tsx'
   }
   
   const [activeFile, setActiveFile] = useState<string | null>(() => getInitialActiveFile(initialFiles))
