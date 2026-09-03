@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { join, relative } from 'node:path'
 import { buildProject, startBuiltServer, startDevServer } from '../cli/index'
 
 type Command = 'dev' | 'build' | 'start'
@@ -63,6 +63,15 @@ function friendlyError(error: unknown) {
   return error instanceof Error ? error.message : String(error)
 }
 
+function routeTree(routes: string[]) {
+  return [...routes]
+    .sort((a, b) => a === '/' ? -1 : b === '/' ? 1 : a.localeCompare(b))
+    .map((route, index, sortedRoutes) => (
+      `${index === sortedRoutes.length - 1 ? '└──' : '├──'} ${route}`
+    ))
+    .join('\n')
+}
+
 async function run() {
   const args = process.argv.slice(2)
   if (args.includes('--help') || args.includes('-h')) {
@@ -116,8 +125,10 @@ async function run() {
     })
     console.log(style(1, 'Devjar build complete'))
     console.log('')
-    console.log(`Output  ${style(36, result.outDir)}`)
-    console.log(`Routes  ${result.routes.length}`)
+    console.log(`Output  ${style(36, relative(process.cwd(), result.outDir) || '.')}`)
+    console.log('')
+    console.log('Routes')
+    console.log(routeTree(result.routes))
     return
   }
 
