@@ -3,8 +3,7 @@ import { demoFiles } from '../lib/demo-files'
 import '../styles.css'
 
 const description = 'React Live Preview in Browser'
-const socialImage =
-  'https://repository-images.githubusercontent.com/483779830/28347c03-774a-4766-b113-54041fad1e72'
+const socialImage = '/og-image.png'
 
 export default function Page() {
   return (
