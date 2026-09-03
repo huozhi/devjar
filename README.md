@@ -5,6 +5,15 @@
 # devjar
 > turn a folder of React pages into a prototype
 
+Devjar turns a folder of React pages into a self-contained static site. It also
+includes an optional in-browser code playground.
+
+```sh
+npx devjar dev
+npx devjar build
+npx devjar start
+```
+
 ## Demo
 
 <video src="https://github.com/user-attachments/assets/e4d11123-2e78-4e0d-a78d-4b5d2fff9c1e" controls width="100%">
@@ -13,7 +22,9 @@
 
 ## Introduction
 
-devjar is a library that enables you to live test and share your code snippets and examples with others. devjar will generate a live code editor where you can run your code snippets and view the results in real-time based on the provided code content of your React app.
+Use the CLI to build and host React prototypes without configuring a bundler.
+Devjar also exports a React component and hook for embedding editable code
+examples that run inside an isolated iframe.
 
 **Notice:** devjar requires React 19. The iframe runtime and development server
 render in the browser; CLI production builds statically render each page.
@@ -200,9 +211,18 @@ are available at their corresponding `/api/` URLs. Executable API routes are
 not supported.
 
 For CLI projects, add `tailwindcss` or `@tailwindcss/browser` to the dependency
-list to enable Tailwind. Bare imports use esm.sh in development and as the
-source for vendored production modules. Select a different ESM-compatible CDN
-with the `--cdn` flag:
+list to enable Tailwind. Development uses Tailwind's browser compiler for live
+updates. Production builds use the matching Tailwind compiler to collect static
+class candidates from project source and prerendered pages, then emit a hashed
+stylesheet under `_jar/assets/`. The deployed site does not load or compile
+Tailwind at runtime.
+
+Use complete class names for conditional styles instead of constructing them
+dynamically so the production build can detect every candidate.
+
+Bare imports use esm.sh in development and as the source for vendored
+production modules. Select a different ESM-compatible CDN with the `--cdn`
+flag:
 
 ```sh
 jar dev --cdn https://modules.example.com
