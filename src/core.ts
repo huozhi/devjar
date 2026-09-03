@@ -321,14 +321,14 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
     const cleanRoute = currentRoute.replace(/^\/+|\/+$/g, '')
     const route = cleanRoute ? `/${cleanRoute}` : '/'
     const entry = manifest.routes[route] || manifest.notFound
-    if (!entry) throw new Error(`devjar: No page found for ${route}`)
-
-    const result = await createModule_(files, {
-      resolveModule,
-      dependencies,
-      runtime: moduleRuntime,
-      entry,
-    })
+    const result = entry
+      ? await createModule_(files, {
+          resolveModule,
+          dependencies,
+          runtime: moduleRuntime,
+          entry,
+        })
+      : undefined
     const nextReactModuleUrl = resolveModule('react')
     const nextReactDomModuleUrl = resolveModule('react-dom/client')
     if (!rendererModules
@@ -346,10 +346,21 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
     const _jsx = ReactMod.createElement
     const root = document.getElementById('__reactRoot')
     if (!root) throw new Error('devjar: render root was not found')
-    if (!isElementType(result.module.default)) {
-      throw new Error(`devjar: Page ${entry.slice(1)} must have a default React component export`)
+    let App: React.ElementType
+    if (entry) {
+      if (!isElementType(result?.module.default)) {
+        throw new Error(`devjar: Page ${entry.slice(1)} must have a default React component export`)
+      }
+      App = result.module.default
+    } else {
+      App = function NotFound() {
+        return _jsx('main', null,
+          _jsx('h1', null, '404'),
+          _jsx('p', null, `No page found for ${route}`),
+        )
+      }
     }
-    const App = result.module.default
+    const renderedPage = entry || `__devjar_not_found__${route}`
 
     if (!ErrorBoundary) {
       ErrorBoundary = class extends ReactMod.Component<ErrorBoundaryProps, ErrorBoundaryState> {
@@ -388,14 +399,14 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
         { revision, ref: setErrorBoundaryRef },
         _jsx(App)
       ))
-      renderedEntry = entry
+      renderedEntry = renderedPage
       moduleRuntime.hasRendered = true
       return
     }
 
-    if (renderedEntry !== entry) {
+    if (renderedEntry !== renderedPage) {
       revision++
-      renderedEntry = entry
+      renderedEntry = renderedPage
       errorBoundary?.reset()
       reactRoot.render(_jsx(
         ErrorBoundary,
@@ -405,7 +416,7 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
       return
     }
 
-    if (result.changed) {
+    if (result?.changed) {
       errorBoundary?.reset()
       const refreshRuntime = moduleRuntime.refreshRuntime
       if (!refreshRuntime) throw new Error('devjar: refresh runtime was not initialized')

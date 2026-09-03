@@ -58,8 +58,8 @@ export default function Page() {
 ```
 
 `pages/index.*` maps to `/`, nested page files map to nested routes, and
-`pages/404.*` handles unmatched links inside the iframe. Relative page links
-navigate without leaving the iframe.
+relative page links navigate without leaving the iframe. Unmatched links render
+a built-in 404 page unless the project provides `pages/404.*`.
 
 ### `useLiveCode(options)`
 
