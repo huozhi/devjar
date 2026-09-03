@@ -3,10 +3,10 @@ import { extname, relative, resolve, sep } from 'node:path'
 import { init, parse } from 'es-module-lexer'
 import { transformSync } from 'oxc-transform'
 import { createEsmShResolver } from '../cdn'
+import { sourceExtensions } from '../project'
 import { getTransformErrorMessage, getTransformOptions } from '../transform'
 import type { HmrUpdate } from './protocol'
 
-export const sourceExtensions = ['.tsx', '.ts', '.jsx', '.js']
 export const localExtensions = [...sourceExtensions, '.css']
 
 type ModuleGraphEntry = {

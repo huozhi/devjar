@@ -2,10 +2,10 @@ import PlaygroundSection from './playground-section'
 import dedent from 'dedent'
 
 const codeSample = {
-  'index.js': dedent`\
+  'pages/index.jsx': dedent`\
   import { useState } from 'react'
-  import { art } from './ascii'
-  import './styles.css'
+  import { art } from '../components/ascii'
+  import '../styles.css'
 
   const site = {
     name: 'DEVJAR',
@@ -38,12 +38,12 @@ const codeSample = {
       </div>
     )
   }`,
-  './ascii.js': dedent`\
+  'components/ascii.js': dedent`\
   const copy = {
     title: 'DEVJAR',
     editorLabel: 'editor',
     previewLabel: 'preview',
-    filename: 'index.js',
+    filename: 'pages/index.jsx',
     codeLine: 'const title = "Ship"',
     renderLine: 'return <Demo />',
     resultLabel: 'live result',
@@ -92,7 +92,7 @@ const codeSample = {
   ]
 
   export { art }`,
-  './styles.css': dedent`\
+  'styles.css': dedent`\
   * {
     box-sizing: border-box;
   }
