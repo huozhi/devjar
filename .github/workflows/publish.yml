@@ -41,7 +41,7 @@ jobs:
         run: pnpm run build
 
       - name: Test Package
-        run: pnpm test && pnpm test:package
+        run: pnpm typecheck && pnpm test && pnpm test:package
 
       - name: Determine npm tag
         id: npm-tag

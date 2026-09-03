@@ -6,13 +6,16 @@ type OxcTransform = Pick<typeof import('oxc-transform'), 'transformSync'>
 // handler before the WASI module begins its asynchronous initialization.
 const dynamicImport = new Function('specifier', 'return import(specifier)')
 const workerUrl = new URL(globalThis.location.href)
-const bindingUrl = workerUrl.searchParams.get('binding')
-const wasmUrl = workerUrl.searchParams.get('wasm')
-const wasiWorkerUrl = workerUrl.searchParams.get('wasiWorker')
 
-if (!bindingUrl || !wasmUrl || !wasiWorkerUrl) {
-  throw new Error('devjar: transform worker asset URLs are required')
+function requiredAssetUrl(name: string) {
+  const url = workerUrl.searchParams.get(name)
+  if (!url) throw new Error(`devjar: transform worker asset URL is required: ${name}`)
+  return url
 }
+
+const bindingUrl = requiredAssetUrl('binding')
+const wasmUrl = requiredAssetUrl('wasm')
+const wasiWorkerUrl = requiredAssetUrl('wasiWorker')
 
 Object.assign(globalThis, {
   __devjarOxcWasmUrl: wasmUrl,
