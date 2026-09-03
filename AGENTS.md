@@ -1,5 +1,9 @@
 # Repository guidance
 
+## Commits
+
+- Use Conventional Commits for commit messages.
+
 ## TypeScript and API design
 
 - Avoid optional parameters and default arguments when callers can pass values explicitly.
