@@ -42,7 +42,27 @@ export const demoFiles = {
     )
   }`,
   'components/intro.jsx': source`\
+  import { useEffect, useState } from 'react'
+
+  const pixels = '░▒▓█▄▀■□▪▫'
+
   export default function Intro({ name, title, description, action }) {
+    const [frame, setFrame] = useState(0)
+
+    useEffect(() => {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+      const timer = setInterval(() => {
+        setFrame((current) => {
+          const next = current + 1
+          if (next >= title.length + 4) clearInterval(timer)
+          return next
+        })
+      }, 65)
+
+      return () => clearInterval(timer)
+    }, [title])
+
     function editDemo() {
       window.parent.postMessage('devjar:edit-demo', '*')
     }
@@ -50,7 +70,29 @@ export const demoFiles = {
     return (
       <section className="intro">
         <p className="eyebrow">{name}</p>
-        <h1>{title}</h1>
+        <h1 aria-label={title}>
+          {Array.from(title).map((character, index) => {
+            const wave = frame - 4
+            const isWave = Math.abs(index - wave) < 0.65
+
+            return (
+              <span
+                className={isWave ? 'title-character is-wave' : 'title-character'}
+                key={index}
+                aria-hidden="true"
+              >
+                <span className="title-letter">
+                  {character === ' ' ? '\u00a0' : character}
+                </span>
+                {isWave ? (
+                  <span className="title-pixel">
+                    {pixels[(frame + index) % pixels.length]}
+                  </span>
+                ) : null}
+              </span>
+            )
+          })}
+        </h1>
         <p className="description">{description}</p>
         <p className="edit-prompt">
           <span className="edit-pointer" aria-hidden="true">→</span>
@@ -69,11 +111,6 @@ export const demoFiles = {
     )
   }`,
   'components/routes.jsx': source`\
-  import { useEffect, useState } from 'react'
-
-  const pixels = '░▒▪▫'
-  const lowPixels = '·.  '
-
   function TerminalIcon() {
     return (
       <svg viewBox="0 0 16 16" aria-hidden="true">
@@ -92,28 +129,7 @@ export const demoFiles = {
     )
   }
 
-  function transformCharacter(character, column, row, frame) {
-    const wave = (frame % 88) - 8 + Math.sin(row * 1.35) * 1.4
-    const distance = Math.abs(column - wave)
-    if (distance > 1.1) return character
-
-    if (character === ' ') {
-      return lowPixels[(frame + column + row) % lowPixels.length]
-    }
-    return pixels[(frame * 7 + column * 3 + row * 11) % pixels.length]
-  }
-
   export default function Routes({ routes }) {
-    const [frame, setFrame] = useState(0)
-
-    useEffect(() => {
-      const timer = setInterval(() => {
-        setFrame((current) => current + 1)
-      }, 45)
-
-      return () => clearInterval(timer)
-    }, [])
-
     return (
       <section className="route-demo" aria-label="File routes">
         <div className="route-heading">
@@ -122,50 +138,17 @@ export const demoFiles = {
         </div>
         <div className="route-map">
           <code className="route-root">pages/</code>
-          {routes.map((route, row) => (
+          {routes.map((route) => (
             <div className="route-row" key={route.path}>
               <code className="route-source">
-                {route.file.split('\\n').map((line, lineIndex) => (
+                {route.file.split('\\n').map((line) => (
                   <span className="route-source-line" key={line}>
-                    {Array.from(line).map((character, column) => {
-                      const transformed = transformCharacter(
-                        character,
-                        column,
-                        row + lineIndex * 0.5,
-                        frame,
-                      )
-                      return (
-                        <span
-                          className={transformed === character ? '' : 'pixel'}
-                          key={column}
-                        >
-                          {transformed}
-                        </span>
-                      )
-                    })}
+                    {line}
                   </span>
                 ))}
               </code>
               <span className="route-arrow" aria-hidden="true">→</span>
-              <code className="browser-route" aria-label={route.path}>
-                {Array.from(route.path).map((character, column) => {
-                  const transformed = transformCharacter(
-                    character,
-                    column + 22,
-                    row,
-                    frame,
-                  )
-                  return (
-                    <span
-                      className={transformed === character ? '' : 'pixel'}
-                      key={column}
-                      aria-hidden="true"
-                    >
-                      {transformed}
-                    </span>
-                  )
-                })}
-              </code>
+              <code className="browser-route">{route.path}</code>
             </div>
           ))}
         </div>
@@ -224,6 +207,22 @@ export const demoFiles = {
     line-height: 1.02;
   }
 
+  .title-character {
+    position: relative;
+    display: inline-block;
+  }
+
+  .title-character.is-wave .title-letter {
+    visibility: hidden;
+  }
+
+  .title-pixel {
+    position: absolute;
+    inset: 0;
+    color: #e7e5e4;
+    text-align: center;
+  }
+
   .description {
     max-width: 350px;
     margin: 18px 0 0;
@@ -244,33 +243,20 @@ export const demoFiles = {
 
   .edit-prompt a {
     color: #404040;
-    background: linear-gradient(
-      105deg,
-      #404040 35%,
-      #fafafa 48%,
-      #404040 61%
-    );
-    background-clip: text;
-    background-size: 250% 100%;
-    color: transparent;
+    font-size: 1.1rem;
     font-weight: 700;
     text-decoration-color: #404040;
     text-underline-offset: 3px;
-    animation: edit-shine 2.4s ease-in-out infinite;
   }
 
   .edit-pointer {
     color: #737373;
+    font-size: 1.1rem;
     animation: point-to-edit 1s ease-in-out infinite;
   }
 
   @keyframes point-to-edit {
     50% { transform: translateX(3px); }
-  }
-
-  @keyframes edit-shine {
-    0%, 55% { background-position: 100% 0; }
-    100% { background-position: -100% 0; }
   }
 
   .route-demo {
@@ -354,12 +340,6 @@ export const demoFiles = {
     white-space: pre;
   }
 
-  .route-source-line > span {
-    display: inline-block;
-    width: 1ch;
-    text-align: center;
-  }
-
   .route-arrow {
     color: #a3a3a3;
   }
@@ -369,12 +349,6 @@ export const demoFiles = {
     color: #57534e;
     font: inherit;
     white-space: nowrap;
-  }
-
-  .browser-route > span {
-    display: inline-block;
-    width: 1ch;
-    text-align: center;
   }
 
   @media (max-width: 760px) {
@@ -408,11 +382,6 @@ export const demoFiles = {
     *, *::before, *::after {
       animation-duration: 0.01ms !important;
       transition-duration: 0.01ms !important;
-    }
-
-    .edit-prompt a {
-      background: none;
-      color: #404040;
     }
   }
   `,
