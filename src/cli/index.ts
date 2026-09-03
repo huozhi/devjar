@@ -237,11 +237,8 @@ await import(${JSON.stringify(withBase(options.base, '/_jar/client.js'))})
   const documentHead = /<title(?:\s|>)/i.test(options.head)
     ? options.head
     : `<title data-devjar-default>Devjar</title>${options.head}`
-  return `<!doctype html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="devjar-base" content="${options.base}">${documentHead}${tailwindPreload}<script type="importmap">${JSON.stringify({ imports })}</script>
-<style>html,body,#root,#__reactRoot{width:100%;min-height:100%;margin:0}.devjar-error{box-sizing:border-box;position:fixed;z-index:10;inset:auto 16px 16px;padding:14px 16px;border:1px solid #ffb4ab;border-radius:8px;background:#330a08;color:#ffdad6;font:13px/1.5 ui-monospace,monospace;white-space:pre-wrap}</style>${staticStyles}
-${tailwindStylesheet}</head><body><div id="root"><div id="__reactRoot">${options.content}</div></div><pre id="__jarError" class="devjar-error" hidden></pre><script>
+  const errorOverlay = options.liveReload
+    ? `<pre id="__jarError" class="devjar-error" hidden></pre><script>
 const errorRoot = document.getElementById('__jarError')
 const showBootstrapError = value => {
   errorRoot.hidden = false
@@ -249,7 +246,16 @@ const showBootstrapError = value => {
 }
 addEventListener('error', event => showBootstrapError(event.message || 'A browser module failed to load'))
 addEventListener('unhandledrejection', event => showBootstrapError(event.reason?.stack || event.reason || 'An asynchronous module failed'))
-</script>${tailwindScript}${clientScript}</body></html>`
+</script>`
+    : ''
+  const errorStyles = options.liveReload
+    ? '.devjar-error{box-sizing:border-box;position:fixed;z-index:10;inset:auto 16px 16px;padding:14px 16px;border:0;border-radius:8px;background:#fff7f6;box-shadow:0 8px 30px rgba(0,0,0,.12);color:#9f2d20;font:13px/1.5 ui-monospace,monospace;white-space:pre-wrap}'
+    : ''
+  return `<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="devjar-base" content="${options.base}">${documentHead}${tailwindPreload}<script type="importmap">${JSON.stringify({ imports })}</script>
+<style>html,body,#root,#__reactRoot{width:100%;min-height:100%;margin:0}${errorStyles}</style>${staticStyles}
+${tailwindStylesheet}</head><body><div id="root"><div id="__reactRoot">${options.content}</div></div>${errorOverlay}${tailwindScript}${clientScript}</body></html>`
 }
 
 const contentTypes: Record<string, string> = {

@@ -41,46 +41,15 @@ function getDisplayName(filename: string): string {
   return normalized + '.js'
 }
 
-const loaderChars = '░▒▓█▄▀■□▪▫'
-
-function loaderChar(index: number, frame: number) {
-  return loaderChars[(index * 17 + frame * 11) % loaderChars.length]
-}
-
-function scrambleText(text: string, frame: number) {
-  let index = 0
-  return text.replace(/\S/g, () => loaderChar(index++, frame))
-}
-
-function scrambleTemplate(template: string, frame: number) {
-  let index = 0
-  return template.replace(/x/g, () => loaderChar(index++, frame))
-}
-
-function renderLoaderCells(text: string, frame: number) {
-  return Array.from(scrambleText(text, frame), (char, index) => (
-    <span className={char === ' ' ? 'preview--loading-cell is-space' : 'preview--loading-cell'} key={index}>
-      {char === ' ' ? '\u00a0' : char}
-    </span>
-  ))
-}
-
-const previewFallbackArtTemplate = [
-  '           DEVJAR             ',
-  '  .------------------------.  ',
-  ' /  xxxxxx        xxxxxxx  /| ',
-  '+------------------------+  | ',
-  '| xxxxxxxx               |  | ',
-  '|                        |  | ',
-  '|  xxxxxxxxxxxxxxxxxx    |  | ',
-  '|  xxxxxxxxxxxxxx        |  | ',
-  '|                        |  | ',
-  '|  .------------------.  |  | ',
-  '|  |                  |  |  | ',
-  '|  |    xxxxxxxxxx    |  |  | ',
-  '|  |                  |  |  | ',
-  '|  +------------------+  | /  ',
-  '+------------------------+    ',
+const previewLoaderFrames = [
+  '[■·······]',
+  '[·■······]',
+  '[··■·····]',
+  '[···■····]',
+  '[····■···]',
+  '[·····■··]',
+  '[······■·]',
+  '[·······■]',
 ]
 
 export function Codesandbox({
@@ -106,9 +75,9 @@ export function Codesandbox({
   const [deletingItems, setDeletingItems] = useState<Set<string>>(new Set())
   const previewRef = useRef<HTMLDivElement>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
-  const [previewHeight, setPreviewHeight] = useState(440)
+  const editorLayoutRef = useRef<HTMLDivElement>(null)
+  const [previewHeight, setPreviewHeight] = useState(340)
   const [previewReady, setPreviewReady] = useState(false)
-  const [loaderFrame, setLoaderFrame] = useState(0)
   const activeExtension = activeFile?.split('.').pop() || ''
   const projectFolders = [...new Set([
     ...folders,
@@ -120,13 +89,15 @@ export function Codesandbox({
   ])]
 
   useEffect(() => {
-    if (previewReady) return
-    const interval = window.setInterval(() => {
-      setLoaderFrame((frame) => (frame + 1) % 997)
-    }, 120)
+    const handleEditRequest = (event: MessageEvent) => {
+      if (event.source !== iframeRef.current?.contentWindow) return
+      if (event.data !== 'devjar:edit-demo') return
+      editorLayoutRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
 
-    return () => window.clearInterval(interval)
-  }, [previewReady])
+    window.addEventListener('message', handleEditRequest)
+    return () => window.removeEventListener('message', handleEditRequest)
+  }, [])
 
   useEffect(() => {
     const iframe = iframeRef.current
@@ -148,7 +119,7 @@ export function Codesandbox({
         doc.body?.offsetHeight || 0,
         doc.documentElement?.scrollHeight || 0,
         doc.documentElement?.offsetHeight || 0,
-        440
+        340
       ))
 
       setPreviewHeight(nextHeight)
@@ -276,26 +247,12 @@ export function Codesandbox({
     <div data-codesandbox="react">
       <div className="preview" ref={previewRef} style={{ height: previewHeight }}>
         <div className={previewReady ? 'preview--loading is-hidden' : 'preview--loading'} aria-hidden="true">
-          <div className="preview--loading-copy">
-            <h1>DEVJAR</h1>
-            <p className="preview--loading-kicker">
-              <span className="preview--loading-measure">
-                React Live Preview in browser
-                <span className="preview--loading-noise">{renderLoaderCells('React Live Preview in browser', loaderFrame)}</span>
-              </span>
-            </p>
-            <button className="preview--loading-button" type="button" tabIndex={-1}>
-              <span className="preview--loading-measure">
-                WIGGLE
-                <span className="preview--loading-noise">{renderLoaderCells('WIGGLE', loaderFrame + 2)}</span>
-              </span>
-            </button>
+          <div className="preview--loading-ascii">
+            <span className="preview--loading-frames">
+              {previewLoaderFrames.map((frame) => <span key={frame}>{frame}</span>)}
+            </span>
+            <span className="preview--loading-label">rendering preview</span>
           </div>
-          <pre className="preview--loading-art">
-            {previewFallbackArtTemplate.map((line, index) => (
-              <span key={index}>{scrambleTemplate(line, loaderFrame + index)}</span>
-            ))}
-          </pre>
         </div>
         <DevJar
           className={'preview--result ' + (previewReady ? 'is-ready' : '')}
@@ -308,7 +265,7 @@ export function Codesandbox({
           resolveModule={resolveModule}
         />
       </div>
-      <div className="codesandbox-layout">
+      <div className="codesandbox-layout" ref={editorLayoutRef}>
         <div className="filetree">
           <div className="filetree-root">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="react-icon">

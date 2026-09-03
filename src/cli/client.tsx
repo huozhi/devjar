@@ -25,7 +25,7 @@ function getRoot(id: string) {
 }
 
 const hostRoot = getRoot('root')
-const errorRoot = getRoot('__jarError')
+const errorRoot = document.getElementById('__jarError')
 
 function getBase() {
   const base = document.querySelector<HTMLMetaElement>('meta[name="devjar-base"]')?.content
@@ -135,11 +135,17 @@ function errorMessage(error: unknown) {
 }
 
 function showError(error: unknown) {
-  errorRoot.textContent = errorMessage(error)
+  const message = errorMessage(error)
+  if (!errorRoot) {
+    console.error(message)
+    return
+  }
+  errorRoot.textContent = message
   errorRoot.hidden = false
 }
 
 function hideError() {
+  if (!errorRoot) return
   errorRoot.hidden = true
   errorRoot.textContent = ''
 }

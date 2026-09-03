@@ -350,6 +350,7 @@ describe('dev server', () => {
     expect(shellSource).toContain('https://esm.sh/@tailwindcss/browser@%5E4.1.0')
     expect(shellSource).toContain('Devjar could not start')
     expect(shellSource).toContain(`Devjar could not start:\\n\\n`)
+    expect(shellSource).toContain('id="__jarError"')
     expect(shellSource).not.toContain('<iframe')
     expect(await (await fetch(`${base}/about`, { method: 'HEAD' })).text()).toBe('')
     const bootstrap = shellSource.match(/<script>\n([\s\S]+?)<\/script>/)?.[1]
@@ -694,6 +695,8 @@ export default function Page() {
       })
       expect(result.devjarRuntime).toBe(true)
       const document = await readFile(join(result.outDir, 'index.html'), 'utf8')
+      expect(document).not.toContain('__jarError')
+      expect(document).not.toContain('devjar-error')
       expect(document).toContain('<head><meta charset="utf-8"')
       expect(document).toContain('<title>Static title</title><meta name="description" content="Static description">')
       expect(document).not.toContain('<div id="__reactRoot"><title>')

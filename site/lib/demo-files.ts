@@ -7,97 +7,171 @@ function source(parts: TemplateStringsArray) {
 
   return lines.map((line) => line.slice(indentation)).join('\n').trimEnd()
 }
+
 export const demoFiles = {
   'pages/index.jsx': source`\
-  import { useState } from 'react'
-  import { art } from '../components/ascii'
+  import Intro from '../components/intro'
+  import Routes from '../components/routes'
   import '../styles.css'
 
-  const site = {
-    name: 'DEVJAR',
-    cta: 'WIGGLE',
-    accent: '#525252',
-  }
-
-  export default function App() {
-    const [refreshes, setRefreshes] = useState(0)
-
+  export default function Page() {
     return (
-      <div className="page" style={{ '--accent': site.accent }}>
+      <div className="page">
         <main>
-          <section className="copy">
-            <h1>{site.name}</h1>
-            <p className="eyebrow">React Live Preview in browser</p>
-            <button type="button" onClick={() => setRefreshes((count) => count + 1)}>
-              {site.cta}
-            </button>
-          </section>
-
-          <pre className={refreshes > 0 ? 'ascii is-shuffling' : 'ascii'} aria-label="Devjar preview">
-            <code key={refreshes}>
-              {art.map((line, index) => (
-                <span className="ascii-line" key={index}>{line}</span>
-              ))}
-            </code>
-          </pre>
+          <Intro
+            name="devjar"
+            title="Prototype with React."
+            description={
+              'CDN dependencies while developing. ' +
+              'Prerendered static pages when you build.'
+            }
+            action="Edit"
+          />
+          <Routes
+            routes={[
+              { file: '├── index.tsx', path: '/' },
+              { file: '├── about.tsx', path: '/about' },
+              {
+                file: '└── docs/\\n    └── start.tsx',
+                path: '/docs/start',
+              },
+            ]}
+          />
         </main>
       </div>
     )
   }`,
-  'components/ascii.js': source`\
-  const copy = {
-    title: 'DEVJAR',
-    editorLabel: 'editor',
-    previewLabel: 'preview',
-    filename: 'pages/index.jsx',
-    codeLine: 'const title = "Ship"',
-    renderLine: 'return <Demo />',
-    resultLabel: 'live result',
-    actionLabel: '[ Button ]',
+  'components/intro.jsx': source`\
+  export default function Intro({ name, title, description, action }) {
+    function editDemo() {
+      window.parent.postMessage('devjar:edit-demo', '*')
+    }
+
+    return (
+      <section className="intro">
+        <p className="eyebrow">{name}</p>
+        <h1>{title}</h1>
+        <p className="description">{description}</p>
+        <p className="edit-prompt">
+          <span className="edit-pointer" aria-hidden="true">→</span>
+          <a
+            href="#editor"
+            onClick={(event) => {
+              event.preventDefault()
+              editDemo()
+            }}
+          >
+            {action}
+          </a>
+          <span> this demo</span>
+        </p>
+      </section>
+    )
+  }`,
+  'components/routes.jsx': source`\
+  import { useEffect, useState } from 'react'
+
+  const pixels = '░▒▓█▄▀■□▪▫'
+  const lowPixels = '·.ˑ'
+
+  function TerminalIcon() {
+    return (
+      <svg viewBox="0 0 16 16" aria-hidden="true">
+        <path d="m2 4 4 4-4 4M8 12h6" />
+      </svg>
+    )
   }
 
-  function fit(value, width) {
-    return String(value).slice(0, width)
+  function BrowserIcon() {
+    return (
+      <svg viewBox="0 0 16 16" aria-hidden="true">
+        <rect x="1.5" y="2.5" width="13" height="11" rx="2" />
+        <path d="M2 6h12" />
+        <circle cx="4" cy="4.25" r=".5" />
+      </svg>
+    )
   }
 
-  function left(value, width) {
-    return fit(value, width).padEnd(width, ' ')
+  function transformCharacter(character, column, row, frame) {
+    const wave = (frame % 48) - 8 + Math.sin(row * 1.35) * 2.4
+    const distance = Math.abs(column - wave)
+    if (distance > 2.2) return character
+
+    if (character === ' ') {
+      return lowPixels[(frame + column + row) % lowPixels.length]
+    }
+    return pixels[(frame * 7 + column * 3 + row * 11) % pixels.length]
   }
 
-  function center(value, width) {
-    const text = fit(value, width)
-    const before = Math.floor((width - text.length) / 2)
-    const after = width - text.length - before
-    return ' '.repeat(before) + text + ' '.repeat(after)
-  }
+  export default function Routes({ routes }) {
+    const [frame, setFrame] = useState(0)
 
-  function codeLine(value) {
-    return '|  ' + left(value, 22) + '|  | '
-  }
+    useEffect(() => {
+      const timer = setInterval(() => {
+        setFrame((current) => current + 1)
+      }, 80)
 
-  function previewLine(value) {
-    return '|  |' + center(value, 18) + '|  |  | '
-  }
+      return () => clearInterval(timer)
+    }, [])
 
-  const art = [
-    center(copy.title, 30),
-    '  .------------------------.  ',
-    ' /  ' + left(copy.editorLabel, 6) + '        ' + left(copy.previewLabel, 7) + '  /| ',
-    '+------------------------+  | ',
-    '| ' + left(copy.filename, 23) + '|  | ',
-    '|                        |  | ',
-    codeLine(copy.codeLine),
-    codeLine(copy.renderLine),
-    '|                        |  | ',
-    '|  .------------------.  |  | ',
-    previewLine(copy.resultLabel),
-    previewLine(copy.actionLabel),
-    '|  |                  |  |  | ',
-    '|  +------------------+  | /  ',
-    '+------------------------+    ',
-  ]
-
-  export { art }`,
+    return (
+      <section className="route-demo" aria-label="File routes">
+        <div className="route-heading">
+          <TerminalIcon />
+          <BrowserIcon />
+        </div>
+        <div className="route-map">
+          <code className="route-root">pages/</code>
+          {routes.map((route, row) => (
+            <div className="route-row" key={route.path}>
+              <code className="route-source">
+                {route.file.split('\\n').map((line, lineIndex) => (
+                  <span className="route-source-line" key={line}>
+                    {Array.from(line).map((character, column) => {
+                      const transformed = transformCharacter(
+                        character,
+                        column,
+                        row + lineIndex * 0.5,
+                        frame,
+                      )
+                      return (
+                        <span
+                          className={transformed === character ? '' : 'pixel'}
+                          key={column}
+                        >
+                          {transformed}
+                        </span>
+                      )
+                    })}
+                  </span>
+                ))}
+              </code>
+              <span className="route-arrow" aria-hidden="true">→</span>
+              <code className="browser-route" aria-label={route.path}>
+                {Array.from(route.path).map((character, column) => {
+                  const transformed = transformCharacter(
+                    character,
+                    column + 22,
+                    row,
+                    frame,
+                  )
+                  return (
+                    <span
+                      className={transformed === character ? '' : 'pixel'}
+                      key={column}
+                      aria-hidden="true"
+                    >
+                      {transformed}
+                    </span>
+                  )
+                })}
+              </code>
+            </div>
+          ))}
+        </div>
+      </section>
+    )
+  }`,
   'styles.css': source`\
   * {
     box-sizing: border-box;
@@ -109,197 +183,236 @@ export const demoFiles = {
     font-family: Inter, ui-sans-serif, system-ui, sans-serif;
     color: #171717;
     background: #f7f7f7;
-    overflow-x: hidden;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-
-  html::-webkit-scrollbar,
-  body::-webkit-scrollbar {
-    display: none;
-    width: 0;
-    height: 0;
   }
 
   .page {
-    display: flex;
-    flex-direction: column;
     min-height: 100vh;
     padding: 18px;
-    overflow-x: hidden;
     background: #f7f7f7;
   }
 
   main {
-    flex: 1;
-    min-height: 0;
+    width: min(960px, 100%);
+    min-height: calc(100vh - 36px);
     display: grid;
-    grid-template-columns: minmax(0, 0.82fr) minmax(240px, 1.18fr);
-    gap: 20px;
+    grid-template-columns: minmax(0, 0.86fr) minmax(300px, 1.14fr);
+    gap: 30px;
     align-items: center;
+    margin: 0 auto;
   }
 
-  .copy {
-    max-width: 360px;
+  .intro {
+    max-width: 400px;
     min-width: 0;
   }
 
   .eyebrow {
-    margin: 0;
-    color: var(--accent);
-    font-size: 0.75rem;
+    margin: 0 0 12px;
+    color: #737373;
+    font-size: 0.7rem;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
   }
 
   h1 {
-    margin: 0 0 10px;
-    font-size: clamp(2.25rem, 7vw, 4.25rem);
-    font-weight: 700;
-    line-height: 0.92;
+    margin: 0;
+    color: #404040;
+    font-size: clamp(1.75rem, 3.5vw, 2.75rem);
+    font-weight: 600;
+    letter-spacing: -0.035em;
+    line-height: 1.02;
   }
 
-  p {
-    margin: 0;
+  .description {
+    max-width: 350px;
+    margin: 18px 0 0;
     color: #57534e;
-    font-size: 0.95rem;
-    line-height: 1.45;
+    font-size: 0.9rem;
+    line-height: 1.5;
   }
 
-  button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    margin-top: 18px;
-    border: 1px solid #d4d4d4;
-    border-radius: 999px;
-    padding: 10px 16px;
-    background: #ffffff;
-    color: #171717;
-    font: inherit;
-    font-weight: 700;
-    line-height: 1.25;
-    height: calc(1.25em + 22px);
-    cursor: pointer;
-    transition: background 0.15s ease, border-color 0.15s ease;
-  }
-
-  button:hover,
-  button:focus-visible {
-    border-color: #a3a3a3;
-    background: #f5f5f5;
-  }
-
-  button:active {
-    border-color: #a3a3a3;
-    background: #eeeeee;
-  }
-
-  .ascii {
-    margin: 0;
-    width: 100%;
-    height: 100%;
-    min-height: 0;
+  .edit-prompt {
     display: flex;
     align-items: center;
-    justify-content: center;
-    padding: 18px;
+    gap: 5px;
+    margin: 18px 0 0;
+    color: #737373;
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  .edit-prompt a {
+    color: #404040;
+    background: linear-gradient(
+      105deg,
+      #404040 35%,
+      #fafafa 48%,
+      #404040 61%
+    );
+    background-clip: text;
+    background-size: 250% 100%;
+    color: transparent;
+    font-weight: 700;
+    text-decoration-color: #404040;
+    text-underline-offset: 3px;
+    animation: edit-shine 2.4s ease-in-out infinite;
+  }
+
+  .edit-pointer {
+    color: #737373;
+    animation: point-to-edit 1s ease-in-out infinite;
+  }
+
+  @keyframes point-to-edit {
+    50% { transform: translateX(3px); }
+  }
+
+  @keyframes edit-shine {
+    0%, 55% { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+  }
+
+  .route-demo {
+    width: min(440px, 100%);
+    justify-self: end;
+    overflow: hidden;
     border: 1px solid #e5e5e5;
     border-radius: 8px;
-    background: #fbfbfb;
-    color: #404040;
+    background: transparent;
+  }
+
+  .route-heading {
+    min-height: 42px;
+    display: grid;
+    grid-template-columns: 180px 10px max-content;
+    align-items: center;
+    justify-content: start;
+    gap: 5px;
+    padding: 14px 24px 0;
+    color: #737373;
+    font-size: 0.7rem;
+    font-weight: 600;
+  }
+
+  .route-heading svg {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.2;
+  }
+
+  .route-heading svg:last-child {
+    grid-column: 3;
+    justify-self: start;
+  }
+
+  .route-heading circle {
+    fill: currentColor;
+    stroke: none;
+  }
+
+  .route-map {
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 12px 24px 18px;
     overflow: hidden;
+    color: #737373;
+    font-family: SFMono-Regular, Consolas, 'Liberation Mono',
+      Menlo, monospace;
+    font-size: clamp(0.72rem, 1.65vw, 0.95rem);
+    font-weight: 500;
+    line-height: 1.65;
   }
 
-  .ascii code {
+  .route-root {
     display: block;
-    max-width: 100%;
-    max-height: 100%;
-    font-family: SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
-    font-size: clamp(0.72rem, 1.45vw, 1rem);
-    font-weight: 400;
-    line-height: 1.34;
-    letter-spacing: 0;
-    white-space: pre;
-    tab-size: 2;
-    text-align: left;
-    font-variant-ligatures: none;
-    overflow: visible;
+    margin-bottom: 4px;
+    color: #404040;
+    font-weight: 700;
   }
 
-  .ascii-line {
-    display: block;
-    white-space: pre;
+  .route-row {
+    display: grid;
+    grid-template-columns: 180px 10px max-content;
+    align-items: end;
+    justify-content: start;
+    gap: 5px;
+  }
+
+  .route-source {
+    min-width: 0;
+    color: #737373;
     font: inherit;
   }
 
-  .ascii.is-shuffling .ascii-line:nth-child(7),
-  .ascii.is-shuffling .ascii-line:nth-child(8),
-  .ascii.is-shuffling .ascii-line:nth-child(11),
-  .ascii.is-shuffling .ascii-line:nth-child(12) {
-    animation: shuffle-line 0.58s cubic-bezier(0.22, 1, 0.36, 1);
-    will-change: transform, opacity;
+  .route-source-line {
+    display: block;
+    white-space: pre;
   }
 
-  .ascii.is-shuffling .ascii-line:nth-child(8),
-  .ascii.is-shuffling .ascii-line:nth-child(12) {
-    animation-delay: 0.06s;
+  .route-source-line > span {
+    display: inline-block;
+    width: 1ch;
+    text-align: center;
   }
 
-  @keyframes shuffle-line {
-    0% {
-      opacity: 1;
-      transform: translateX(0);
-    }
-
-    22% {
-      opacity: 0.58;
-      transform: translateX(1ch);
-    }
-
-    44% {
-      opacity: 0.86;
-      transform: translateX(-0.72ch);
-    }
-
-    66% {
-      opacity: 0.7;
-      transform: translateX(0.38ch);
-    }
-
-    100% {
-      opacity: 1;
-      transform: translateX(0);
-    }
+  .route-arrow {
+    color: #a3a3a3;
   }
 
-  .ascii::selection,
-  .ascii code::selection {
-    background: #e5e5e5;
-    color: #171717;
+  .browser-route {
+    min-width: 0;
+    color: #57534e;
+    font: inherit;
+    white-space: nowrap;
+  }
+
+  .browser-route > span {
+    display: inline-block;
+    width: 1ch;
+    text-align: center;
   }
 
   @media (max-width: 760px) {
     .page {
       min-height: 100vh;
-      height: auto;
-      overflow: auto;
       padding: 16px;
     }
 
     main {
+      min-height: auto;
       grid-template-columns: 1fr;
-      gap: 18px;
+      gap: 28px;
     }
 
-    .ascii {
-      height: auto;
-      min-height: 220px;
+    .intro {
+      padding-top: 12px;
     }
 
-    .ascii code {
-      font-size: clamp(0.68rem, 2.85vw, 0.9rem);
+    .route-map {
+      min-height: 115px;
+      padding: 10px 16px 16px;
+      font-size: clamp(0.67rem, 3.1vw, 0.85rem);
+    }
+
+    .route-heading {
+      padding: 14px 16px 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+
+    .edit-prompt a {
+      background: none;
+      color: #404040;
     }
   }
   `,

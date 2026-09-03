@@ -149,10 +149,10 @@ directory:
 my-prototype/
 ├── package.json
 ├── pages/
-│   ├── index.tsx
-│   └── about.tsx
+│   ├── index.jsx
+│   └── about.jsx
 ├── components/
-│   └── card.tsx
+│   └── card.jsx
 ├── api/
 │   ├── status.json
 │   └── message.txt
@@ -171,11 +171,11 @@ The pages directory maps directly to URLs:
 
 | File | URL |
 | --- | --- |
-| `pages/index.tsx` | `/` |
-| `pages/about.tsx` | `/about` |
-| `pages/docs/index.tsx` | `/docs` |
-| `pages/docs/start.tsx` | `/docs/start` |
-| `pages/404.tsx` | unmatched routes |
+| `pages/index.jsx` | `/` |
+| `pages/about.jsx` | `/about` |
+| `pages/docs/index.jsx` | `/docs` |
+| `pages/docs/start.jsx` | `/docs/start` |
+| `pages/404.jsx` | unmatched routes |
 
 Pages can import local JavaScript, TypeScript, JSX, TSX, and CSS files. Image,
 font, audio, video, and PDF imports export their public URL, and relative

@@ -15,11 +15,11 @@ pnpm add devjar
 
 ### `<DevJar />`
 
-```tsx
+```jsx
 import { DevJar } from 'devjar'
 
 const files = {
-  'pages/index.tsx': `export default function Page() {
+  'pages/index.jsx': `export default function Page() {
     return <h1>Hello world</h1>
   }`,
 }
@@ -43,14 +43,14 @@ Props:
 
 Page files, shared modules, and CSS use project-relative paths:
 
-```ts
+```js
 const files = {
-  'pages/index.tsx': `import '../styles.css'
+  'pages/index.jsx': `import '../styles.css'
 import { Button } from '../components/button'
 export default function Page() {
   return <Button>Save</Button>
 }`,
-  'components/button.tsx': `export function Button({ children }) {
+  'components/button.jsx': `export function Button({ children }) {
   return <button className="button">{children}</button>
 }`,
   'styles.css': `.button { font: inherit; }`,
@@ -65,7 +65,7 @@ a built-in 404 page unless the project provides `pages/404.*`.
 
 Lower-level hook used by `<DevJar />`.
 
-```tsx
+```jsx
 import { useLiveCode } from 'devjar'
 import { useEffect } from 'react'
 
