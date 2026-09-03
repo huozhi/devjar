@@ -44,7 +44,10 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Test Package
-        run: pnpm test && pnpm test:package && pnpm test:browser
+        run: pnpm test && pnpm test:package
+
+      - name: Test Packaged Browser
+        run: bun scripts/test-package-browser.ts
 
       - name: Determine npm tag
         id: npm-tag

@@ -69,4 +69,4 @@ jobs:
         run: pnpm run build
 
       - name: Test Packaged Browser
-        run: pnpm test:browser
+        run: bun scripts/test-package-browser.ts

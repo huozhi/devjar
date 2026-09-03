@@ -38,7 +38,6 @@
     "demo:build": "node ./dist/bin.js build examples/dashboard",
     "demo:start": "node ./dist/bin.js start examples/dashboard/dist",
     "test": "bun test",
-    "test:browser": "bun scripts/test-package-browser.ts",
     "test:package": "bun scripts/check-package.ts"
   },
   "peerDependencies": {
