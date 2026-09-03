@@ -129,6 +129,7 @@ Devjar includes a zero-config CLI for turning a folder of React pages into a
 prototype. All settings are passed as command-line flags; the CLI does not load
 a configuration file or a `devjar` field from `package.json`. It reads only
 `dependencies` and `devDependencies` to resolve package versions from a CDN.
+The CLI requires Node.js 22 or newer.
 
 The project does not need a bundler configuration or a local `node_modules`
 directory:

@@ -9,6 +9,9 @@ const packageJson = await Bun.file(join(root, 'package.json')).json()
 if (packageJson.bin?.jar !== './dist/bin.js') {
   throw new Error('package.json must expose dist/bin.js as the jar binary')
 }
+if (packageJson.engines?.node !== '>=22') {
+  throw new Error('package.json must require Node.js 22 or newer')
+}
 
 const cache = mkdtempSync(join(tmpdir(), 'devjar-npm-cache-'))
 const env = Object.fromEntries(
