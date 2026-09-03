@@ -13,7 +13,8 @@ import {
 import { CDN_HOST, createEsmShResolver } from '../src/cdn'
 import { createIframeRouteManifest, linkModules } from '../src/core'
 import { collectProjectFiles, compileProjectModule } from '../src/cli/modules'
-import { getTailwindBrowserUrl } from '../src/tailwind'
+import { getTailwindBrowserUrl, getTailwindBuildUrls } from '../src/tailwind'
+import { extractTailwindCandidates } from '../src/cli/tailwind-build'
 import { testCdnModule } from '../scripts/test-cdn'
 import { normalizeBase, withBase, withoutBase } from '../src/project'
 
@@ -234,6 +235,38 @@ describe('project loading', () => {
       'https://modules.example.test/@tailwindcss/browser@%5E4.1.0',
     )
     expect(getTailwindBrowserUrl({}, CDN_HOST, true)).toBeUndefined()
+  })
+
+  test('uses the project Tailwind version for production compilation', () => {
+    expect(getTailwindBuildUrls(
+      { '@tailwindcss/browser': '^4.1.0' },
+      'https://modules.example.test/',
+    )).toEqual({
+      compiler: 'https://modules.example.test/tailwindcss@%5E4.1.0',
+      stylesheet: 'https://modules.example.test/tailwindcss@%5E4.1.0/index.css',
+    })
+    expect(getTailwindBuildUrls(
+      { '@tailwindcss/browser': '4.1.0', tailwindcss: '4.2.0' },
+      'https://modules.example.test/',
+    )?.compiler).toBe('https://modules.example.test/tailwindcss@4.2.0')
+    expect(getTailwindBuildUrls({}, CDN_HOST)).toBeUndefined()
+  })
+
+  test('collects static Tailwind candidates from component source', () => {
+    const candidates = extractTailwindCandidates(`
+      <main className="grid content-['hello_world'] sm:grid-cols-2">
+        <aside className={open ? 'block' : 'hidden'} />
+        <div className={\`flex \${active ? 'bg-green-500' : 'bg-red-500'} text-white\`} />
+      </main>
+    `)
+    expect(candidates).toContain('grid')
+    expect(candidates).toContain("content-['hello_world']")
+    expect(candidates).toContain('sm:grid-cols-2')
+    expect(candidates).toContain('block')
+    expect(candidates).toContain('hidden')
+    expect(candidates).toContain('bg-green-500')
+    expect(candidates).toContain('bg-red-500')
+    expect(candidates).toContain('text-white')
   })
 
   test('rewrites dynamic local imports as module URLs', async () => {
@@ -533,7 +566,8 @@ describe('production build', () => {
     expect(builtHtml).toContain('<title data-devjar-default>Devjar</title>')
     expect(builtHtml).toContain('<meta name="devjar-base" content="/preview/">')
     expect(builtHtml).toContain('src="/preview/_jar/client.js"')
-    expect(builtHtml).toContain('data-devjar-tailwind')
+    expect(builtHtml).toMatch(/<link data-devjar-tailwind rel="stylesheet" href="\/preview\/_jar\/assets\/tailwind-[a-f0-9]{10}\.css">/)
+    expect(builtHtml).not.toContain('<script data-devjar-tailwind')
     expect(builtHtml).not.toContain('react-refresh')
     expect(builtHtml).not.toContain('jsx-dev-runtime')
     expect(builtHtml).not.toContain('?dev')
@@ -544,7 +578,12 @@ describe('production build', () => {
     expect(runtimeFiles).toContain('vendor')
     expect(runtimeFiles).not.toContain('runtime.js')
     expect(runtimeFiles).not.toContain('transform-assets.json')
-    expect(await readdir(join(buildRoot, '_jar/assets'))).toEqual([])
+    const assetFiles = await readdir(join(buildRoot, '_jar/assets'))
+    expect(assetFiles).toHaveLength(1)
+    expect(assetFiles[0]).toMatch(/^tailwind-[a-f0-9]{10}\.css$/)
+    const tailwindCss = await readFile(join(buildRoot, '_jar/assets', assetFiles[0]), 'utf8')
+    expect(tailwindCss).toContain('hover:bg-white')
+    expect(tailwindCss).toContain('shadow-[3px_3px_0_#1c1917]')
     expect(await readFile(join(buildRoot, 'api/projects.json'), 'utf8')).toContain('Mobile refresh')
     expect(await readFile(join(buildRoot, 'mark.svg'), 'utf8')).toContain('<svg')
   })
