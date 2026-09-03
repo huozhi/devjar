@@ -18,7 +18,7 @@ import { testCdnModule } from '../scripts/test-cdn'
 
 const root = resolve(import.meta.dir, '../examples/basic')
 const dashboardRoot = resolve(import.meta.dir, '../examples/dashboard')
-const websiteRoot = resolve(import.meta.dir, '../examples/website')
+const websiteRoot = resolve(import.meta.dir, '../site')
 
 function testModuleUrl(projectPath: string) {
   return `/modules/${projectPath}`
@@ -169,7 +169,7 @@ describe('project loading', () => {
     expect(manifest.notFound?.page).toBe('pages/404.tsx')
   })
 
-  test('loads the website example and its editable source files', async () => {
+  test('loads the website and its editable source files', async () => {
     const manifest = await loadTestRouteManifest(websiteRoot)
     expect(manifest.routes['/'].page).toBe('pages/index.tsx')
 

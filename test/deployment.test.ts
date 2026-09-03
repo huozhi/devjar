@@ -7,7 +7,7 @@ describe('Vercel deployment', () => {
 
     expect(config.framework).toBeNull()
     expect(config.buildCommand).toBe('pnpm run build:website')
-    expect(config.outputDirectory).toBe('examples/website/dist')
+    expect(config.outputDirectory).toBe('site/dist')
     expect(config.headers).toEqual([
       {
         source: '/(.*)',

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./site/app/icon.svg" alt="devjar logo" width="112" height="112">
+  <img src="./site/public/icon.svg" alt="devjar logo" width="112" height="112">
 </p>
 
 # devjar
@@ -239,18 +239,17 @@ during render will fail the build with the affected route.
 Use `--out-dir <directory>` to change the build location. The output directory
 must remain inside the project root.
 
-The repository includes three runnable examples:
+The repository includes two runnable examples:
 
 ```sh
 jar dev examples/basic
 jar dev examples/dashboard
-jar dev examples/website
 ```
 
 The dashboard demonstrates page navigation, shared components, a CDN-loaded
 icon package, Tailwind, static API data, and a public SVG asset.
-The website example runs Devjar's own editor and live preview as a pages-based
-Devjar project.
+The site in `site/` runs Devjar's own editor and live preview as a pages-based
+Devjar project (`jar dev site`).
 
 ```sh
 jar dev [root] --host localhost --port 3000
