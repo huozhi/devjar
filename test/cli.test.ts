@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { cp, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises'
+import { createServer as createHttpServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { init, parse } from 'es-module-lexer'
@@ -13,9 +14,11 @@ import { CDN_HOST, createEsmShResolver } from '../src/cdn'
 import { createIframeRouteManifest, linkModules } from '../src/core'
 import { compileProjectModule } from '../src/cli/modules'
 import { getTailwindBrowserUrl } from '../src/tailwind'
+import { testCdnModule } from '../scripts/test-cdn'
 
 const root = resolve(import.meta.dir, '../examples/basic')
 const dashboardRoot = resolve(import.meta.dir, '../examples/dashboard')
+
 function testModuleUrl(projectPath: string) {
   return `/modules/${projectPath}`
 }
@@ -120,6 +123,7 @@ describe('project loading', () => {
       cdn: 'https://modules.example.test/',
       moduleUrl: testModuleUrl,
       refresh: false,
+      platform: 'browser',
     })
     expect(compiled.code).toContain('https://modules.example.test/react@19.2.0/jsx-dev-runtime?dev')
   })
@@ -137,6 +141,7 @@ describe('project loading', () => {
         root: projectRoot,
         outDir: 'dist',
         cdn: undefined,
+        prerender: false,
       })
       const manifest = JSON.parse(await readFile(join(result.outDir, 'manifest.json'), 'utf8'))
       const entry = await readFile(join(result.outDir, manifest.routes['/'].module), 'utf8')
@@ -180,6 +185,7 @@ describe('project loading', () => {
         cdn: CDN_HOST,
         moduleUrl: testModuleUrl,
         refresh: false,
+        platform: 'browser',
       })
       expect(compiled.code).toContain(`import("/modules/components/card.tsx")`)
     } finally {
@@ -329,6 +335,7 @@ describe('production build', () => {
       root: projectRoot,
       outDir: 'dist',
       cdn: 'https://modules.example.test/',
+      prerender: false,
     })
     buildRoot = result.outDir
   })
@@ -355,7 +362,7 @@ describe('production build', () => {
     const runtimeFiles = await readdir(join(buildRoot, '__devjar'))
     expect(runtimeFiles.some(file => /^.+-[a-z0-9]+\.js$/.test(file))).toBe(true)
     expect(await readFile(join(buildRoot, 'api/projects.json'), 'utf8')).toContain('Mobile refresh')
-    expect(await readFile(join(buildRoot, 'public/mark.svg'), 'utf8')).toContain('<svg')
+    expect(await readFile(join(buildRoot, 'mark.svg'), 'utf8')).toContain('<svg')
   })
 
   test('refuses to clean an output directory outside the project', async () => {
@@ -363,6 +370,7 @@ describe('production build', () => {
       root: projectRoot,
       outDir: '../outside',
       cdn: undefined,
+      prerender: false,
     })).rejects.toThrow(
       'The build output must be a directory inside the project root',
     )
@@ -386,5 +394,63 @@ describe('production build', () => {
     expect(await (await fetch(`${base}/mark.svg`)).text()).toContain('<svg')
 
     await server.close()
+  })
+})
+
+describe('static export', () => {
+  test('writes rendered page content and styles into route HTML', async () => {
+    const cdn = createHttpServer((request, response) => {
+      response.writeHead(200, { 'Content-Type': 'text/javascript' })
+      response.end(testCdnModule(new URL(request.url || '/', 'http://localhost').pathname))
+    })
+    await new Promise<void>((resolvePromise, reject) => {
+      cdn.once('error', reject)
+      cdn.listen(0, '127.0.0.1', resolvePromise)
+    })
+    const address = cdn.address() as import('node:net').AddressInfo
+    const projectRoot = await mkdtemp(join(tmpdir(), 'devjar-static-export-'))
+    try {
+      await mkdir(join(projectRoot, 'pages'))
+      await mkdir(join(projectRoot, 'pages/guides'))
+      await writeFile(join(projectRoot, 'package.json'), JSON.stringify({
+        dependencies: { react: '19.2.0', 'react-dom': '19.2.0' },
+      }))
+      await writeFile(
+        join(projectRoot, 'pages/index.tsx'),
+        `import '../styles.css'
+export default function Page() { return <main className="page"><h1>Static now</h1></main> }`,
+      )
+      await writeFile(
+        join(projectRoot, 'pages/guides/about.tsx'),
+        `export default function About() { return <h1>About statically rendered</h1> }`,
+      )
+      await writeFile(
+        join(projectRoot, 'pages/404.tsx'),
+        `export default function NotFound() { return <h1>Static not found</h1> }`,
+      )
+      await writeFile(join(projectRoot, 'styles.css'), '.page { color: black; }')
+
+      const result = await buildProject({
+        root: projectRoot,
+        outDir: 'dist',
+        cdn: `http://127.0.0.1:${address.port}`,
+        prerender: true,
+      })
+      const document = await readFile(join(result.outDir, 'index.html'), 'utf8')
+      expect(document).toContain('<main class="page"><h1>Static now</h1></main>')
+      expect(document).toContain('<style data-devjar-static>.page { color: black; }</style>')
+      expect(document).toContain('<div id="__reactRoot">')
+      expect(await readFile(join(result.outDir, 'guides/about/index.html'), 'utf8'))
+        .toContain('<h1>About statically rendered</h1>')
+      expect(await readFile(join(result.outDir, '404.html'), 'utf8'))
+        .toContain('<h1>Static not found</h1>')
+      expect(await readFile(join(result.outDir, '404/index.html'), 'utf8'))
+        .toContain('<h1>Static not found</h1>')
+      expect(await readFile(join(result.outDir, '__devjar/client.js'), 'utf8'))
+        .toContain('hydrateRoot')
+    } finally {
+      await new Promise<void>(resolvePromise => cdn.close(() => resolvePromise()))
+      await rm(projectRoot, { recursive: true, force: true })
+    }
   })
 })

@@ -1,5 +1,5 @@
 import React, { Component, type ElementType, type ReactNode } from 'react'
-import { createRoot } from 'react-dom/client'
+import { createRoot, hydrateRoot, type Root } from 'react-dom/client'
 import { createHotUpdater } from './hmr'
 import type { HmrChange, RouteEntry, RouteManifest } from './protocol'
 
@@ -26,10 +26,13 @@ function getRoot(id: string) {
 
 const hostRoot = getRoot('root')
 const errorRoot = getRoot('__devjarError')
-const appRoot = document.createElement('div')
-appRoot.id = '__reactRoot'
-hostRoot.appendChild(appRoot)
-const reactRoot = createRoot(appRoot)
+let appRoot = document.getElementById('__reactRoot')
+if (!appRoot) {
+  appRoot = document.createElement('div')
+  appRoot.id = '__reactRoot'
+  hostRoot.appendChild(appRoot)
+}
+let reactRoot: Root | undefined
 
 class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   state: ErrorBoundaryState = { error: null }
@@ -132,11 +135,17 @@ async function load(route: string) {
     }
 
     renderRevision++
-    reactRoot.render(React.createElement(
+    const page = React.createElement(
       ErrorBoundary,
       { revision: renderRevision },
       React.createElement(module.default),
-    ))
+    )
+    if (!reactRoot && !routeManifest.liveReload && appRoot.hasChildNodes()) {
+      reactRoot = hydrateRoot(appRoot, page, { onRecoverableError: showError })
+    } else {
+      if (!reactRoot) reactRoot = createRoot(appRoot)
+      reactRoot.render(page)
+    }
     document.title = entry.page
     hideError()
     if (!performance.getEntriesByName('devjar:first-render').length) {

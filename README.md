@@ -15,8 +15,9 @@
 
 devjar is a library that enables you to live test and share your code snippets and examples with others. devjar will generate a live code editor where you can run your code snippets and view the results in real-time based on the provided code content of your React app.
 
-**Notice:** devjar requires React 19 and only renders in the browser. Projects
-use the same `pages/` convention in the iframe runtime and CLI.
+**Notice:** devjar requires React 19. The iframe runtime and development server
+render in the browser; CLI production builds statically render each page.
+Projects use the same `pages/` convention in the iframe runtime and CLI.
 
 ## Install
 
@@ -196,18 +197,26 @@ The CLI applies dependency versions to CDN URLs using the
 
 ### Build and host
 
-Create a static client-rendered build, then serve it without source-file
-watching or on-request transforms:
+Create a static build, then serve it without source-file watching or on-request
+transforms:
 
 ```sh
 devjar build
 devjar start dist
 ```
 
-The generated HTML is an application shell; React page content still renders in
-the browser and is not server-rendered. The build contains the transformed local
-route graph, runtime assets, public files, and static API data. Package imports
-and Tailwind continue to load from the selected CDN.
+The build writes the initial React content and imported CSS into an HTML file for
+each route, then hydrates that content in the browser. Opening or hosting the
+HTML therefore shows page content before client JavaScript runs. Package imports
+are loaded from the selected CDN during static rendering and in the browser, so
+the project does not need a local `node_modules` directory.
+
+Files from `public/` are copied to the root of the output directory. For example,
+`public/logo.svg` becomes `dist/logo.svg` and remains available at `/logo.svg`.
+
+Static rendering executes every page once during the build. Browser APIs can be
+used in effects and event handlers, but using `window` or `document` directly
+during render will fail the build with the affected route.
 
 Use `--out-dir <directory>` to change the build location. The output directory
 must remain inside the project root.

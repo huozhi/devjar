@@ -14,6 +14,7 @@ import {
 import type { HmrChange, RouteEntry, RouteManifest } from './protocol'
 import { normalizeRoute, routeFromPagePath, sourceExtensions } from '../project'
 import { getTailwindBrowserUrl } from '../tailwind'
+import { prerender, type PrerenderedRoute } from './prerender'
 
 type PackageJson = {
   dependencies?: Record<string, string>
@@ -31,6 +32,7 @@ export type BuildOptions = {
   root: string
   outDir: string
   cdn: string | undefined
+  prerender: boolean
 }
 
 export type StartServerOptions = {
@@ -141,16 +143,20 @@ function send(
   response.end(request.method === 'HEAD' ? undefined : body)
 }
 
-function html(
-  dependencies: Record<string, string>,
-  cdn: string,
-  liveReload: boolean,
-) {
-  const resolveModule = createEsmShResolver(dependencies, cdn)
+type HtmlOptions = {
+  dependencies: Record<string, string>
+  cdn: string
+  liveReload: boolean
+  content: string
+  styles: string
+}
+
+function html(options: HtmlOptions) {
+  const resolveModule = createEsmShResolver(options.dependencies, options.cdn)
   const resolveRuntimeModule = createEsmShResolver({
-    ...dependencies,
+    ...options.dependencies,
     'es-module-lexer': '1.6.0',
-  }, cdn)
+  }, options.cdn)
   const imports = {
     react: resolveModule('react'),
     'react-dom': resolveModule('react-dom'),
@@ -159,18 +165,18 @@ function html(
     'react-dom/client': resolveModule('react-dom/client'),
     'es-module-lexer': resolveRuntimeModule('es-module-lexer'),
     devjar: '/__devjar/runtime.js',
-    ...(liveReload
+    ...(options.liveReload
       ? { 'react-refresh/runtime': resolveRuntimeModule('react-refresh/runtime') }
       : {}),
   }
-  const tailwindUrl = getTailwindBrowserUrl(dependencies, cdn)
+  const tailwindUrl = getTailwindBrowserUrl(options.dependencies, options.cdn)
   const tailwindPreload = tailwindUrl
     ? `<link rel="modulepreload" href="${tailwindUrl}">`
     : ''
   const tailwindScript = tailwindUrl
     ? `<script data-devjar-tailwind type="module" src="${tailwindUrl}"></script>`
     : ''
-  const clientScript = liveReload
+  const clientScript = options.liveReload
     ? `<script type="module">
 import * as RefreshModule from 'react-refresh/runtime'
 const RefreshRuntime = RefreshModule.default || RefreshModule
@@ -179,11 +185,14 @@ globalThis.__devjarRefreshRuntime = RefreshRuntime
 await import('/__devjar/client.js')
 </script>`
     : '<script type="module" src="/__devjar/client.js"></script>'
+  const staticStyles = options.styles
+    ? `<style data-devjar-static>${options.styles.replace(/<\/style/gi, '<\\/style')}</style>`
+    : ''
   return `<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Devjar</title>${tailwindPreload}<script type="importmap">${JSON.stringify({ imports })}</script>
-<style>html,body,#root,#__reactRoot{width:100%;min-height:100%;margin:0}.devjar-error{box-sizing:border-box;position:fixed;z-index:10;inset:auto 16px 16px;padding:14px 16px;border:1px solid #ffb4ab;border-radius:8px;background:#330a08;color:#ffdad6;font:13px/1.5 ui-monospace,monospace;white-space:pre-wrap}</style>
-</head><body><div id="root"></div><pre id="__devjarError" class="devjar-error" hidden></pre><script>
+<style>html,body,#root,#__reactRoot{width:100%;min-height:100%;margin:0}.devjar-error{box-sizing:border-box;position:fixed;z-index:10;inset:auto 16px 16px;padding:14px 16px;border:1px solid #ffb4ab;border-radius:8px;background:#330a08;color:#ffdad6;font:13px/1.5 ui-monospace,monospace;white-space:pre-wrap}</style>${staticStyles}
+</head><body><div id="root"><div id="__reactRoot">${options.content}</div></div><pre id="__devjarError" class="devjar-error" hidden></pre><script>
 const errorRoot = document.getElementById('__devjarError')
 const showBootstrapError = value => {
   errorRoot.hidden = false
@@ -305,6 +314,7 @@ export async function startDevServer(options: DevServerOptions) {
             cdn,
             moduleUrl: modules.moduleUrl,
             refresh: true,
+            platform: 'browser',
           })
           modules.update(projectPath, compiled)
           send(request, response, 200, 'text/javascript; charset=utf-8', compiled.code)
@@ -335,9 +345,13 @@ export async function startDevServer(options: DevServerOptions) {
         200,
         'text/html; charset=utf-8',
         html(
-          packageDependencies(packageJson),
-          resolveCdn(options.cdn),
-          true,
+          {
+            dependencies: packageDependencies(packageJson),
+            cdn: resolveCdn(options.cdn),
+            liveReload: true,
+            content: '',
+            styles: '',
+          },
         ),
       )
     } catch (error) {
@@ -465,6 +479,15 @@ async function copyApiFiles(source: string, destination: string) {
   }
 }
 
+async function copyPublicFiles(source: string, destination: string) {
+  if (!await directoryExists(source)) return
+  for (const entry of await readdir(source, { withFileTypes: true })) {
+    await cp(join(source, entry.name), join(destination, entry.name), {
+      recursive: entry.isDirectory(),
+    })
+  }
+}
+
 async function copyRuntimeAssets(destination: string) {
   const source = await runtimeRoot()
   await mkdir(destination, { recursive: true })
@@ -489,6 +512,31 @@ async function copyRuntimeAssets(destination: string) {
   }
 }
 
+function routeHtmlPath(outDir: string, route: string) {
+  return route === '/'
+    ? join(outDir, 'index.html')
+    : join(outDir, route.slice(1), 'index.html')
+}
+
+async function writeRouteHtml(
+  outDir: string,
+  route: string,
+  rendered: PrerenderedRoute,
+  options: Pick<HtmlOptions, 'dependencies' | 'cdn'>,
+) {
+  const outputPath = routeHtmlPath(outDir, route)
+  await mkdir(dirname(outputPath), { recursive: true })
+  const document = html({
+    dependencies: options.dependencies,
+    cdn: options.cdn,
+    liveReload: false,
+    content: rendered.markup,
+    styles: rendered.styles,
+  })
+  await writeFile(outputPath, document)
+  if (route === '/404') await writeFile(join(outDir, '404.html'), document)
+}
+
 export async function buildProject(options: BuildOptions) {
   const root = await realpath(resolve(options.root))
   const outDir = resolve(root, options.outDir)
@@ -506,6 +554,11 @@ export async function buildProject(options: BuildOptions) {
     revision: 0,
     moduleUrl: builtModuleUrl,
   })
+  const renderedRoutes = options.prerender
+    ? await prerender({ root, routes: discovered.routes, dependencies, cdn })
+    : Object.fromEntries([...discovered.routes.keys()].map(route => (
+        [route, { markup: '', styles: '' }]
+      )))
   const projectPaths = new Set<string>()
   for (const page of discovered.routes.values()) {
     const files = await collectProjectFiles(root, page)
@@ -514,8 +567,11 @@ export async function buildProject(options: BuildOptions) {
 
   await rm(outDir, { recursive: true, force: true })
   await mkdir(outDir, { recursive: true })
+  await copyPublicFiles(join(root, 'public'), outDir)
   await writeFile(join(outDir, 'manifest.json'), JSON.stringify(manifest))
-  await writeFile(join(outDir, 'index.html'), html(dependencies, cdn, false))
+  for (const route of Object.keys(manifest.routes)) {
+    await writeRouteHtml(outDir, route, renderedRoutes[route], { dependencies, cdn })
+  }
   await copyRuntimeAssets(join(outDir, '__devjar'))
   const modulesRoot = join(outDir, '__devjar/modules')
   await mkdir(modulesRoot, { recursive: true })
@@ -527,13 +583,11 @@ export async function buildProject(options: BuildOptions) {
       cdn,
       moduleUrl: builtModuleUrl,
       refresh: false,
+      platform: 'browser',
     })
     await writeFile(join(modulesRoot, moduleAssetName(projectPath)), compiled.code)
   }
   await writeFile(join(outDir, '__devjar/routes.json'), JSON.stringify(manifest))
-  if (await directoryExists(join(root, 'public'))) {
-    await cp(join(root, 'public'), join(outDir, 'public'), { recursive: true })
-  }
   await copyApiFiles(join(root, 'api'), join(outDir, 'api'))
 
   return { root, outDir, routes: Object.keys(manifest.routes) }
@@ -549,7 +603,13 @@ export async function startBuiltServer(options: StartServerOptions) {
   const port = options.port
   const manifest = JSON.parse(await readFile(join(root, 'manifest.json'), 'utf8')) as RouteManifest
   if (manifest.version !== 2) throw new Error(`Unsupported Devjar build version: ${manifest.version}`)
-  const shell = await readFile(join(root, 'index.html'), 'utf8')
+  const fallbackHtml = await readFile(join(root, 'index.html'), 'utf8')
+  const routeHtml = new Map<string, string>()
+  for (const route of Object.keys(manifest.routes)) {
+    const path = routeHtmlPath(root, route)
+    routeHtml.set(route, await fileExists(path) ? await readFile(path, 'utf8') : fallbackHtml)
+  }
+  const notFoundHtml = manifest.notFound ? routeHtml.get('/404') : undefined
 
   const server = createServer(async (request, response) => {
     try {
@@ -571,8 +631,20 @@ export async function startBuiltServer(options: StartServerOptions) {
         }
         return
       }
-      if (await serveFile(request, response, join(root, 'public'), url.pathname.slice(1), undefined)) return
-      send(request, response, 200, 'text/html; charset=utf-8', shell)
+      if (await serveFile(request, response, root, url.pathname.slice(1), undefined)) return
+      const route = normalizeRoute(url.pathname)
+      const routeDocument = routeHtml.get(route)
+      if (routeDocument) {
+        send(request, response, 200, 'text/html; charset=utf-8', routeDocument)
+        return
+      }
+      send(
+        request,
+        response,
+        404,
+        'text/html; charset=utf-8',
+        notFoundHtml || '<!doctype html><title>Not found</title><h1>404 — Not found</h1>',
+      )
     } catch (error) {
       send(request, response, 500, 'text/plain; charset=utf-8', error instanceof Error ? error.stack || error.message : String(error))
     }

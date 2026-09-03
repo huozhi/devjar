@@ -27,6 +27,7 @@ export type CompileProjectModuleOptions = {
   cdn: string
   moduleUrl: (projectPath: string) => string
   refresh: boolean
+  platform: 'browser' | 'server'
 }
 
 async function fileExists(path: string) {
@@ -106,7 +107,7 @@ export function builtModuleUrl(projectPath: string) {
   return `/__devjar/modules/${moduleAssetName(projectPath)}`
 }
 
-function cssModule(source: string, projectPath: string) {
+function browserCssModule(source: string, projectPath: string) {
   return `const sheet = new CSSStyleSheet()
 sheet.replaceSync(${JSON.stringify(source)})
 globalThis.__devjarStyleSheets ||= new Map()
@@ -119,6 +120,10 @@ document.adoptedStyleSheets = sheets
 globalThis.__devjarStyleSheets.set(${JSON.stringify(projectPath)}, sheet)
 export default sheet
 `
+}
+
+function serverCssModule(source: string) {
+  return `export default ${JSON.stringify(source)}\n`
 }
 
 async function resolveProjectSource(root: string, projectPath: string) {
@@ -143,7 +148,9 @@ export async function compileProjectModule(
   const source = await readFile(sourcePath, 'utf8')
   if (extname(sourcePath) === '.css') {
     return {
-      code: cssModule(source, projectPath),
+      code: options.platform === 'browser'
+        ? browserCssModule(source, projectPath)
+        : serverCssModule(source),
       dependencies: [],
       refreshBoundary: false,
     }
