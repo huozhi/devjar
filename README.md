@@ -149,7 +149,7 @@ my-prototype/
 ```
 
 ```sh
-npx jar dev
+npx devjar dev
 ```
 
 Running `jar` without a command is an alias for `jar dev`. The development
