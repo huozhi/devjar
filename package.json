@@ -9,7 +9,7 @@
     }
   },
   "bin": {
-    "devjar": "./dist/bin.js"
+    "jar": "./dist/bin.js"
   },
   "license": "MIT",
   "repository": {

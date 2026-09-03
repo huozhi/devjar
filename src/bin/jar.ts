@@ -12,14 +12,14 @@ function style(code: number, value: string) {
 }
 
 function help() {
-  console.log(`devjar [command] [root] [options]
+  console.log(`jar [command] [root] [options]
 
 Turn a folder of React pages into a prototype.
 
 Commands:
   dev      Start a development server (default)
   build    Create production output in <root>/dist
-  start    Serve a directory created by devjar build
+  start    Serve a directory created by jar build
 
 Options:
   --cdn <url>      ESM-compatible module CDN (dev and build)
@@ -30,10 +30,10 @@ Options:
   -h, --help       Show this help
 
 Examples:
-  devjar
-  devjar dev examples/dashboard
-  devjar build examples/dashboard
-  devjar start examples/dashboard/dist`)
+  jar
+  jar dev examples/dashboard
+  jar build examples/dashboard
+  jar start examples/dashboard/dist`)
 }
 
 function valueAfter(args: string[], index: number) {
@@ -155,6 +155,6 @@ async function run() {
 }
 
 run().catch(error => {
-  console.error(`Devjar: ${friendlyError(error)}`)
+  console.error(`Jar: ${friendlyError(error)}`)
   process.exitCode = 1
 })

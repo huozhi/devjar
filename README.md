@@ -149,10 +149,10 @@ my-prototype/
 ```
 
 ```sh
-npx devjar dev
+npx jar dev
 ```
 
-Running `devjar` without a command is an alias for `devjar dev`. The development
+Running `jar` without a command is an alias for `jar dev`. The development
 server watches the project and updates the browser as files change.
 
 The pages directory maps directly to URLs:
@@ -188,8 +188,8 @@ list to enable Tailwind. Bare imports use esm.sh by default. Select a different
 ESM-compatible CDN with the `--cdn` flag:
 
 ```sh
-devjar dev --cdn https://modules.example.com
-devjar build --cdn https://modules.example.com
+jar dev --cdn https://modules.example.com
+jar build --cdn https://modules.example.com
 ```
 
 The CLI applies dependency versions to CDN URLs using the
@@ -201,8 +201,8 @@ Create a static build, then serve it without source-file watching or on-request
 transforms:
 
 ```sh
-devjar build
-devjar start dist
+jar build
+jar start dist
 ```
 
 The build writes the initial React content and imported CSS into an HTML file for
@@ -242,9 +242,9 @@ must remain inside the project root.
 The repository includes three runnable examples:
 
 ```sh
-devjar dev examples/basic
-devjar dev examples/dashboard
-devjar dev examples/website
+jar dev examples/basic
+jar dev examples/dashboard
+jar dev examples/website
 ```
 
 The dashboard demonstrates page navigation, shared components, a CDN-loaded
@@ -253,7 +253,7 @@ The website example runs Devjar's own editor and live preview as a pages-based
 Devjar project.
 
 ```sh
-devjar dev [root] --host localhost --port 3000
+jar dev [root] --host localhost --port 3000
 ```
 
 ## Notice: iframe cross-origin isolation
@@ -262,7 +262,7 @@ The iframe transforms code in the browser using Oxc and shared WebAssembly
 memory, so its host page must be cross-origin isolated. Devjar packages the
 browser transformer, WASM binary, and helper worker as lazy runtime assets;
 compatible bundlers emit these files without requiring a manual copy step.
-The `devjar dev` and `devjar start` servers send the required headers
+The `jar dev` and `jar start` servers send the required headers
 automatically. Static deployments must configure equivalent headers on their
 hosting platform.
 
