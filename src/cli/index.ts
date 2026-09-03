@@ -18,9 +18,6 @@ import { getTailwindBrowserUrl } from '../tailwind'
 type PackageJson = {
   dependencies?: Record<string, string>
   devDependencies?: Record<string, string>
-  devjar?: {
-    cdn?: string
-  }
 }
 
 export type DevServerOptions = {
@@ -104,8 +101,8 @@ function packageDependencies(packageJson: PackageJson) {
   }
 }
 
-function projectCdn(packageJson: PackageJson, override: string | undefined) {
-  return normalizeCdnHost(override || packageJson.devjar?.cdn || CDN_HOST)
+function resolveCdn(override: string | undefined) {
+  return normalizeCdnHost(override || CDN_HOST)
 }
 
 export async function loadRouteManifest(
@@ -305,7 +302,7 @@ export async function startDevServer(options: DevServerOptions) {
         try {
           const packageJson = await readPackage(root)
           const dependencies = packageDependencies(packageJson)
-          const cdn = projectCdn(packageJson, options.cdn)
+          const cdn = resolveCdn(options.cdn)
           const compiled = await compileProjectModule({
             root,
             projectPath,
@@ -344,7 +341,7 @@ export async function startDevServer(options: DevServerOptions) {
         'text/html; charset=utf-8',
         html(
           packageDependencies(packageJson),
-          projectCdn(packageJson, options.cdn),
+          resolveCdn(options.cdn),
           true,
         ),
       )
@@ -508,7 +505,7 @@ export async function buildProject(options: BuildOptions) {
 
   const packageJson = await readPackage(root)
   const dependencies = packageDependencies(packageJson)
-  const cdn = projectCdn(packageJson, options.cdn)
+  const cdn = resolveCdn(options.cdn)
   const discovered = await discoverRoutes(root)
   const manifest = await loadRouteManifest(root, {
     liveReload: false,

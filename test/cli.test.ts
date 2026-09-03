@@ -95,6 +95,29 @@ describe('project loading', () => {
     expect(compiled.code).toContain('https://modules.example.test/react@19.2.0/jsx-dev-runtime?dev')
   })
 
+  test('ignores package configuration outside dependency versions', async () => {
+    const projectRoot = await mkdtemp(join(tmpdir(), 'devjar-zero-config-'))
+    try {
+      await cp(root, projectRoot, { recursive: true })
+      const packageJsonPath = join(projectRoot, 'package.json')
+      const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8'))
+      packageJson.devjar = { cdn: 'https://modules.example.test/' }
+      await writeFile(packageJsonPath, JSON.stringify(packageJson))
+
+      const result = await buildProject({
+        root: projectRoot,
+        outDir: 'dist',
+        cdn: undefined,
+      })
+      const manifest = JSON.parse(await readFile(join(result.outDir, 'manifest.json'), 'utf8'))
+      const entry = await readFile(join(result.outDir, manifest.routes['/'].module), 'utf8')
+      expect(entry).toContain('https://esm.sh/react@19.2.0/jsx-dev-runtime?dev')
+      expect(entry).not.toContain('modules.example.test')
+    } finally {
+      await rm(projectRoot, { recursive: true, force: true })
+    }
+  })
+
   test('loads the hosted dashboard example and its 404 page', async () => {
     const manifest = await loadTestRouteManifest(dashboardRoot)
     expect(manifest.routes['/projects'].page).toBe('pages/projects.tsx')

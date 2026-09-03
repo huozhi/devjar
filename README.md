@@ -5,111 +5,6 @@
 # devjar
 > turn a folder of React pages into a prototype
 
-## CLI
-
-Devjar serves local React pages while loading package dependencies from a CDN.
-The project does not need a bundler configuration or a local `node_modules`
-directory.
-
-```text
-my-prototype/
-├── package.json
-├── pages/
-│   ├── index.tsx
-│   └── about.tsx
-├── components/
-│   └── card.tsx
-├── api/
-│   ├── status.json
-│   └── message.txt
-└── public/
-    └── logo.svg
-```
-
-```sh
-npx devjar dev
-```
-
-Running `devjar` without a command is an alias for `devjar dev`. The development
-server watches the project and updates the preview as files change.
-
-The pages directory maps directly to URLs:
-
-| File | URL |
-| --- | --- |
-| `pages/index.tsx` | `/` |
-| `pages/about.tsx` | `/about` |
-| `pages/docs/index.tsx` | `/docs` |
-| `pages/docs/start.tsx` | `/docs/start` |
-| `pages/404.tsx` | unmatched routes |
-
-Pages can import local JavaScript, TypeScript, JSX, TSX, and CSS files. Bare
-imports are loaded from esm.sh using versions in `dependencies` or
-`devDependencies`:
-
-```json
-{
-  "dependencies": {
-    "react": "19.2.0",
-    "react-dom": "19.2.0",
-    "lucide-react": "0.542.0"
-  }
-}
-```
-
-Files below `public/` are served from `/`. JSON and text files below `api/`
-are available at their corresponding `/api/` URLs. Executable API routes are
-not supported.
-
-The embedded browser runtime loads Tailwind automatically. For CLI projects,
-add `tailwindcss` or `@tailwindcss/browser` to `package.json` to enable it.
-
-Bare imports use esm.sh by default. An ESM-compatible CDN can be selected on the
-command line or stored in `package.json`:
-
-```sh
-devjar dev --cdn https://modules.example.com
-```
-
-```json
-{
-  "devjar": {
-    "cdn": "https://modules.example.com"
-  }
-}
-```
-
-The CLI applies dependency versions to CDN URLs using the
-`package@version/subpath` convention.
-
-## Build and host
-
-Create a self-contained production build, then serve it without source-file
-watching or on-request transforms:
-
-```sh
-devjar build
-devjar start dist
-```
-
-The build contains the transformed route graph, runtime assets, public files,
-and static API data. Use `--out-dir <directory>` to change its location. The
-output directory must remain inside the project root.
-
-The repository includes two runnable examples:
-
-```sh
-devjar dev examples/basic
-devjar dev examples/dashboard
-```
-
-The dashboard demonstrates page navigation, shared components, a CDN-loaded
-icon package, Tailwind, static API data, and a public SVG asset.
-
-```sh
-devjar dev [root] --host localhost --port 3000
-```
-
 ## Demo
 
 <video src="https://github.com/user-attachments/assets/e4d11123-2e78-4e0d-a78d-4b5d2fff9c1e" controls width="100%">
@@ -241,6 +136,110 @@ function Playground() {
     </div>
   )
 }
+```
+
+## CLI
+
+Devjar includes a zero-config CLI for turning a folder of React pages into a
+prototype. All settings are passed as command-line flags; the CLI does not load
+a configuration file or a `devjar` field from `package.json`. It reads only
+`dependencies` and `devDependencies` to resolve package versions from a CDN.
+
+The project does not need a bundler configuration or a local `node_modules`
+directory:
+
+```text
+my-prototype/
+├── package.json
+├── pages/
+│   ├── index.tsx
+│   └── about.tsx
+├── components/
+│   └── card.tsx
+├── api/
+│   ├── status.json
+│   └── message.txt
+└── public/
+    └── logo.svg
+```
+
+```sh
+npx devjar dev
+```
+
+Running `devjar` without a command is an alias for `devjar dev`. The development
+server watches the project and updates the browser as files change.
+
+The pages directory maps directly to URLs:
+
+| File | URL |
+| --- | --- |
+| `pages/index.tsx` | `/` |
+| `pages/about.tsx` | `/about` |
+| `pages/docs/index.tsx` | `/docs` |
+| `pages/docs/start.tsx` | `/docs/start` |
+| `pages/404.tsx` | unmatched routes |
+
+Pages can import local JavaScript, TypeScript, JSX, TSX, and CSS files. Bare
+imports are loaded from esm.sh using versions in `dependencies` or
+`devDependencies`:
+
+```json
+{
+  "dependencies": {
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "lucide-react": "0.542.0"
+  }
+}
+```
+
+Files below `public/` are served from `/`. JSON and text files below `api/`
+are available at their corresponding `/api/` URLs. Executable API routes are
+not supported.
+
+For CLI projects, add `tailwindcss` or `@tailwindcss/browser` to the dependency
+list to enable Tailwind. Bare imports use esm.sh by default. Select a different
+ESM-compatible CDN with the `--cdn` flag:
+
+```sh
+devjar dev --cdn https://modules.example.com
+devjar build --cdn https://modules.example.com
+```
+
+The CLI applies dependency versions to CDN URLs using the
+`package@version/subpath` convention.
+
+### Build and host
+
+Create a static client-rendered build, then serve it without source-file
+watching or on-request transforms:
+
+```sh
+devjar build
+devjar start dist
+```
+
+The generated HTML is an application shell; React page content still renders in
+the browser and is not server-rendered. The build contains the transformed local
+route graph, runtime assets, public files, and static API data. Package imports
+and Tailwind continue to load from the selected CDN.
+
+Use `--out-dir <directory>` to change the build location. The output directory
+must remain inside the project root.
+
+The repository includes two runnable examples:
+
+```sh
+devjar dev examples/basic
+devjar dev examples/dashboard
+```
+
+The dashboard demonstrates page navigation, shared components, a CDN-loaded
+icon package, Tailwind, static API data, and a public SVG asset.
+
+```sh
+devjar dev [root] --host localhost --port 3000
 ```
 
 ## License
