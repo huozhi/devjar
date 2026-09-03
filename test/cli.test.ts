@@ -96,6 +96,7 @@ describe('project loading', () => {
     const resolveModule = createEsmShResolver(
       { react: '19.1.0', '@scope/pkg': '^2.0.0' },
       CDN_HOST,
+      true,
     )
     expect(resolveModule('react/jsx-runtime')).toBe('https://esm.sh/react@19.1.0/jsx-runtime?dev')
     expect(resolveModule('react-dom/client')).toBe('https://esm.sh/react-dom@19.2.0/client?dev&external=react')
@@ -125,6 +126,7 @@ describe('project loading', () => {
       cdn: 'https://modules.example.test/',
       moduleUrl: testModuleUrl,
       runtimeModuleUrl: '/_jar/runtime.js',
+      development: true,
       refresh: false,
       platform: 'browser',
     })
@@ -154,7 +156,9 @@ describe('project loading', () => {
         await readFile(resolve(import.meta.dir, '../package.json'), 'utf8'),
       )
       const lexerVersion = encodeURIComponent(devjarPackage.dependencies['es-module-lexer'])
-      expect(entry).toContain('https://esm.sh/react@19.2.0/jsx-dev-runtime?dev')
+      expect(entry).toContain('https://esm.sh/react@19.2.0/jsx-runtime')
+      expect(entry).not.toContain('jsx-dev-runtime')
+      expect(entry).not.toContain('?dev')
       expect(entry).not.toContain('modules.example.test')
       expect(document).toContain(`https://esm.sh/es-module-lexer@${lexerVersion}`)
       expect(document).not.toContain('es-module-lexer@9.9.9')
@@ -192,10 +196,11 @@ describe('project loading', () => {
     expect(getTailwindBrowserUrl(
       { tailwindcss: '^4.1.0' },
       'https://modules.example.test/',
+      true,
     )).toBe(
       'https://modules.example.test/@tailwindcss/browser@%5E4.1.0',
     )
-    expect(getTailwindBrowserUrl({}, CDN_HOST)).toBeUndefined()
+    expect(getTailwindBrowserUrl({}, CDN_HOST, true)).toBeUndefined()
   })
 
   test('rewrites dynamic local imports as module URLs', async () => {
@@ -215,6 +220,7 @@ describe('project loading', () => {
         cdn: CDN_HOST,
         moduleUrl: testModuleUrl,
         runtimeModuleUrl: '/_jar/runtime.js',
+        development: true,
         refresh: false,
         platform: 'browser',
       })
@@ -422,12 +428,16 @@ describe('production build', () => {
     expect(await readFile(join(buildRoot, '_jar/client.js'), 'utf8')).toContain('_jar/routes.json')
     expect(await readFile(join(buildRoot, '_jar/routes.json'), 'utf8')).toBe(JSON.stringify(manifest))
     const entryModule = await readFile(join(buildRoot, manifest.routes['/'].module), 'utf8')
-    expect(entryModule).toContain('https://modules.example.test/react@19.2.0/jsx-dev-runtime?dev')
+    expect(entryModule).toContain('https://modules.example.test/react@19.2.0/jsx-runtime')
+    expect(entryModule).not.toContain('jsx-dev-runtime')
+    expect(entryModule).not.toContain('?dev')
     expect(entryModule).not.toContain('__jarRegisterModule')
     const builtHtml = await readFile(join(buildRoot, 'index.html'), 'utf8')
     expect(builtHtml).toContain('<title data-devjar-default>Devjar</title>')
     expect(builtHtml).toContain('data-devjar-tailwind')
     expect(builtHtml).not.toContain('react-refresh')
+    expect(builtHtml).not.toContain('jsx-dev-runtime')
+    expect(builtHtml).not.toContain('?dev')
     const transformAssets = JSON.parse(
       await readFile(join(buildRoot, '_jar/transform-assets.json'), 'utf8'),
     )
@@ -463,7 +473,8 @@ describe('production build', () => {
     expect(document.headers.get('cross-origin-embedder-policy')).toBe('credentialless')
 
     const shell = await (await fetch(`${base}/projects`)).text()
-    expect(shell).toContain('https://modules.example.test/react@19.2.0?dev')
+    expect(shell).toContain('https://modules.example.test/react@19.2.0')
+    expect(shell).not.toContain('?dev')
     const routes = await (await fetch(`${base}/_jar/routes.json`)).json()
     expect(routes.routes['/projects'].page).toBe('pages/projects.tsx')
     expect(routes.liveReload).toBe(false)

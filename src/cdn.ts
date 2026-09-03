@@ -22,6 +22,7 @@ export function normalizeCdnHost(cdn: string) {
 export function createEsmShResolver(
   dependencies: Record<string, string>,
   cdn: string,
+  development: boolean,
 ) {
   const host = normalizeCdnHost(cdn)
   return (specifier: string) => {
@@ -32,7 +33,8 @@ export function createEsmShResolver(
       throw new Error(`CDN dependencies cannot use ${name}@${version}`)
     }
     const subpath = specifier.slice(name.length)
-    const dev = name === 'react' || name === 'react-dom' || name === 'react-refresh'
+    const dev = development
+      && (name === 'react' || name === 'react-dom' || name === 'react-refresh')
     const externalizeReact = host === CDN_HOST && name !== 'react'
     const parameters = [
       ...(dev ? ['dev'] : []),

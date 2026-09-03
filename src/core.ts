@@ -566,7 +566,7 @@ function useLiveCode({
   transformWorkerUrl?: string | URL
 }) {
   const resolveModule = useMemo(
-    () => customResolveModule || createEsmShResolver(dependencies || {}, CDN_HOST),
+    () => customResolveModule || createEsmShResolver(dependencies || {}, CDN_HOST, true),
     [customResolveModule, dependencies]
   )
   const iframeRef = useRef<HTMLIFrameElement | null>(null)

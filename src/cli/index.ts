@@ -171,24 +171,34 @@ type HtmlOptions = {
 }
 
 function html(options: HtmlOptions) {
-  const resolveModule = createEsmShResolver(options.dependencies, options.cdn)
+  const resolveModule = createEsmShResolver(
+    options.dependencies,
+    options.cdn,
+    options.liveReload,
+  )
   const resolveRuntimeModule = createEsmShResolver({
     ...options.dependencies,
     ...options.devjarDependencies,
-  }, options.cdn)
+  }, options.cdn, options.liveReload)
   const imports = {
     react: resolveModule('react'),
     'react-dom': resolveModule('react-dom'),
     'react/jsx-runtime': resolveModule('react/jsx-runtime'),
-    'react/jsx-dev-runtime': resolveModule('react/jsx-dev-runtime'),
     'react-dom/client': resolveModule('react-dom/client'),
     'es-module-lexer': resolveRuntimeModule('es-module-lexer'),
     devjar: '/_jar/runtime.js',
     ...(options.liveReload
-      ? { 'react-refresh/runtime': resolveRuntimeModule('react-refresh/runtime') }
+      ? {
+          'react/jsx-dev-runtime': resolveModule('react/jsx-dev-runtime'),
+          'react-refresh/runtime': resolveRuntimeModule('react-refresh/runtime'),
+        }
       : {}),
   }
-  const tailwindUrl = getTailwindBrowserUrl(options.dependencies, options.cdn)
+  const tailwindUrl = getTailwindBrowserUrl(
+    options.dependencies,
+    options.cdn,
+    options.liveReload,
+  )
   const tailwindPreload = tailwindUrl
     ? `<link rel="modulepreload" href="${tailwindUrl}">`
     : ''
@@ -339,6 +349,7 @@ export async function startDevServer(options: DevServerOptions) {
             cdn,
             moduleUrl: modules.moduleUrl,
             runtimeModuleUrl: '/_jar/runtime.js',
+            development: true,
             refresh: true,
             platform: 'browser',
           })
@@ -648,6 +659,7 @@ export async function buildProject(options: BuildOptions) {
       cdn,
       moduleUrl: builtModuleUrl,
       runtimeModuleUrl: '/_jar/runtime.js',
+      development: false,
       refresh: false,
       platform: 'browser',
     })
