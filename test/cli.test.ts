@@ -15,6 +15,7 @@ import { createIframeRouteManifest, linkModules } from '../src/core'
 import { collectProjectFiles, compileProjectModule } from '../src/cli/modules'
 import { getTailwindBrowserUrl } from '../src/tailwind'
 import { testCdnModule } from '../scripts/test-cdn'
+import { normalizeBase, withBase, withoutBase } from '../src/project'
 
 const root = resolve(import.meta.dir, '../examples/basic')
 const dashboardRoot = resolve(import.meta.dir, '../examples/dashboard')
@@ -28,6 +29,7 @@ function loadTestRouteManifest(projectRoot: string) {
   return loadRouteManifest(projectRoot, {
     liveReload: true,
     revision: 7,
+    base: '/',
     moduleUrl: testModuleUrl,
   })
 }
@@ -105,7 +107,8 @@ describe('project loading', () => {
 
   test('loads a route manifest with module entries', async () => {
     const manifest = await loadTestRouteManifest(root)
-    expect(manifest.version).toBe(2)
+    expect(manifest.version).toBe(3)
+    expect(manifest.base).toBe('/')
     expect(manifest.revision).toBe(7)
     expect(manifest.routes['/']).toEqual({
       module: '/modules/pages/index.tsx',
@@ -148,6 +151,7 @@ describe('project loading', () => {
         outDir: 'dist',
         cdn: undefined,
         prerender: false,
+        base: '/',
       })
       const manifest = JSON.parse(await readFile(join(result.outDir, 'manifest.json'), 'utf8'))
       const entry = await readFile(join(result.outDir, manifest.routes['/'].module), 'utf8')
@@ -171,6 +175,16 @@ describe('project loading', () => {
     const manifest = await loadTestRouteManifest(dashboardRoot)
     expect(manifest.routes['/projects'].page).toBe('pages/projects.tsx')
     expect(manifest.notFound?.page).toBe('pages/404.tsx')
+  })
+
+  test('normalizes and applies public base paths', () => {
+    expect(normalizeBase('docs/preview')).toBe('/docs/preview/')
+    expect(normalizeBase('/')).toBe('/')
+    expect(withBase('/docs/', '/_jar/client.js')).toBe('/docs/_jar/client.js')
+    expect(withoutBase('/docs/', '/docs/about')).toBe('/about')
+    expect(withoutBase('/docs/', '/docs')).toBe('/')
+    expect(withoutBase('/docs/', '/outside')).toBeUndefined()
+    expect(() => normalizeBase('../docs')).toThrow('Invalid base path')
   })
 
   test('loads the website and its editable source files', async () => {
@@ -269,6 +283,7 @@ describe('dev server', () => {
       host: '127.0.0.1',
       port: 0,
       cdn: undefined,
+      base: '/',
     })
     const base = `http://${server.host}:${server.port}`
 
@@ -355,6 +370,7 @@ export default function Page() { return <Card /> }`,
       host: '127.0.0.1',
       port: 0,
       cdn: undefined,
+      base: '/',
     })
     const base = `http://${hmrServer.host}:${hmrServer.port}`
     let reader: ReadableStreamDefaultReader<Uint8Array> | undefined
@@ -410,6 +426,7 @@ describe('production build', () => {
       outDir: 'dist',
       cdn: 'https://modules.example.test/',
       prerender: false,
+      base: '/preview/',
     })
     buildRoot = result.outDir
   })
@@ -422,18 +439,24 @@ describe('production build', () => {
   test('writes routes, runtime assets, public files, and static APIs', async () => {
     const manifest = JSON.parse(await readFile(join(buildRoot, 'manifest.json'), 'utf8'))
     expect(Object.keys(manifest.routes).sort()).toEqual(['/', '/404', '/projects', '/settings'])
-    expect(manifest.version).toBe(2)
+    expect(manifest.version).toBe(3)
+    expect(manifest.base).toBe('/preview/')
     expect(manifest.liveReload).toBe(false)
-    expect(manifest.routes['/'].module).toMatch(/^\/_jar\/modules\/.+\.js$/)
+    expect(manifest.routes['/'].module).toMatch(/^\/preview\/_jar\/modules\/.+\.js$/)
     expect(await readFile(join(buildRoot, '_jar/client.js'), 'utf8')).toContain('_jar/routes.json')
     expect(await readFile(join(buildRoot, '_jar/routes.json'), 'utf8')).toBe(JSON.stringify(manifest))
-    const entryModule = await readFile(join(buildRoot, manifest.routes['/'].module), 'utf8')
+    const entryModule = await readFile(
+      join(buildRoot, withoutBase(manifest.base, manifest.routes['/'].module)!),
+      'utf8',
+    )
     expect(entryModule).toContain('https://modules.example.test/react@19.2.0/jsx-runtime')
     expect(entryModule).not.toContain('jsx-dev-runtime')
     expect(entryModule).not.toContain('?dev')
     expect(entryModule).not.toContain('__jarRegisterModule')
     const builtHtml = await readFile(join(buildRoot, 'index.html'), 'utf8')
     expect(builtHtml).toContain('<title data-devjar-default>Devjar</title>')
+    expect(builtHtml).toContain('<meta name="devjar-base" content="/preview/">')
+    expect(builtHtml).toContain('src="/preview/_jar/client.js"')
     expect(builtHtml).toContain('data-devjar-tailwind')
     expect(builtHtml).not.toContain('react-refresh')
     expect(builtHtml).not.toContain('jsx-dev-runtime')
@@ -460,6 +483,7 @@ describe('production build', () => {
       outDir: '../outside',
       cdn: undefined,
       prerender: false,
+      base: '/',
     })).rejects.toThrow(
       'The build output must be a directory inside the project root',
     )
@@ -467,29 +491,31 @@ describe('production build', () => {
 
   test('serves prebuilt projects without development events', async () => {
     server = await startBuiltServer({ root: buildRoot, host: '127.0.0.1', port: 0 })
-    const base = `http://${server.host}:${server.port}`
-    const document = await fetch(base)
+    const origin = `http://${server.host}:${server.port}`
+    expect(server.base).toBe('/preview/')
+    expect((await fetch(origin)).status).toBe(404)
+    const document = await fetch(`${origin}/preview/`)
     expect(document.headers.get('cross-origin-opener-policy')).toBe('same-origin')
     expect(document.headers.get('cross-origin-embedder-policy')).toBe('credentialless')
 
-    const shell = await (await fetch(`${base}/projects`)).text()
+    const shell = await (await fetch(`${origin}/preview/projects`)).text()
     expect(shell).toContain('https://modules.example.test/react@19.2.0')
     expect(shell).not.toContain('?dev')
-    const routes = await (await fetch(`${base}/_jar/routes.json`)).json()
+    const routes = await (await fetch(`${origin}/preview/_jar/routes.json`)).json()
     expect(routes.routes['/projects'].page).toBe('pages/projects.tsx')
     expect(routes.liveReload).toBe(false)
     expect(routes.notFound.page).toBe('pages/404.tsx')
-    const projectModule = await fetch(`${base}${routes.routes['/projects'].module}`)
+    const projectModule = await fetch(`${origin}${routes.routes['/projects'].module}`)
     expect(projectModule.status).toBe(200)
     expect(projectModule.headers.get('content-type')).toContain('text/javascript')
-    const transformAssetsResponse = await fetch(`${base}/_jar/transform-assets.json`)
+    const transformAssetsResponse = await fetch(`${origin}/preview/_jar/transform-assets.json`)
     expect(transformAssetsResponse.headers.get('cache-control')).toBe('no-store')
     const transformAssets = await transformAssetsResponse.json()
-    const worker = await fetch(`${base}/_jar/${transformAssets.wasiWorker}`)
+    const worker = await fetch(`${origin}/preview/_jar/${transformAssets.wasiWorker}`)
     expect(worker.headers.get('cache-control')).toBe('public, max-age=31536000, immutable')
-    expect((await fetch(`${base}/_jar/events`)).status).toBe(404)
-    expect(await (await fetch(`${base}/api/projects.json`)).json()).toHaveLength(4)
-    expect(await (await fetch(`${base}/mark.svg`)).text()).toContain('<svg')
+    expect((await fetch(`${origin}/preview/_jar/events`)).status).toBe(404)
+    expect(await (await fetch(`${origin}/preview/api/projects.json`)).json()).toHaveLength(4)
+    expect(await (await fetch(`${origin}/preview/mark.svg`)).text()).toContain('<svg')
 
     await server.close()
   })
@@ -540,6 +566,7 @@ export default function Page() {
         outDir: 'dist',
         cdn: `http://127.0.0.1:${address.port}`,
         prerender: true,
+        base: '/',
       })
       const document = await readFile(join(result.outDir, 'index.html'), 'utf8')
       expect(document).toContain('<head><meta charset="utf-8"')

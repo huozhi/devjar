@@ -27,6 +27,14 @@ function getRoot(id: string) {
 const hostRoot = getRoot('root')
 const errorRoot = getRoot('__jarError')
 
+function getBase() {
+  const base = document.querySelector<HTMLMetaElement>('meta[name="devjar-base"]')?.content
+  if (!base) throw new Error('Devjar could not find its base path')
+  return base
+}
+
+const base = getBase()
+
 function getAppRoot() {
   const existingRoot = document.getElementById('__reactRoot')
   if (existingRoot) return existingRoot
@@ -74,13 +82,26 @@ function normalizeRoute(route: string) {
   return cleanRoute ? `/${cleanRoute}` : '/'
 }
 
+function withBase(path: string) {
+  if (path === '/') return base
+  return base === '/' ? path : `${base.slice(0, -1)}${path}`
+}
+
+function routeFromPathname(pathname: string) {
+  if (base === '/') return normalizeRoute(pathname)
+  if (pathname === base.slice(0, -1)) return '/'
+  if (pathname.startsWith(base)) return normalizeRoute(pathname.slice(base.length))
+  return normalizeRoute(pathname)
+}
+
 async function getRouteManifest(revision: number) {
-  const url = new URL('/_jar/routes.json', location.origin)
+  const url = new URL(withBase('/_jar/routes.json'), location.origin)
   if (revision) url.searchParams.set('v', String(revision))
   const response = await fetch(url)
   const data = await response.json()
   if (!response.ok) throw new Error(data.error || 'Unable to load routes')
-  if (data.version !== 2) throw new Error(`Unsupported Devjar route manifest: ${data.version}`)
+  if (data.version !== 3) throw new Error(`Unsupported Devjar route manifest: ${data.version}`)
+  if (data.base !== base) throw new Error(`Unexpected Devjar base path: ${data.base}`)
   return data as RouteManifest
 }
 
@@ -193,9 +214,10 @@ function routeAnchor(target: EventTarget | null) {
   if (!anchor) return
   const url = new URL(anchor.href, location.href)
   if (url.origin !== location.origin) return
-  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/_jar/')) return
-  if (/\.[^/]+$/.test(url.pathname)) return
-  return { anchor, url }
+  const route = routeFromPathname(url.pathname)
+  if (route.startsWith('/api/') || route.startsWith('/_jar/')) return
+  if (/\.[^/]+$/.test(route)) return
+  return { anchor, route, url }
 }
 
 function shouldNavigate(event: MouseEvent, anchor: HTMLAnchorElement) {
@@ -208,18 +230,19 @@ function shouldNavigate(event: MouseEvent, anchor: HTMLAnchorElement) {
 function navigate(event: MouseEvent) {
   const route = routeAnchor(event.target)
   if (!route || !shouldNavigate(event, route.anchor)) return
-  if (route.url.pathname === location.pathname
+  const pathname = withBase(route.route)
+  if (pathname === location.pathname
     && route.url.search === location.search
     && route.url.hash) return
 
   event.preventDefault()
-  history.pushState(null, '', route.url.pathname + route.url.search + route.url.hash)
-  void load(route.url.pathname).catch(() => {})
+  history.pushState(null, '', pathname + route.url.search + route.url.hash)
+  void load(route.route).catch(() => {})
 }
 
 function preloadNavigation(event: Event) {
   const route = routeAnchor(event.target)
-  if (route) preloadRoute(route.url.pathname)
+  if (route) preloadRoute(route.route)
 }
 
 async function start() {
@@ -241,12 +264,12 @@ async function start() {
   document.addEventListener('pointerover', preloadNavigation)
   document.addEventListener('focusin', preloadNavigation)
   addEventListener('popstate', () => {
-    void load(location.pathname).catch(() => {})
+    void load(routeFromPathname(location.pathname)).catch(() => {})
   })
 
-  await load(location.pathname)
+  await load(routeFromPathname(location.pathname))
   if (hotUpdater) {
-    const events = new EventSource('/_jar/events')
+    const events = new EventSource(withBase('/_jar/events'))
     events.addEventListener('change', event => {
       const change = JSON.parse((event as MessageEvent).data) as HmrChange
       hotUpdater.enqueue(change, showError)

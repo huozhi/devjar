@@ -3,7 +3,7 @@ import { extname, relative, resolve, sep } from 'node:path'
 import { init, parse } from 'es-module-lexer'
 import { transformSync } from 'oxc-transform'
 import { createEsmShResolver } from '../cdn'
-import { sourceExtensions } from '../project'
+import { sourceExtensions, withBase } from '../project'
 import { getTransformErrorMessage, getTransformOptions } from '../transform'
 import type { HmrUpdate } from './protocol'
 
@@ -108,18 +108,18 @@ export async function collectProjectFiles(root: string, entry: string) {
   return projectPaths
 }
 
-export function devModuleUrl(projectPath: string, version: number) {
+export function devModuleUrl(projectPath: string, version: number, base: string) {
   const parameters = new URLSearchParams({ path: projectPath })
   if (version) parameters.set('v', String(version))
-  return `/_jar/module?${parameters}`
+  return `${withBase(base, '/_jar/module')}?${parameters}`
 }
 
 export function moduleAssetName(projectPath: string) {
   return `${Buffer.from(projectPath).toString('base64url')}.js`
 }
 
-export function builtModuleUrl(projectPath: string) {
-  return `/_jar/modules/${moduleAssetName(projectPath)}`
+export function builtModuleUrl(projectPath: string, base: string) {
+  return withBase(base, `/_jar/modules/${moduleAssetName(projectPath)}`)
 }
 
 function browserCssModule(source: string, projectPath: string) {
@@ -246,8 +246,10 @@ export class DevModuleGraph {
   private readonly importers = new Map<string, Set<string>>()
   private readonly versions = new Map<string, number>()
 
+  constructor(private readonly base: string) {}
+
   readonly moduleUrl = (projectPath: string) => (
-    devModuleUrl(projectPath, this.versions.get(projectPath) || 0)
+    devModuleUrl(projectPath, this.versions.get(projectPath) || 0, this.base)
   )
 
   update(projectPath: string, compiled: CompiledProjectModule) {

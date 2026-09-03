@@ -39,7 +39,7 @@ function serverUrl(child: ChildProcess) {
     child.stderr?.setEncoding('utf8')
     child.stdout?.on('data', chunk => {
       output += chunk
-      const match = output.match(/http:\/\/127\.0\.0\.1:\d+\//)
+      const match = output.match(/http:\/\/127\.0\.0\.1:\d+\/\S*/)
       if (!match) return
       clearTimeout(timeout)
       resolvePromise(match[0])
@@ -110,7 +110,7 @@ try {
 
   await run('npm', ['install', '--ignore-scripts', tarball], projectRoot)
   const jar = join(projectRoot, 'node_modules', '.bin', executable('jar'))
-  await run(jar, ['build'], projectRoot)
+  await run(jar, ['build', '--base', '/preview/'], projectRoot)
 
   server = spawn(jar, ['start', 'dist', '--host', '127.0.0.1', '--port', '0'], {
     cwd: projectRoot,
@@ -171,7 +171,7 @@ try {
   assert(consoleErrors.every(message => message.includes('404 (Not Found)')))
   assert.deepEqual(pageErrors, [])
 
-  console.log('Packaged CLI builds, hydrates, navigates, and renders its custom 404 in Chromium without unexpected browser errors.')
+  console.log('Packaged CLI builds at a subpath, hydrates, navigates, and renders its custom 404 in Chromium without unexpected browser errors.')
 } finally {
   await browser?.close()
   if (server) await stopServer(server)

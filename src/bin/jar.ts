@@ -22,6 +22,7 @@ Commands:
 
 Options:
   --cdn <url>      ESM-compatible module CDN (dev and build)
+  --base <path>    Public base path (dev and build; default: /)
   --host <host>    Host to listen on (dev and start; default: localhost)
   --port <port>    Port to listen on (dev and start; default: 3000)
   -o, --out-dir   Build output relative to the project root (default: dist)
@@ -79,6 +80,7 @@ async function run() {
   let host: string | undefined
   let port: number | undefined
   let cdn: string | undefined
+  let base: string | undefined
   let outDir: string | undefined
 
   for (let index = 0; index < args.length; index++) {
@@ -86,6 +88,7 @@ async function run() {
     if (arg === '--host') host = valueAfter(args, index++)
     else if (arg === '--port' || arg === '-p') port = Number(valueAfter(args, index++))
     else if (arg === '--cdn') cdn = valueAfter(args, index++)
+    else if (arg === '--base') base = valueAfter(args, index++)
     else if (arg === '--out-dir' || arg === '-o') outDir = valueAfter(args, index++)
     else if (arg.startsWith('-')) throw new Error(`Unknown option: ${arg}`)
     else if (!root) root = arg
@@ -98,8 +101,8 @@ async function run() {
   if (command === 'build' && (host || port !== undefined)) {
     throw new Error('build does not accept --host or --port')
   }
-  if (command === 'start' && (cdn || outDir)) {
-    throw new Error('start does not accept --cdn or --out-dir; configure these when building')
+  if (command === 'start' && (cdn || base || outDir)) {
+    throw new Error('start does not accept --cdn, --base, or --out-dir; configure these when building')
   }
   if (command === 'dev' && outDir) throw new Error('dev does not accept --out-dir')
 
@@ -109,6 +112,7 @@ async function run() {
       outDir: outDir || 'dist',
       cdn,
       prerender: true,
+      base: base || '/',
     })
     console.log(style(1, 'Devjar build complete'))
     console.log('')
@@ -128,11 +132,12 @@ async function run() {
         host: host || 'localhost',
         port: port ?? 3000,
         cdn,
+        base: base || '/',
       })
   const browserHost = server.host === '0.0.0.0' || server.host === '::'
     ? 'localhost'
     : server.host.includes(':') ? `[${server.host}]` : server.host
-  const url = `http://${browserHost}:${server.port}/`
+  const url = `http://${browserHost}:${server.port}${server.base}`
   console.log(style(1, command === 'start' ? 'Devjar production server ready' : 'Devjar development server ready'))
   console.log('')
   console.log(`Local  ${style(36, url)}`)

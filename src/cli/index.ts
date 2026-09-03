@@ -12,7 +12,14 @@ import {
   moduleAssetName,
 } from './modules'
 import type { HmrChange, RouteEntry, RouteManifest } from './protocol'
-import { normalizeRoute, routeFromPagePath, sourceExtensions } from '../project'
+import {
+  normalizeBase,
+  normalizeRoute,
+  routeFromPagePath,
+  sourceExtensions,
+  withBase,
+  withoutBase,
+} from '../project'
 import { getTailwindBrowserUrl } from '../tailwind'
 import { prerender, type PrerenderedRoute } from './prerender'
 
@@ -26,6 +33,7 @@ export type DevServerOptions = {
   host: string
   port: number
   cdn: string | undefined
+  base: string
 }
 
 export type BuildOptions = {
@@ -33,6 +41,7 @@ export type BuildOptions = {
   outDir: string
   cdn: string | undefined
   prerender: boolean
+  base: string
 }
 
 export type StartServerOptions = {
@@ -44,6 +53,7 @@ export type StartServerOptions = {
 export type LoadRouteManifestOptions = {
   liveReload: boolean
   revision: number
+  base: string
   moduleUrl: (projectPath: string) => string
 }
 
@@ -128,7 +138,8 @@ export async function loadRouteManifest(
     : undefined
 
   return {
-    version: 2,
+    version: 3,
+    base: options.base,
     liveReload: options.liveReload,
     revision: options.revision,
     routes,
@@ -164,6 +175,7 @@ type HtmlOptions = {
   dependencies: Record<string, string>
   devjarDependencies: Record<string, string>
   cdn: string
+  base: string
   liveReload: boolean
   head: string
   content: string
@@ -186,7 +198,7 @@ function html(options: HtmlOptions) {
     'react/jsx-runtime': resolveModule('react/jsx-runtime'),
     'react-dom/client': resolveModule('react-dom/client'),
     'es-module-lexer': resolveRuntimeModule('es-module-lexer'),
-    devjar: '/_jar/runtime.js',
+    devjar: withBase(options.base, '/_jar/runtime.js'),
     ...(options.liveReload
       ? {
           'react/jsx-dev-runtime': resolveModule('react/jsx-dev-runtime'),
@@ -211,9 +223,9 @@ import * as RefreshModule from 'react-refresh/runtime'
 const RefreshRuntime = RefreshModule.default || RefreshModule
 RefreshRuntime.injectIntoGlobalHook(globalThis)
 globalThis.__jarRefreshRuntime = RefreshRuntime
-await import('/_jar/client.js')
+await import(${JSON.stringify(withBase(options.base, '/_jar/client.js'))})
 </script>`
-    : '<script type="module" src="/_jar/client.js"></script>'
+    : `<script type="module" src="${withBase(options.base, '/_jar/client.js')}"></script>`
   const staticStyles = options.styles
     ? `<style data-devjar-static>${options.styles.replace(/<\/style/gi, '<\\/style')}</style>`
     : ''
@@ -222,7 +234,7 @@ await import('/_jar/client.js')
     : `<title data-devjar-default>Devjar</title>${options.head}`
   return `<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-${documentHead}${tailwindPreload}<script type="importmap">${JSON.stringify({ imports })}</script>
+<meta name="devjar-base" content="${options.base}">${documentHead}${tailwindPreload}<script type="importmap">${JSON.stringify({ imports })}</script>
 <style>html,body,#root,#__reactRoot{width:100%;min-height:100%;margin:0}.devjar-error{box-sizing:border-box;position:fixed;z-index:10;inset:auto 16px 16px;padding:14px 16px;border:1px solid #ffb4ab;border-radius:8px;background:#330a08;color:#ffdad6;font:13px/1.5 ui-monospace,monospace;white-space:pre-wrap}</style>${staticStyles}
 </head><body><div id="root"><div id="__reactRoot">${options.content}</div></div><pre id="__jarError" class="devjar-error" hidden></pre><script>
 const errorRoot = document.getElementById('__jarError')
@@ -283,10 +295,11 @@ export async function startDevServer(options: DevServerOptions) {
   const root = await realpath(resolve(options.root))
   const host = options.host
   const port = options.port
+  const base = normalizeBase(options.base)
   const events = new Set<ServerResponse>()
   const assetsRoot = await runtimeRoot()
   const devjarDependencies = await readDevjarDependencies(assetsRoot)
-  const modules = new DevModuleGraph()
+  const modules = new DevModuleGraph(base)
   let revision = 0
 
   if (!(await fileExists(join(root, 'pages/index.tsx')))
@@ -304,7 +317,12 @@ export async function startDevServer(options: DevServerOptions) {
         response.end('Method not allowed')
         return
       }
-      if (url.pathname === '/_jar/events') {
+      const requestPath = withoutBase(base, url.pathname)
+      if (!requestPath) {
+        send(request, response, 404, 'text/plain; charset=utf-8', 'Not found')
+        return
+      }
+      if (requestPath === '/_jar/events') {
         response.writeHead(200, {
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',
@@ -319,11 +337,12 @@ export async function startDevServer(options: DevServerOptions) {
         request.on('close', () => events.delete(response))
         return
       }
-      if (url.pathname === '/_jar/routes.json') {
+      if (requestPath === '/_jar/routes.json') {
         try {
           const manifest = await loadRouteManifest(root, {
             liveReload: true,
             revision,
+            base,
             moduleUrl: modules.moduleUrl,
           })
           send(request, response, 200, 'application/json; charset=utf-8', JSON.stringify(manifest))
@@ -332,7 +351,7 @@ export async function startDevServer(options: DevServerOptions) {
         }
         return
       }
-      if (url.pathname === '/_jar/module') {
+      if (requestPath === '/_jar/module') {
         const projectPath = url.searchParams.get('path')
         if (!projectPath) {
           send(request, response, 400, 'text/plain; charset=utf-8', 'Module path is required')
@@ -348,7 +367,7 @@ export async function startDevServer(options: DevServerOptions) {
             dependencies,
             cdn,
             moduleUrl: modules.moduleUrl,
-            runtimeModuleUrl: '/_jar/runtime.js',
+            runtimeModuleUrl: withBase(base, '/_jar/runtime.js'),
             development: true,
             refresh: true,
             platform: 'browser',
@@ -360,22 +379,22 @@ export async function startDevServer(options: DevServerOptions) {
         }
         return
       }
-      if (url.pathname === '/_jar/runtime.js') {
+      if (requestPath === '/_jar/runtime.js') {
         if (!await serveFile(request, response, assetsRoot, 'index.js', undefined, noStore)) send(request, response, 500, 'text/plain', 'Devjar runtime is missing')
         return
       }
-      if (url.pathname.startsWith('/_jar/')) {
-        const cacheControl = url.pathname.startsWith('/_jar/assets/') ? immutableAsset : noStore
-        if (!await serveFile(request, response, assetsRoot, url.pathname.slice('/_jar/'.length), undefined, cacheControl)) send(request, response, 404, 'text/plain', 'Not found')
+      if (requestPath.startsWith('/_jar/')) {
+        const cacheControl = requestPath.startsWith('/_jar/assets/') ? immutableAsset : noStore
+        if (!await serveFile(request, response, assetsRoot, requestPath.slice('/_jar/'.length), undefined, cacheControl)) send(request, response, 404, 'text/plain', 'Not found')
         return
       }
-      if (url.pathname.startsWith('/api/')) {
-        if (!await serveFile(request, response, join(root, 'api'), url.pathname.slice('/api/'.length), new Set(['.json', '.txt']), noStore)) {
+      if (requestPath.startsWith('/api/')) {
+        if (!await serveFile(request, response, join(root, 'api'), requestPath.slice('/api/'.length), new Set(['.json', '.txt']), noStore)) {
           send(request, response, 404, 'text/plain; charset=utf-8', 'Not found')
         }
         return
       }
-      if (await serveFile(request, response, join(root, 'public'), url.pathname.slice(1), undefined, noStore)) return
+      if (await serveFile(request, response, join(root, 'public'), requestPath.slice(1), undefined, noStore)) return
       const packageJson = await readPackage(root)
       send(
         request,
@@ -387,6 +406,7 @@ export async function startDevServer(options: DevServerOptions) {
             dependencies: packageDependencies(packageJson),
             devjarDependencies,
             cdn: resolveCdn(options.cdn),
+            base,
             liveReload: true,
             head: '',
             content: '',
@@ -468,6 +488,7 @@ export async function startDevServer(options: DevServerOptions) {
     host,
     port: (server.address() as import('node:net').AddressInfo).port,
     root,
+    base,
     close,
   }
 }
@@ -583,7 +604,7 @@ async function writeRouteHtml(
   outDir: string,
   route: string,
   rendered: PrerenderedRoute,
-  options: Pick<HtmlOptions, 'dependencies' | 'devjarDependencies' | 'cdn'>,
+  options: Pick<HtmlOptions, 'dependencies' | 'devjarDependencies' | 'cdn' | 'base'>,
 ) {
   const outputPath = routeHtmlPath(outDir, route)
   await mkdir(dirname(outputPath), { recursive: true })
@@ -591,6 +612,7 @@ async function writeRouteHtml(
     dependencies: options.dependencies,
     devjarDependencies: options.devjarDependencies,
     cdn: options.cdn,
+    base: options.base,
     liveReload: false,
     head: rendered.head,
     content: rendered.markup,
@@ -602,6 +624,7 @@ async function writeRouteHtml(
 
 export async function buildProject(options: BuildOptions) {
   const root = await realpath(resolve(options.root))
+  const base = normalizeBase(options.base)
   const outDir = resolve(root, options.outDir)
   const outputBoundary = await existingDirectory(outDir)
   if (outDir === root || !isInside(root, outDir) || !isInside(root, outputBoundary)) {
@@ -617,7 +640,8 @@ export async function buildProject(options: BuildOptions) {
   const manifest = await loadRouteManifest(root, {
     liveReload: false,
     revision: 0,
-    moduleUrl: builtModuleUrl,
+    base,
+    moduleUrl: projectPath => builtModuleUrl(projectPath, base),
   })
   const renderedRoutes = options.prerender
     ? await prerender({
@@ -646,6 +670,7 @@ export async function buildProject(options: BuildOptions) {
       dependencies,
       devjarDependencies,
       cdn,
+      base,
     })
   }
   await copyRuntimeAssets(join(outDir, '_jar'))
@@ -657,8 +682,8 @@ export async function buildProject(options: BuildOptions) {
       projectPath,
       dependencies,
       cdn,
-      moduleUrl: builtModuleUrl,
-      runtimeModuleUrl: '/_jar/runtime.js',
+      moduleUrl: projectPath => builtModuleUrl(projectPath, base),
+      runtimeModuleUrl: withBase(base, '/_jar/runtime.js'),
       development: false,
       refresh: false,
       platform: 'browser',
@@ -668,7 +693,7 @@ export async function buildProject(options: BuildOptions) {
   await writeFile(join(outDir, '_jar/routes.json'), JSON.stringify(manifest))
   await copyApiFiles(join(root, 'api'), join(outDir, 'api'))
 
-  return { root, outDir, routes: Object.keys(manifest.routes) }
+  return { root, outDir, routes: Object.keys(manifest.routes), base }
 }
 
 export async function startBuiltServer(options: StartServerOptions) {
@@ -680,7 +705,8 @@ export async function startBuiltServer(options: StartServerOptions) {
   const host = options.host
   const port = options.port
   const manifest = JSON.parse(await readFile(join(root, 'manifest.json'), 'utf8')) as RouteManifest
-  if (manifest.version !== 2) throw new Error(`Unsupported Devjar build version: ${manifest.version}`)
+  if (manifest.version !== 3) throw new Error(`Unsupported Devjar build version: ${manifest.version}`)
+  const base = normalizeBase(manifest.base)
   const fallbackHtml = await readFile(join(root, 'index.html'), 'utf8')
   const routeHtml = new Map<string, string>()
   for (const route of Object.keys(manifest.routes)) {
@@ -697,21 +723,26 @@ export async function startBuiltServer(options: StartServerOptions) {
         response.end(request.method === 'HEAD' ? undefined : 'Method not allowed')
         return
       }
-      if (url.pathname.startsWith('/_jar/')) {
-        const cacheControl = url.pathname.startsWith('/_jar/assets/') ? immutableAsset : noStore
-        if (!await serveFile(request, response, join(root, '_jar'), url.pathname.slice('/_jar/'.length), undefined, cacheControl)) {
+      const requestPath = withoutBase(base, url.pathname)
+      if (!requestPath) {
+        send(request, response, 404, 'text/plain; charset=utf-8', 'Not found')
+        return
+      }
+      if (requestPath.startsWith('/_jar/')) {
+        const cacheControl = requestPath.startsWith('/_jar/assets/') ? immutableAsset : noStore
+        if (!await serveFile(request, response, join(root, '_jar'), requestPath.slice('/_jar/'.length), undefined, cacheControl)) {
           send(request, response, 404, 'text/plain; charset=utf-8', 'Not found')
         }
         return
       }
-      if (url.pathname.startsWith('/api/')) {
-        if (!await serveFile(request, response, join(root, 'api'), url.pathname.slice('/api/'.length), new Set(['.json', '.txt']), noStore)) {
+      if (requestPath.startsWith('/api/')) {
+        if (!await serveFile(request, response, join(root, 'api'), requestPath.slice('/api/'.length), new Set(['.json', '.txt']), noStore)) {
           send(request, response, 404, 'text/plain; charset=utf-8', 'Not found')
         }
         return
       }
-      if (await serveFile(request, response, root, url.pathname.slice(1), undefined, noStore)) return
-      const route = normalizeRoute(url.pathname)
+      if (await serveFile(request, response, root, requestPath.slice(1), undefined, noStore)) return
+      const route = normalizeRoute(requestPath)
       const routeDocument = routeHtml.get(route)
       if (routeDocument) {
         send(request, response, 200, 'text/html; charset=utf-8', routeDocument)
@@ -754,6 +785,7 @@ export async function startBuiltServer(options: StartServerOptions) {
     host,
     port: (server.address() as import('node:net').AddressInfo).port,
     root,
+    base,
     close,
   }
 }
