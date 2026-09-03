@@ -216,6 +216,22 @@ Files from `public/` are copied to the root of the output directory. For example
 Imports from `devjar` use the runtime and worker assets included in the build
 instead of loading another copy of Devjar from the package CDN.
 
+Pages can render React 19 document metadata directly. Devjar preserves these
+elements in each route's `<head>` during static export:
+
+```jsx
+export default function Page() {
+  return (
+    <>
+      <title>My prototype</title>
+      <meta name="description" content="A small React prototype" />
+      <link rel="icon" href="/icon.svg" />
+      <main>...</main>
+    </>
+  )
+}
+```
+
 Static rendering executes every page once during the build. Browser APIs can be
 used in effects and event handlers, but using `window` or `document` directly
 during render will fail the build with the affected route.

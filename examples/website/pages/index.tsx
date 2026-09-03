@@ -2,9 +2,22 @@ import { Codesandbox } from '../components/codesandbox'
 import { demoFiles } from '../lib/demo-files'
 import '../styles.css'
 
+const description = 'React Live Preview in Browser'
+const socialImage =
+  'https://repository-images.githubusercontent.com/483779830/28347c03-774a-4766-b113-54041fad1e72'
+
 export default function Page() {
   return (
     <>
+      <title>devjar</title>
+      <meta name="description" content={description} />
+      <meta name="author" content="@huozhi" />
+      <meta property="og:title" content="devjar" />
+      <meta property="og:description" content={description} />
+      <meta property="og:image" content={socialImage} />
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:image" content={socialImage} />
+      <link rel="icon" href="/icon.svg" type="image/svg+xml" />
       <main>
         <div className="playground-container">
           <div className="playground-wrapper">

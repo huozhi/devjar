@@ -17,9 +17,12 @@ type PrerenderOptions = {
 }
 
 export type PrerenderedRoute = {
+  head: string
   markup: string
   styles: string
 }
+
+type RenderedRoute = Pick<PrerenderedRoute, 'head' | 'markup'>
 
 type RenderInput = {
   routes: Record<string, string>
@@ -104,7 +107,7 @@ export async function prerender(options: PrerenderOptions) {
       throw new Error(renderError(error))
     }
 
-    const markup = JSON.parse(await readFile(outputPath, 'utf8')) as Record<string, string>
+    const rendered = JSON.parse(await readFile(outputPath, 'utf8')) as Record<string, RenderedRoute>
     const result: Record<string, PrerenderedRoute> = {}
     for (const [route, files] of routeFiles) {
       const styles: string[] = []
@@ -113,7 +116,7 @@ export async function prerender(options: PrerenderOptions) {
           styles.push(await readFile(join(options.root, projectPath), 'utf8'))
         }
       }
-      result[route] = { markup: markup[route], styles: styles.join('\n') }
+      result[route] = { ...rendered[route], styles: styles.join('\n') }
     }
     return result
   } finally {
