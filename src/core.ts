@@ -299,6 +299,8 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
     typeof import('react'),
     typeof import('react-dom/client'),
   ]> | undefined
+  let renderRequestId = 0
+  let renderQueue = Promise.resolve()
   let revision = 0
   const moduleRuntime: ModuleRuntime = {}
   let currentFiles: Record<string, string> = {}
@@ -310,14 +312,12 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
     errorBoundary = value
   }
 
-  async function render(
+  async function renderCurrent(
     files: Record<string, string>,
     dependencies: Record<string, string[]>,
     manifest: IframeRouteManifest,
+    requestId: number,
   ) {
-    currentFiles = files
-    currentDependencies = dependencies
-    currentManifest = manifest
     const cleanRoute = currentRoute.replace(/^\/+|\/+$/g, '')
     const route = cleanRoute ? `/${cleanRoute}` : '/'
     const entry = manifest.routes[route] || manifest.notFound
@@ -342,6 +342,7 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
       ])
     }
     const [ReactMod, ReactDOMMod] = await rendererModules
+    if (requestId !== renderRequestId) return
 
     const _jsx = ReactMod.createElement
     const root = document.getElementById('__reactRoot')
@@ -434,6 +435,23 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
         ))
       }
     }
+  }
+
+  function render(
+    files: Record<string, string>,
+    dependencies: Record<string, string[]>,
+    manifest: IframeRouteManifest,
+  ) {
+    const requestId = ++renderRequestId
+    currentFiles = files
+    currentDependencies = dependencies
+    currentManifest = manifest
+    const pendingRender = renderQueue.then(() => {
+      if (requestId !== renderRequestId) return
+      return renderCurrent(files, dependencies, manifest, requestId)
+    })
+    renderQueue = pendingRender.catch(() => {})
+    return pendingRender
   }
 
   document.addEventListener('click', (event) => {
@@ -672,6 +690,7 @@ function useLiveCode({
         }
       }
       const linked = await linkModules(transformedSources, resolveModuleForLoad)
+      if (loadId !== loadIdRef.current) return
 
       const iframe = iframeRef.current
       const script = appScriptRef.current
@@ -680,6 +699,7 @@ function useLiveCode({
         if (!contentWindow) throw new Error('devjar: iframe window is unavailable')
         const renderFiles = async () => {
           await tailwindReadyRef.current
+          if (loadId !== loadIdRef.current) return
           const render = contentWindow.__render__
           if (!render) throw new Error('devjar: renderer was not initialized')
           await render(linked.files, linked.dependencies, manifest)

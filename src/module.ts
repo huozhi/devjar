@@ -40,8 +40,9 @@ async function createModule(
     return `${localImportPrefix}${encodeURIComponent(moduleKey)}__`
   }
 
-  function createInlinedModule(code: string) {
-    return `data:text/javascript;utf-8,${encodeURIComponent(code)}`
+  function createInlinedModule(code: string, moduleKey: string, revision: number) {
+    const versionedCode = `${code}\n// devjar:${revision}:${encodeURIComponent(moduleKey)}`
+    return `data:text/javascript;utf-8,${encodeURIComponent(versionedCode)}`
   }
 
   function createCssModule(code: string) {
@@ -64,6 +65,7 @@ export default sheet;`
   runtime.files ||= {}
   runtime.urls ||= {}
   runtime.revision = (runtime.revision || 0) + 1
+  const revision = runtime.revision
   const runtimeFiles = runtime.files
   const runtimeUrls = runtime.urls
 
@@ -128,7 +130,7 @@ export default sheet;`
       ? moduleSources[moduleKey]
       : rewriteLocalImports(moduleSources[moduleKey], specifiers)
 
-    runtimeUrls[moduleKey] = createInlinedModule(moduleCode)
+    runtimeUrls[moduleKey] = createInlinedModule(moduleCode, moduleKey, revision)
     buildingUrls.delete(moduleKey)
     return runtimeUrls[moduleKey]
   }
@@ -157,7 +159,7 @@ export default sheet;`
   }
 
   const module: ModuleNamespace = await import(/* webpackIgnore: true */ /* @vite-ignore */ /* turbopackIgnore: true */ runtimeUrls[entry])
-  runtime.files = { ...files }
+  if (runtime.revision === revision) runtime.files = { ...files }
   return { module, changed: changedModules.size > 0 }
 }
 

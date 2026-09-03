@@ -10,6 +10,7 @@ const REACT_DEV_MODULES = new Set([
   'react/jsx-runtime',
   'react/jsx-dev-runtime',
 ])
+const editorTextareaProps = { style: { caretColor: '#171717' } }
 
 function resolveModule(specifier: string) {
   const url = `${CDN_HOST}/${specifier}`
@@ -536,15 +537,16 @@ export function Codesandbox({
             title={null}
             lineNumbers={true}
             fontSize={13}
+            textareaProps={editorTextareaProps}
             extension={activeExtension}
             data-active-extension={activeExtension}
             value={activeFile ? files[activeFile] || '' : ''}
             onChange={(code) => {
               if (activeFile) {
-                setFiles({
-                  ...files,
+                setFiles((currentFiles) => ({
+                  ...currentFiles,
                   [activeFile]: code,
-                })
+                }))
               }
             }}
           />
