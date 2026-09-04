@@ -203,6 +203,7 @@ export const drumFiles = {
     }
   
     async function audition(voice) {
+      if (document.hidden) return
       try {
         const instrument = await ready()
         if (alive.current) instrument.hit(voice, instrument.context.currentTime)
@@ -215,7 +216,8 @@ export const drumFiles = {
       instrument.output.gain.setValueAtTime(volume / 100 * 0.65, instrument.context.currentTime)
       let nextTime = instrument.context.currentTime + 0.04
       let nextStep = 0
-      let frame
+      let frame, timer, visibilityVersion = 0
+      let active = true
       const queue = []
       const samples = new Uint8Array(instrument.analyser.frequencyBinCount)
   
@@ -254,10 +256,32 @@ export const drumFiles = {
         }
         frame = requestAnimationFrame(draw)
       }
-      schedule()
-      const timer = setInterval(schedule, 25)
-      frame = requestAnimationFrame(draw)
+      async function visibilityChanged() {
+        const version = ++visibilityVersion
+        clearInterval(timer)
+        cancelAnimationFrame(frame)
+        try {
+          if (document.hidden) {
+            await instrument.context.suspend()
+            return
+          }
+          await instrument.context.resume()
+          if (!active || document.hidden || version !== visibilityVersion) return
+          schedule()
+          timer = setInterval(schedule, 25)
+          frame = requestAnimationFrame(draw)
+        } catch {
+          if (active && version === visibilityVersion) {
+            setError('Audio could not resume. Try pressing play again.')
+            setPlaying(false)
+          }
+        }
+      }
+      document.addEventListener('visibilitychange', visibilityChanged)
+      visibilityChanged()
       return () => {
+        active = false
+        document.removeEventListener('visibilitychange', visibilityChanged)
         clearInterval(timer)
         cancelAnimationFrame(frame)
         // Cancel queued notes so a quick restart cannot replay them.

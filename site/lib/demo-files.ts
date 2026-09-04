@@ -371,18 +371,18 @@ export const demoFiles = {
 
   @media (max-width: 760px) {
     .page {
-      min-height: 100vh;
-      padding: 16px;
+      min-height: 0;
+      padding: 12px;
     }
 
     main {
       min-height: auto;
       grid-template-columns: 1fr;
-      gap: 28px;
+      gap: 20px;
     }
 
     .intro {
-      padding-top: 12px;
+      padding-top: 8px;
     }
 
     .route-map {

@@ -16,7 +16,7 @@ export function ExampleGallery() {
       <Codesandbox files={demoFiles} focusFile={undefined} editorAction={undefined} />
       <section className="example-gallery" aria-label="More live examples">
         <div className="examples-intro">
-          <h2>Experiments...</h2>
+          <h2>Gallery</h2>
           <p>Tweak the code, see what happens in the previews.</p>
         </div>
         {examples.map((example, index) => (

@@ -148,8 +148,8 @@ export function Codesandbox({
       if (!doc) return
 
       const content = doc.getElementById('__reactRoot')
-      const nextHeight = focusFile && content
-        ? Math.ceil(Math.max(content.getBoundingClientRect().height, content.scrollHeight, 360))
+      const nextHeight = content
+        ? Math.ceil(Math.max(content.getBoundingClientRect().height, content.scrollHeight, focusFile ? 360 : 340))
         : Math.ceil(Math.max(
         doc.body?.scrollHeight || 0,
         doc.body?.offsetHeight || 0,

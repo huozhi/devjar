@@ -194,7 +194,7 @@ textarea:focus-visible {
   font-size: 13px;
   transition: background-color 0.15s ease, opacity 0.2s ease-out, transform 0.2s ease-out;
   border: none;
-  background: none;
+  background: #fafafa;
   text-align: left;
   width: 100%;
 }
@@ -213,10 +213,14 @@ textarea:focus-visible {
 }
 
 .file-icon {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   flex-shrink: 0;
   color: #6b7280;
+  background-color: inherit;
+  transition: background-color 0.15s ease;
 }
 
 .filetree-item-name {
