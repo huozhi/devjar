@@ -341,6 +341,18 @@ Devjar project (`devjar dev site`).
 devjar dev [root] --host localhost --port 3000
 ```
 
+### Preview on your phone
+
+```sh
+npx devjar dev --host 0.0.0.0
+```
+
+Open the printed Network URL on a phone connected to the same Wi-Fi. Network
+URLs include your selected port and base path. This also works with `devjar start`.
+The default host remains localhost; pass `--host 0.0.0.0` to expose the server
+on your network. Embedded editors require a secure, cross-origin-isolated context,
+so use ordinary CLI pages for HTTP phone previews.
+
 ## Notice: iframe cross-origin isolation
 
 The iframe transforms code in the browser using Oxc and shared WebAssembly

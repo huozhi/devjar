@@ -1,3 +1,5 @@
+import { networkInterfaces } from 'node:os'
+import { networkUrls } from '../cli/network'
 import { readFile } from 'node:fs/promises'
 import { join, relative } from 'node:path'
 import { buildProject, startBuiltServer, startDevServer } from '../cli/index'
@@ -163,6 +165,9 @@ async function run() {
   console.log(style(1, command === 'start' ? 'Devjar production server ready' : 'Devjar development server ready'))
   console.log('')
   console.log(`Local  ${style(36, url)}`)
+  const urls = networkUrls(server.host, server.port, server.base, networkInterfaces())
+  for (const url of urls) console.log(`Network  ${style(36, url)}`)
+  if (urls.length) console.log('Open a Network URL on your phone while connected to the same Wi-Fi.')
 
   let shuttingDown = false
   async function close(signal: string) {
