@@ -319,15 +319,21 @@ during render will fail the build with the affected route.
 Use `--out-dir <directory>` to change the build location. The output directory
 must remain inside the project root.
 
-The repository includes two runnable examples:
+The repository includes three runnable examples:
 
 ```sh
 jar dev examples/basic
 jar dev examples/dashboard
+jar dev examples/swr
 ```
 
 The dashboard demonstrates page navigation, shared components, a CDN-loaded
 icon package, Tailwind, static API data, and a public SVG asset.
+The SWR example demonstrates optimistic task updates, rollback, and a shared
+`useSWRSubscription` activity stream using a local simulated transport. Its source
+also powers the homepage demo; after editing it, run
+`bun scripts/sync-swr-example.ts` to update the embedded copy.
+
 The site in `site/` runs Devjar's own editor and live preview as a pages-based
 Devjar project (`jar dev site`).
 

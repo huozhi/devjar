@@ -13,7 +13,11 @@ const REACT_DEV_MODULES = new Set([
 const editorTextareaProps = { style: { caretColor: '#171717' } }
 
 function resolveModule(specifier: string) {
-  const url = `${CDN_HOST}/${specifier}`
+  if (specifier === 'swr' || specifier.startsWith('swr/')) {
+    return `${CDN_HOST}/${specifier.replace(/^swr/, 'swr@2.5.1')}?deps=react@19.2.8&dev`
+  }
+  const pinned = specifier.replace(/^(react|react-dom)(?=\/|$)/, '$1@19.2.8')
+  const url = `${CDN_HOST}/${pinned}`
   return REACT_DEV_MODULES.has(specifier) ? `${url}?dev` : url
 }
 
@@ -53,12 +57,17 @@ const previewLoaderFrames = [
 ]
 
 export function Codesandbox({
-  files: initialFiles
+  files: initialFiles,
+  focusFile,
+  editorAction,
 }: {
   files: Record<string, string>
+  focusFile: string | undefined
+  editorAction: { label: string; generate: (code: string) => string; playback: boolean } | undefined
 }) {
   // Initialize activeFile with the root page when available.
   const getInitialActiveFile = (files: Record<string, string>) => {
+    if (focusFile) return focusFile
     const rootPage = ['pages/index.tsx', 'pages/index.ts', 'pages/index.jsx', 'pages/index.js']
       .find(filename => filename in files)
     if (rootPage) return rootPage
@@ -76,8 +85,9 @@ export function Codesandbox({
   const previewRef = useRef<HTMLDivElement>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const editorLayoutRef = useRef<HTMLDivElement>(null)
-  const [previewHeight, setPreviewHeight] = useState(340)
+  const [previewHeight, setPreviewHeight] = useState(focusFile ? 360 : 340)
   const [previewReady, setPreviewReady] = useState(false)
+  const [previewPlaying, setPreviewPlaying] = useState(false)
   const activeExtension = activeFile?.split('.').pop() || ''
   const projectFolders = [...new Set([
     ...folders,
@@ -91,6 +101,10 @@ export function Codesandbox({
   useEffect(() => {
     const handleEditRequest = (event: MessageEvent) => {
       if (event.source !== iframeRef.current?.contentWindow) return
+      if (event.data?.type === 'devjar:playback' && typeof event.data.playing === 'boolean') {
+        setPreviewPlaying(event.data.playing)
+        return
+      }
       if (event.data !== 'devjar:edit-demo') return
       editorLayoutRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }
@@ -114,7 +128,10 @@ export function Codesandbox({
       const doc = iframe.contentDocument
       if (!doc) return
 
-      const nextHeight = Math.ceil(Math.max(
+      const content = doc.getElementById('__reactRoot')
+      const nextHeight = focusFile && content
+        ? Math.ceil(Math.max(content.getBoundingClientRect().height, content.scrollHeight, 360))
+        : Math.ceil(Math.max(
         doc.body?.scrollHeight || 0,
         doc.body?.offsetHeight || 0,
         doc.documentElement?.scrollHeight || 0,
@@ -187,7 +204,7 @@ export function Codesandbox({
       if (frame) cancelAnimationFrame(frame)
       if (probeFrame) cancelAnimationFrame(probeFrame)
     }
-  }, [])
+  }, [focusFile])
 
   useEffect(() => {
     if (initialFiles !== files) {
@@ -201,7 +218,9 @@ export function Codesandbox({
 
   // Handle Cmd+Delete or Cmd+Backspace to delete files/folders
   useEffect(() => {
+    if (focusFile) return
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (!(e.target instanceof Node) || !editorLayoutRef.current?.contains(e.target)) return
       // Check for Cmd+Delete or Cmd+Backspace (Mac) or Ctrl+Delete/Backspace (Windows/Linux)
       const isDelete = (e.metaKey || e.ctrlKey) && (e.key === 'Delete' || e.key === 'Backspace')
 
@@ -241,10 +260,10 @@ export function Codesandbox({
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [activeFile, activeFolder, files, folders, editingNewItem])
+  }, [activeFile, activeFolder, files, folders, editingNewItem, focusFile])
 
   return (
-    <div data-codesandbox="react">
+    <div data-codesandbox="react" data-focused={focusFile ? "true" : undefined}>
       <div className="preview" ref={previewRef} style={{ height: previewHeight }}>
         <div className={previewReady ? 'preview--loading is-hidden' : 'preview--loading'} aria-hidden="true">
           <div className="preview--loading-ascii">
@@ -265,8 +284,8 @@ export function Codesandbox({
           resolveModule={resolveModule}
         />
       </div>
-      <div className="codesandbox-layout" ref={editorLayoutRef}>
-        <div className="filetree">
+      <div className="codesandbox-layout" ref={editorLayoutRef} data-editor-action={editorAction ? "true" : undefined}>
+        {!focusFile && <div className="filetree">
           <div className="filetree-root">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="react-icon">
               <circle cx="12" cy="12" r="2" stroke="currentColor" strokeWidth="1" fill="none"/>
@@ -487,7 +506,11 @@ export function Codesandbox({
               </div>
             )}
           </div>
-        </div>
+        </div>}
+        {focusFile && <div className="focused-editor-heading">
+          <span>{focusFile}</span>
+          <button onClick={() => setFiles(initialFiles)}>Reset code ↺</button>
+        </div>}
           <Editor
             className="editor"
             controls={false}
@@ -508,6 +531,21 @@ export function Codesandbox({
               }
             }}
           />
+        {editorAction && focusFile && <div className="floating-editor-action">
+          <button onClick={() => setFiles(current => ({
+            ...current,
+            [focusFile]: editorAction.generate(current[focusFile]),
+          }))}>
+            <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+              <path d="M2 5h3c4 0 6 10 10 10h3m-4-4 4 4-4 4M2 15h3c1.5 0 3-1.5 4-3m2-4c1-1.5 2.5-3 4-3h3m-4-4 4 4-4 4" />
+            </svg>
+            {editorAction.label}
+          </button>
+          {editorAction.playback && <button className="playback-action" disabled={!previewReady} aria-pressed={previewPlaying}
+            onClick={() => iframeRef.current?.contentWindow?.postMessage({ type: 'devjar:toggle-playback' }, window.location.origin)}>
+            <span aria-hidden="true">{previewPlaying ? '■' : '▶'}</span>{previewPlaying ? 'Stop' : 'Play'}
+          </button>}
+        </div>}
       </div>
     </div>
   )

@@ -1,0 +1,39 @@
+.example-gallery { width: min(1440px, 100%); padding: 0 32px; margin: 80px auto 0; }
+.examples-intro { margin-bottom: 38px; }
+.examples-intro > span { font: 9px var(--font-ioskeley-mono); letter-spacing: .08em; color: #8a887f; }
+.examples-intro h2 { font-size: 28px; font-weight: 500; letter-spacing: -.035em; margin: 12px 0; color: #292922; }
+.examples-intro p { font-size: 13px; line-height: 1.6; color: #838177; margin: 0; }
+.example-row { margin: 0 0 52px; }
+.example-row-heading { font-size: 15px; font-weight: 400; line-height: 1.5; color: #383830; margin: 0 0 12px; }
+[data-codesandbox="react"][data-focused] { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); align-items: start; gap: 0; padding: 0; border: 1px solid #deded6; border-radius: 8px; overflow: hidden; background: #fafaf8; }
+[data-codesandbox="react"][data-focused] .preview { width: 100%; min-width: 0; padding: 0; margin: 0; border: 0; }
+[data-codesandbox="react"][data-focused] .codesandbox-layout { width: 100%; min-width: 0; height: 100%; max-height: 600px; min-height: 360px; display: flex; flex-direction: column; margin: 0; border: 0; border-left: 1px solid #deded6; border-radius: 0; box-shadow: none; align-self: stretch; overflow: hidden; }
+.focused-editor-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 12px; background: #fafaf8; border-bottom: 1px solid #eeede6; color: #77776c; font: 10px var(--font-ioskeley-mono); flex-shrink: 0; }
+.focused-editor-heading > button { border: 0; padding: 3px 0; background: none; cursor: pointer; color: #87867d; font: inherit; white-space: nowrap; }
+.focused-editor-heading > button:hover { color: #292922; }
+.focused-editor-heading > button:focus-visible { outline: 2px solid #a16a46; outline-offset: 3px; }
+[data-codesandbox="react"][data-focused] .editor { width: 100%; flex: 1 1 0; min-height: 0; max-height: none; overflow: auto; }
+@media (min-width: 901px) {
+  .example-row--editor-first [data-codesandbox="react"][data-focused] { grid-template-columns: minmax(0, 1fr) minmax(0, 1.55fr); }
+  .example-row--editor-first [data-codesandbox="react"][data-focused] .codesandbox-layout { order: -1; border-left: 0; border-right: 1px solid #deded6; }
+}
+@media (max-width: 900px) {
+  .example-gallery { padding: 0 16px; margin-top: 55px; }
+  [data-codesandbox="react"][data-focused] { grid-template-columns: 1fr; }
+  [data-codesandbox="react"][data-focused] .codesandbox-layout { height: 330px; min-height: 0; border-left: 0; border-top: 1px solid #deded6; }
+  [data-codesandbox="react"][data-focused] .codesandbox-layout > .editor { flex: 1 1 0; min-height: 0; }
+}
+[data-codesandbox="react"][data-focused] .codesandbox-layout[data-editor-action] { position: relative; }
+[data-codesandbox="react"][data-focused] [data-editor-action] .editor { padding-bottom: 90px; }
+.floating-editor-action { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 2; display: flex; align-items: center; flex-direction: row; gap: 8px; white-space: nowrap; }
+.floating-editor-action button { display: inline-flex; align-items: center; gap: 9px; border: 1px solid #33372c; background: #292d24; color: #f7f4e9; padding: 11px 17px; border-radius: 24px; font-size: 12px; cursor: pointer; box-shadow: 0 4px 12px #272d2420; }
+.floating-editor-action .playback-action { width: 100px; flex-shrink: 0; justify-content: center; }
+.playback-action > span { width: 15px; flex-shrink: 0; text-align: center; }
+.floating-editor-action button:hover { background: #424a36; }
+.floating-editor-action button:active { transform: translateY(1px); }
+.floating-editor-action button:focus-visible { outline: 2px solid #f58a50; outline-offset: 3px; }
+.floating-editor-action button:disabled { opacity: .5; cursor: wait; }
+@media (max-width: 900px) {
+  [data-codesandbox="react"][data-focused] [data-editor-action] .editor { padding-bottom: 0; }
+  .floating-editor-action { position: static; transform: none; flex-shrink: 0; justify-content: center; padding: 12px 0 16px; border-top: 1px solid #eeede6; background: #fff; }
+}

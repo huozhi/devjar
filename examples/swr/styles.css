@@ -1,0 +1,35 @@
+* { box-sizing: border-box; }
+body { margin: 0; background: #faf9f6; color: #354237; font: 12px Arial, sans-serif; }
+main { padding: 24px; max-width: 780px; margin: auto; }
+header, .progress, .save-controls, .activity-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+h2 { margin: 0; font-size: 20px; font-weight: 500; letter-spacing: -0.5px; }
+header > span { font-size: 10px; }.saved { color: #66836a; }.saving { color: #a87a45; }
+button { font: inherit; cursor: pointer; color: inherit; }button:disabled { opacity: 0.5; cursor: default; }button:focus-visible { outline: 2px solid #668c70; outline-offset: 3px; }
+.feature-title { margin: 24px 0 12px; font-size: 12px; font-weight: 500; }
+.progress { flex-wrap: wrap; margin-top: 0; }.progress strong { font-size: 22px; font-weight: 500; }.progress strong span, .caption { font-size: 10px; color: #8b9388; }
+.meter { width: 100%; height: 4px; background: #e4e9df; border-radius: 3px; overflow: hidden; }.meter i { display: block; height: 100%; background: #709a7a; transition: width 180ms; }
+.tasks { min-height: 138px; padding: 12px 0; }.task { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 0; border: 0; background: none; text-align: left; }.task[aria-checked="true"] > span:last-child { color: #9aa192; text-decoration: line-through; }
+.check { display: grid; place-items: center; width: 18px; height: 18px; flex-shrink: 0; border: 1px solid #bcc9b8; border-radius: 4px; background: #fff; font-size: 11px; }.task[aria-checked="true"] .check { background: #e8efe3; color: #507255; }
+.notice { min-height: 30px; margin: 0 0 8px; font-size: 10px; line-height: 1.5; color: #8a9184; }
+.save-controls { flex-wrap: wrap; border-top: 1px solid #e5e8e0; padding: 12px 0 20px; font-size: 10px; color: #8b9388; }
+.save-controls button, .activity button { background: white; border: 1px solid #dbe2d5; border-radius: 5px; padding: 6px 9px; font-size: 10px; color: #52674f; }.save-controls .stream-playback { width: 80px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; gap: 7px; }.stream-playback svg { flex-shrink: 0; }
+.activity { border: 1px solid #dce4d5; border-radius: 7px; background: #f1f5ed; padding: 14px; }.activity h3 { font-size: 12px; font-weight: 500; margin: 0; }.live-badge { display: grid; grid-template-columns: 6px 1fr; gap: 8px; align-items: baseline; margin: 14px 0 10px; font-size: 10px; line-height: 16px; color: #517556; }.live-badge > span:first-child { color: #75a176; font-size: 8px; }
+.event { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0 7px 14px; border-top: 1px solid #e0e7d9; font-size: 10px; line-height: 16px; color: #7e8b76; }.event time { flex-shrink: 0; font-size: 9px; color: #9aa48f; }
+.hint { color: #969e8e; font-size: 9px; margin: 12px 0 0; }.disconnected { font-size: 11px; color: #87927d; margin: 14px 0 0; }
+@media (max-width: 420px) { main { padding: 16px; }h2 { font-size: 18px; }.event { font-size: 9px; gap: 6px; }.live-badge { font-size: 9px; }.event time { font-size: 8px; } }
+
+.latest { animation: activity-arrive 240ms ease-out both; }
+@keyframes activity-arrive { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .latest { animation: none; } }
+
+.save-controls h3 { margin: 0; font-size: 12px; font-weight: 500; color: #354237; }
+
+.stream-controls { margin-left: auto; display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.save-controls .send-event { display: grid; place-items: center; width: 30px; height: 26px; padding: 0; }
+
+.save-controls .stream-connection { display: grid; place-items: center; width: 34px; height: 26px; padding: 0; }
+.stream-connection[aria-checked="true"] { color: #527b57; }
+.stream-connection[aria-checked="false"] { color: #888; }
+
+.activity[data-connected="false"] { background: #f1f1f1; border-color: #dedede; color: #696969; }
+.activity[data-connected="false"] .disconnected { color: #888; }

@@ -1,5 +1,4 @@
-import { Codesandbox } from '../components/codesandbox'
-import { demoFiles } from '../lib/demo-files'
+import { ExampleGallery } from '../components/example-gallery'
 import '../styles.css'
 
 const description = 'Turn a folder of React pages into a self-contained static site.'
@@ -33,7 +32,7 @@ export default function Page() {
 
         <div className="playground-container">
           <div className="playground-wrapper">
-            <Codesandbox files={demoFiles} />
+            <ExampleGallery />
           </div>
         </div>
 

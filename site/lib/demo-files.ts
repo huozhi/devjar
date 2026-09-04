@@ -1,4 +1,4 @@
-function source(parts: TemplateStringsArray) {
+export function source(parts: TemplateStringsArray) {
   const lines = parts[0].split('\n')
   const contentLines = lines.filter((line) => line.trim())
   const indentation = Math.min(

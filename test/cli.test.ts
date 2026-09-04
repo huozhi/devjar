@@ -262,11 +262,17 @@ export function projectComponent() { return environment }
       join(websiteRoot, 'pages/index.tsx'),
     )
     expect([...files].sort()).toEqual([
+      'assets/fonts/IoskeleyMono-Regular.woff2',
       'components/codesandbox.css',
       'components/codesandbox.tsx',
+      'components/example-gallery.css',
+      'components/example-gallery.tsx',
       'components/file-icon.tsx',
       'components/root-actions.tsx',
       'lib/demo-files.ts',
+      'lib/examples/drums.ts',
+      'lib/examples/shader.ts',
+      'lib/examples/swr.ts',
       'pages/index.tsx',
       'styles.css',
     ])
