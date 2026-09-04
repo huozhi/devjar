@@ -31,6 +31,10 @@ import { getTailwindBrowserUrl, getTailwindBuildUrls } from '../tailwind'
 import { prerender, type PrerenderedRoute } from './prerender'
 import { compileTailwind } from './tailwind-build'
 import { vendorModules } from './vendor'
+import { LocalPackages } from './local-packages'
+
+// Stable identities for vendoring; these URLs are loaded from disk, never fetched.
+const localPackagePrefix = 'https://local.devjar.invalid/_jar/local'
 
 type PackageJson = {
   dependencies?: Record<string, string>
@@ -359,6 +363,22 @@ export async function startDevServer(options: DevServerOptions) {
   const modules = new DevModuleGraph(base)
   const { send, serveFile } = createResponder(isolationHeaders)
   let revision = 0
+  let localReloadTimer: NodeJS.Timeout | undefined
+  const localPackages = new LocalPackages({
+    root,
+    prefix: withBase(base, '/_jar/local'),
+    serverPrefix: withBase(base, '/_jar/local'),
+    cdn: resolveCdn(options.cdn),
+    development: true,
+    onChange: () => {
+      clearTimeout(localReloadTimer)
+      localReloadTimer = setTimeout(() => {
+        revision++
+        const change: HmrChange = { revision, reload: true, routes: false, timestamp: Date.now(), updates: [] }
+        for (const response of events) response.write(`event: change\ndata: ${JSON.stringify(change)}\n\n`)
+      }, 40)
+    },
+  })
 
   if (!(await fileExists(join(root, 'pages/index.tsx')))
     && !(await fileExists(join(root, 'pages/index.ts')))
@@ -409,6 +429,11 @@ export async function startDevServer(options: DevServerOptions) {
         }
         return
       }
+      if (requestPath.startsWith('/_jar/local/')) {
+        const resource = await localPackages.load(url)
+        send(request, response, 200, resource.contentType, resource.contents)
+        return
+      }
       if (requestPath === '/_jar/module') {
         const projectPath = url.searchParams.get('path')
         if (!projectPath) {
@@ -416,13 +441,10 @@ export async function startDevServer(options: DevServerOptions) {
           return
         }
         try {
-          const packageJson = await readPackage(root)
-          const dependencies = packageDependencies(packageJson)
-          const cdn = resolveCdn(options.cdn)
           const compiled = await compileProjectModule({
             root,
             projectPath,
-            resolveModule: createEsmShResolver(dependencies, cdn, true),
+            resolveModule: specifier => localPackages.resolve(specifier, 'browser', root),
             moduleUrl: modules.moduleUrl,
             assetUrl: (projectPath, contents) => devAssetUrl(projectPath, contents, base),
             runtimeModuleUrl: withBase(base, '/_jar/runtime.js'),
@@ -478,7 +500,7 @@ export async function startDevServer(options: DevServerOptions) {
         'text/html; charset=utf-8',
         html(
           {
-            resolveModule: createEsmShResolver(dependencies, cdn, true),
+            resolveModule: specifier => localPackages.resolve(specifier, 'browser', root),
             resolveRuntimeModule: createEsmShResolver({
               ...dependencies,
               ...devjarDependencies,
@@ -542,6 +564,7 @@ export async function startDevServer(options: DevServerOptions) {
     })
   } catch (error) {
     watcher.close()
+    localPackages.close()
     throw error
   }
 
@@ -550,6 +573,8 @@ export async function startDevServer(options: DevServerOptions) {
     if (closePromise) return closePromise
     closePromise = new Promise<void>((resolvePromise, reject) => {
       clearTimeout(timer)
+      clearTimeout(localReloadTimer)
+      localPackages.close()
       watcher.close()
       for (const response of events) response.end()
       events.clear()
@@ -746,6 +771,51 @@ async function writeRouteHtml(
 
 export async function buildProject(options: BuildOptions) {
   const root = await realpath(resolve(options.root))
+  const cdn = resolveCdn(options.cdn)
+  const createLocalPackages = (serverPrefix: string) => new LocalPackages({
+    root,
+    prefix: localPackagePrefix,
+    serverPrefix,
+    cdn,
+    development: false,
+    onChange: undefined,
+  })
+  if (!options.prerender) {
+    return buildProjectWithLocalPackages(options, createLocalPackages(localPackagePrefix))
+  }
+  let localPackages: LocalPackages
+  const server = createServer(async (request, response) => {
+    try {
+      const resource = await localPackages.load(new URL(request.url || '/', 'http://localhost'))
+      response.writeHead(200, { 'Content-Type': resource.contentType })
+      response.end(resource.contents)
+    } catch (error) {
+      response.writeHead(404)
+      response.end(error instanceof Error ? error.message : String(error))
+    }
+  })
+  await new Promise<void>((resolve, reject) => {
+    server.once('error', reject)
+    server.listen(0, '127.0.0.1', resolve)
+  })
+  const port = (server.address() as import('node:net').AddressInfo).port
+  localPackages = createLocalPackages(`http://127.0.0.1:${port}/_jar/local`)
+  try {
+    return await buildProjectWithLocalPackages(options, localPackages)
+  } finally {
+    localPackages.close()
+    await new Promise<void>((resolve, reject) => {
+      server.close(error => {
+        if (error && (error as NodeJS.ErrnoException).code !== 'ERR_SERVER_NOT_RUNNING') reject(error)
+        else resolve()
+      })
+      server.closeAllConnections()
+    })
+  }
+}
+
+async function buildProjectWithLocalPackages(options: BuildOptions, localPackages: LocalPackages) {
+  const root = await realpath(resolve(options.root))
   const base = normalizeBase(options.base)
   const outDir = resolve(root, options.outDir)
   const outputBoundary = await existingDirectory(outDir)
@@ -767,7 +837,7 @@ export async function buildProject(options: BuildOptions) {
   const devjarDependencies = devjarRuntime
     ? await readDevjarDependencies(runtime)
     : {}
-  const resolveSourceModule = createEsmShResolver(dependencies, cdn, false)
+  const resolveSourceModule = (specifier: string) => localPackages.resolve(specifier, 'browser', root)
   const resolveSourceRuntimeModule = createEsmShResolver({
     ...dependencies,
     ...devjarDependencies,
@@ -781,6 +851,13 @@ export async function buildProject(options: BuildOptions) {
     ...(devjarRuntime ? [resolveSourceRuntimeModule('es-module-lexer')] : []),
   ])
   const vendored = await vendorModules({
+    load: async url => {
+      if (!url.startsWith(`${localPackagePrefix}/`)) return fetch(url)
+      const resource = await localPackages.load(new URL(url))
+      return new Response(resource.contents, {
+        headers: { 'Content-Type': resource.contentType },
+      })
+    },
     moduleUrls: [...sourceUrls],
     resolveModule: resolveSourceModule,
   })
@@ -805,6 +882,7 @@ export async function buildProject(options: BuildOptions) {
         cdn,
         base,
         runtimeModulePath: join(runtime, 'index.js'),
+        resolveModule: specifier => localPackages.resolve(specifier, 'server', root),
       })
     : Object.fromEntries([...discovered.routes.keys()].map(route => (
         [route, { head: '', markup: '', styles: '' }]

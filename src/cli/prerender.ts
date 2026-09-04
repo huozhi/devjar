@@ -19,6 +19,7 @@ type PrerenderOptions = {
   devjarDependencies: Record<string, string>
   cdn: string
   base: string
+  resolveModule: (specifier: string) => string
   runtimeModulePath: string
 }
 
@@ -61,7 +62,7 @@ export async function prerender(options: PrerenderOptions) {
     const projectFiles = new Set<string>()
     const routeFiles = new Map<string, Set<string>>()
     const projectStyles = new Map<string, string>()
-    const resolveModule = createEsmShResolver(options.dependencies, options.cdn, false)
+    const resolveModule = options.resolveModule
     for (const [route, entry] of options.routes) {
       const files = await collectProjectFiles(options.root, entry)
       routeFiles.set(route, files)

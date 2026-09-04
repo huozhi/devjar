@@ -21,6 +21,7 @@ type VendorResource = {
 
 export type VendorModulesOptions = {
   moduleUrls: string[]
+  load: (url: string) => Promise<Response>
   resolveModule: (specifier: string) => string
 }
 
@@ -149,7 +150,7 @@ export async function vendorModules(options: VendorModulesOptions): Promise<Vend
     if (pending) return pending
 
     const fetching = (async () => {
-      const response = await fetch(requested)
+      const response = await options.load(requested)
       if (!response.ok) {
         throw new Error(`Unable to vendor ${requested}: ${response.status} ${response.statusText}`)
       }
@@ -187,9 +188,16 @@ export async function vendorModules(options: VendorModulesOptions): Promise<Vend
         await init
         const [imports] = parse(source)
         for (const imported of imports) {
-          if (!imported.n) continue
-          if (keepsOriginalUrl(imported.n)) continue
-          const target = remoteUrl(imported.n, resource.url, options.resolveModule)
+          // Minification can turn import('url') into import(`url`). The lexer
+          // does not provide a name for template literals, even constant ones.
+          const expression = imported.d >= 0 ? source.slice(imported.s, imported.e) : ''
+          const specifier = imported.n ?? (
+            /^`[^`\\]*`$/.test(expression) && !expression.includes('${')
+              ? expression.slice(1, -1)
+              : undefined
+          )
+          if (!specifier || keepsOriginalUrl(specifier)) continue
+          const target = remoteUrl(specifier, resource.url, options.resolveModule)
           references.push({
             target,
             replacement: {

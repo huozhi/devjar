@@ -13,4 +13,4 @@
 ## CLI product contract
 
 - Keep the Devjar CLI zero-config. Expose user-facing settings as CLI flags rather than adding configuration files or a `devjar` field to `package.json`.
-- Read `package.json` only for `dependencies` and `devDependencies`, which provide package versions for CDN resolution.
+- Read the project's `package.json` only for `dependencies` and `devDependencies`, which provide CDN versions or local package paths. Local dependency manifests may also supply `exports`, `module`, and `main` for entry-point resolution.

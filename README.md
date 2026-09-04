@@ -139,7 +139,7 @@ export default function Page() { return <Message /> }`,
 Devjar includes a zero-config CLI for turning a folder of React pages into a
 prototype. All settings are passed as command-line flags; the CLI does not load
 a configuration file or a `devjar` field from `package.json`. It reads only
-`dependencies` and `devDependencies` to resolve package versions from a CDN.
+`dependencies` and `devDependencies` to resolve CDN versions or local packages.
 The CLI requires Node.js 22 or newer.
 
 The project does not need a bundler configuration or a local `node_modules`
@@ -206,6 +206,28 @@ sites do not depend on the module CDN. Dependency versions come from
 }
 ```
 
+To develop a playground alongside a local library, point the dependency at its
+directory:
+
+```json
+{
+  "dependencies": {
+    "respinner": "file:../respinner"
+  }
+}
+```
+
+Absolute paths such as `/Users/huozhi/code/respinner` and file URLs such as
+`file:///Users/huozhi/code/respinner` also work. Relative paths resolve from the
+project directory. Import the library by its package name as usual.
+
+The CLI reads the local library's `exports`, `module`, or `main` entry point,
+including exported subpaths. Local entries must be ES modules; TypeScript and
+JSX are compiled automatically. If the entry points into `dist/`, run the
+library's build or watch command first. Library edits reload the playground in
+`jar dev`. Builds include the local modules, and prerendering can use them too.
+Other dependencies still use the CDN, with React shared with the playground.
+
 Files below `public/` are served from `/`. JSON and text files below `api/`
 are available at their corresponding `/api/` URLs. Executable API routes are
 not supported.
@@ -220,7 +242,7 @@ Tailwind at runtime.
 Use complete class names for conditional styles instead of constructing them
 dynamically so the production build can detect every candidate.
 
-Bare imports use esm.sh in development and as the source for vendored
+Non-local bare imports use esm.sh in development and as the source for vendored
 production modules. Select a different ESM-compatible CDN with the `--cdn`
 flag:
 

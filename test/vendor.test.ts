@@ -56,6 +56,7 @@ export const value = 1`,
 
     try {
       const vendored = await vendorModules({
+        load: url => fetch(url),
         moduleUrls: [`${origin}/entry`],
         resolveModule: specifier => `${origin}/${specifier}`,
       })
