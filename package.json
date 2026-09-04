@@ -40,7 +40,7 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "pnpm run build:lib && pnpm run build:client && pnpm run build:cli-assets && pnpm run build:worker",
-    "build:lib": "bunchee",
+    "build:lib": "bunchee --minify --no-sourcemap",
     "build:client": "bun scripts/build-client.ts",
     "build:cli-assets": "bun scripts/build-cli-assets.ts",
     "build:worker": "bun scripts/build-workers.ts",

@@ -188,6 +188,8 @@ type HtmlOptions = {
   tailwindUrl: string | undefined
   tailwindStylesheetUrl: string | undefined
   base: string
+  clientUrl: string
+  runtimeUrl: string
   devjarRuntime: boolean
   liveReload: boolean
   head: string
@@ -204,7 +206,7 @@ function html(options: HtmlOptions) {
     ...(options.devjarRuntime
       ? {
           'es-module-lexer': options.resolveRuntimeModule('es-module-lexer'),
-          devjar: withBase(options.base, '/_jar/runtime.js'),
+          devjar: options.runtimeUrl,
         }
       : {}),
     ...(options.liveReload
@@ -229,9 +231,9 @@ import * as RefreshModule from 'react-refresh/runtime'
 const RefreshRuntime = RefreshModule.default || RefreshModule
 RefreshRuntime.injectIntoGlobalHook(globalThis)
 globalThis.__jarRefreshRuntime = RefreshRuntime
-await import(${JSON.stringify(withBase(options.base, '/_jar/client.js'))})
+await import(${JSON.stringify(options.clientUrl)})
 </script>`
-    : `<script type="module" src="${withBase(options.base, '/_jar/client.js')}"></script>`
+    : `<script type="module" src="${options.clientUrl}"></script>`
   const staticStyles = options.styles
     ? `<style data-devjar-static>${options.styles.replace(/<\/style/gi, '<\\/style')}</style>`
     : ''
@@ -484,6 +486,8 @@ export async function startDevServer(options: DevServerOptions) {
             tailwindUrl: getTailwindBrowserUrl(dependencies, cdn, true),
             tailwindStylesheetUrl: undefined,
             base,
+            clientUrl: withBase(base, '/_jar/client.js'),
+            runtimeUrl: withBase(base, '/_jar/runtime.js'),
             devjarRuntime: true,
             liveReload: true,
             head: '',
@@ -648,23 +652,37 @@ async function readTransformAssetManifest(source: string): Promise<TransformAsse
   return Object.fromEntries(names.map(name => [name, value[name]])) as TransformAssetManifest
 }
 
+function withoutSourceMapReference(contents: Buffer) {
+  return Buffer.from(
+    contents.toString('utf8')
+      .replace(/^\s*\/\/[#@]\s*sourceMappingURL=.*$/gm, '')
+      .replace(/\/\*[#@]\s*sourceMappingURL=.*?\*\//gs, ''),
+  )
+}
+
 async function copyRuntimeAssets(destination: string, devjarRuntime: boolean) {
   const source = await runtimeRoot()
   await mkdir(destination, { recursive: true })
-  if (!devjarRuntime) {
-    await cp(join(source, 'client.js'), join(destination, 'client.js'))
-    return
-  }
+  const clientContents = await readFile(join(source, 'client.js'))
+  const clientAsset = `assets/${staticAssetName('client.js', clientContents)}`
+  await mkdir(join(destination, 'assets'), { recursive: true })
+  await writeFile(join(destination, clientAsset), clientContents)
+  if (!devjarRuntime) return { clientAsset, runtimeAsset: undefined }
+
   const transformAssets = await readTransformAssetManifest(source)
+  const runtimeContents = withoutSourceMapReference(await readFile(join(source, 'index.js')))
+  const runtimeAsset = staticAssetName('runtime.js', runtimeContents)
   const assets: Array<[string, string]> = [
-    ['index.js', 'runtime.js'],
-    ['client.js', 'client.js'],
+    ['index.js', runtimeAsset],
     ['transform-assets.json', 'transform-assets.json'],
     ...Object.values(transformAssets).map(path => [path, path] as [string, string]),
   ]
   const entryFiles = new Set(assets.map(([sourceName]) => sourceName))
   for (const name of await readdir(source)) {
-    if (name.endsWith('.js') && !entryFiles.has(name) && name !== 'bin.js') {
+    if (name.endsWith('.js')
+      && !entryFiles.has(name)
+      && name !== 'bin.js'
+      && name !== 'client.js') {
       assets.push([name, name])
     }
   }
@@ -672,8 +690,16 @@ async function copyRuntimeAssets(destination: string, devjarRuntime: boolean) {
     const sourcePath = join(source, sourceName)
     if (!await fileExists(sourcePath)) throw new Error(`Devjar runtime asset is missing: ${sourceName}`)
     await mkdir(dirname(join(destination, destinationName)), { recursive: true })
-    await cp(sourcePath, join(destination, destinationName))
+    if (sourceName.endsWith('.js') && !sourceName.startsWith('assets/')) {
+      const contents = sourceName === 'index.js'
+        ? runtimeContents
+        : withoutSourceMapReference(await readFile(sourcePath))
+      await writeFile(join(destination, destinationName), contents)
+    } else {
+      await cp(sourcePath, join(destination, destinationName))
+    }
   }
+  return { clientAsset, runtimeAsset }
 }
 
 function routeHtmlPath(outDir: string, route: string) {
@@ -693,6 +719,8 @@ async function writeRouteHtml(
     | 'tailwindUrl'
     | 'tailwindStylesheetUrl'
     | 'base'
+    | 'clientUrl'
+    | 'runtimeUrl'
     | 'devjarRuntime'
   >,
 ) {
@@ -704,6 +732,8 @@ async function writeRouteHtml(
     tailwindUrl: options.tailwindUrl,
     tailwindStylesheetUrl: options.tailwindStylesheetUrl,
     base: options.base,
+    clientUrl: options.clientUrl,
+    runtimeUrl: options.runtimeUrl,
     devjarRuntime: options.devjarRuntime,
     liveReload: false,
     head: rendered.head,
@@ -795,6 +825,10 @@ export async function buildProject(options: BuildOptions) {
   await mkdir(outDir, { recursive: true })
   await copyPublicFiles(join(root, 'public'), outDir)
   await writeFile(join(outDir, 'manifest.json'), JSON.stringify(manifest))
+  const runtimeAssets = await copyRuntimeAssets(join(outDir, '_jar'), devjarRuntime)
+  const runtimeUrl = runtimeAssets.runtimeAsset
+    ? withBase(base, `/_jar/${runtimeAssets.runtimeAsset}`)
+    : withBase(base, '/_jar/runtime.js')
   for (const route of Object.keys(manifest.routes)) {
     await writeRouteHtml(outDir, route, renderedRoutes[route], {
       resolveModule: resolveBuiltModule,
@@ -802,10 +836,11 @@ export async function buildProject(options: BuildOptions) {
       tailwindUrl: undefined,
       tailwindStylesheetUrl,
       base,
+      clientUrl: withBase(base, `/_jar/${runtimeAssets.clientAsset}`),
+      runtimeUrl,
       devjarRuntime,
     })
   }
-  await copyRuntimeAssets(join(outDir, '_jar'), devjarRuntime)
   await vendored.write(join(outDir, '_jar/vendor'), base)
   const modulesRoot = join(outDir, '_jar/modules')
   const projectAssetsRoot = join(outDir, '_jar/assets')
@@ -825,7 +860,7 @@ export async function buildProject(options: BuildOptions) {
       resolveModule: resolveBuiltModule,
       moduleUrl: projectPath => builtModuleUrl(projectPath, base),
       assetUrl: (projectPath, contents) => builtAssetUrl(projectPath, contents, base),
-      runtimeModuleUrl: withBase(base, '/_jar/runtime.js'),
+      runtimeModuleUrl: runtimeUrl,
       development: false,
       refresh: false,
       platform: 'browser',
@@ -849,7 +884,7 @@ export async function startBuiltServer(options: StartServerOptions) {
   const manifest = JSON.parse(await readFile(join(root, 'manifest.json'), 'utf8')) as RouteManifest
   if (manifest.version !== 3) throw new Error(`Unsupported Devjar build version: ${manifest.version}`)
   const base = normalizeBase(manifest.base)
-  const devjarRuntime = await fileExists(join(root, '_jar/runtime.js'))
+  const devjarRuntime = await fileExists(join(root, '_jar/transform-assets.json'))
   const { send, serveFile } = createResponder(devjarRuntime ? isolationHeaders : {})
   const fallbackHtml = await readFile(join(root, 'index.html'), 'utf8')
   const routeHtml = new Map<string, string>()
@@ -875,6 +910,7 @@ export async function startBuiltServer(options: StartServerOptions) {
       if (requestPath.startsWith('/_jar/')) {
         const cacheControl = requestPath.startsWith('/_jar/assets/')
           || requestPath.startsWith('/_jar/vendor/')
+          || /^\/_jar\/runtime-[a-f0-9]{10}\.js$/.test(requestPath)
           ? immutableAsset
           : noStore
         if (!await serveFile(request, response, join(root, '_jar'), requestPath.slice('/_jar/'.length), undefined, cacheControl)) {
