@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { readFile, realpath, stat } from 'node:fs/promises'
 import { basename, extname, relative, resolve, sep } from 'node:path'
 import { init, parse } from 'es-module-lexer'
+import { minifySync } from 'oxc-minify'
 import { transformSync } from 'oxc-transform'
 import { sourceExtensions, withBase } from '../project'
 import { getTransformErrorMessage, getTransformOptions } from '../transform'
@@ -287,6 +288,28 @@ function serverCssModule(source: string) {
   return `export default ${JSON.stringify(source)}\n`
 }
 
+function outputModuleCode(
+  options: CompileProjectModuleOptions,
+  projectPath: string,
+  code: string,
+) {
+  if (options.development || options.platform !== 'browser') return code
+
+  const output = minifySync(projectPath, code, {
+    module: true,
+    compress: { target: 'es2022' },
+    mangle: true,
+    codegen: {
+      removeWhitespace: true,
+      legalComments: 'eof',
+    },
+    sourcemap: false,
+  })
+  const error = output.errors.find(error => error.severity === 'Error')
+  if (error) throw new Error(error.codeframe || error.message)
+  return output.code
+}
+
 async function resolveProjectSource(root: string, projectPath: string) {
   const requestedPath = resolve(root, projectPath)
   if (!isInside(root, requestedPath)) {
@@ -309,7 +332,11 @@ export async function compileProjectModule(
   const contents = await readFile(sourcePath)
   if (isStaticAsset(sourcePath)) {
     return {
-      code: `export default ${JSON.stringify(options.assetUrl(projectPath, contents))}\n`,
+      code: outputModuleCode(
+        options,
+        projectPath,
+        `export default ${JSON.stringify(options.assetUrl(projectPath, contents))}\n`,
+      ),
       dependencies: [],
       refreshBoundary: false,
       style: undefined,
@@ -321,9 +348,13 @@ export async function compileProjectModule(
     const assets = await resolveCssAssets(options.root, sourcePath, source)
     source = rewriteCssAssets(source, assets, options.assetUrl)
     return {
-      code: options.platform === 'browser'
-        ? browserCssModule(source, projectPath)
-        : serverCssModule(source),
+      code: outputModuleCode(
+        options,
+        projectPath,
+        options.platform === 'browser'
+          ? browserCssModule(source, projectPath)
+          : serverCssModule(source),
+      ),
       dependencies: [...assets.values()].map(asset => asset.projectPath),
       refreshBoundary: false,
       style: source,
@@ -389,7 +420,7 @@ globalThis.__jarRegisterModule(${JSON.stringify(projectPath)}, import.meta.url, 
 `
   }
   return {
-    code,
+    code: outputModuleCode(options, projectPath, code),
     dependencies: [...new Set(localDependencies)],
     refreshBoundary,
     style: undefined,

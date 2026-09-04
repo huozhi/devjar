@@ -17,6 +17,7 @@ async function buildClient() {
     naming: 'client.js',
     target: 'browser',
     format: 'esm',
+    minify: true,
     external: ['react', 'react-dom'],
   })
 

@@ -141,6 +141,52 @@ describe('project loading', () => {
     expect(compiled.code).toContain('https://modules.example.test/react@19.2.0/jsx-dev-runtime?dev')
   })
 
+  test('defines NODE_ENV and only minifies production browser modules', async () => {
+    const projectRoot = await mkdtemp(join(tmpdir(), 'devjar-production-module-'))
+    try {
+      await mkdir(join(projectRoot, 'pages'))
+      await writeFile(
+        join(projectRoot, 'pages/index.ts'),
+        `export const environment = process.env.NODE_ENV
+if (process.env.NODE_ENV !== 'production') console.log('development-only')
+export function projectComponent() { return environment }
+`,
+      )
+      const canonicalRoot = await realpath(projectRoot)
+      const compile = (development: boolean, platform: 'browser' | 'server') => (
+        compileProjectModule({
+          root: canonicalRoot,
+          projectPath: 'pages/index.ts',
+          resolveModule: createEsmShResolver({}, CDN_HOST, development),
+          moduleUrl: testModuleUrl,
+          assetUrl: () => '/assets/test',
+          runtimeModuleUrl: '/_jar/runtime.js',
+          development,
+          refresh: false,
+          platform,
+        })
+      )
+
+      const development = await compile(true, 'browser')
+      expect(development.code).not.toContain('process.env.NODE_ENV')
+      expect(development.code).toContain('development-only')
+      expect(development.code.trim()).toContain('\n')
+
+      const production = await compile(false, 'browser')
+      expect(production.code).not.toContain('process.env.NODE_ENV')
+      expect(production.code).toContain('production')
+      expect(production.code).not.toContain('development-only')
+      expect(production.code.trim()).not.toContain('\n')
+
+      const server = await compile(false, 'server')
+      expect(server.code).toContain('production')
+      expect(server.code).not.toContain('development-only')
+      expect(server.code.trim()).toContain('\n')
+    } finally {
+      await rm(projectRoot, { recursive: true, force: true })
+    }
+  })
+
   test('uses project dependencies for the app and Devjar dependencies for its runtime', async () => {
     const requests: string[] = []
     const cdn = createHttpServer((request, response) => {
@@ -376,7 +422,7 @@ describe('dev server', () => {
     expect(client).not.toContain('linkModules')
     expect(client).not.toContain('createElement("iframe")')
     expect(client).not.toContain('@tailwindcss/browser')
-    expect(client).toContain('routeManifest.liveReload')
+    expect(client).toContain('.liveReload')
     expect(client).toContain('popstate')
     expect(client).toContain('history.pushState')
     expect(client).not.toContain('document.title = entry.page')
@@ -400,9 +446,11 @@ describe('dev server', () => {
     expect(worker.headers.get('cross-origin-embedder-policy')).toBe('require-corp')
     expect(worker.headers.get('cache-control')).toBe('public, max-age=31536000, immutable')
     const binding = await (await fetch(`${base}/_jar/${transformAssets.binding}`)).text()
-    expect(binding).toContain('wasmModule: globalThis.__devjarOxcWasmUrl ?? this.wasmModule')
+    expect(binding).toContain(
+      'wasmModule:globalThis.__devjarOxcWasmUrl??this.wasmModule',
+    )
     const wasiWorker = await (await fetch(`${base}/_jar/${transformAssets.wasiWorker}`)).text()
-    expect(wasiWorker).toContain('typeof wasmModule === "string"')
+    expect(wasiWorker).toContain('devjar: Failed to load WASM module')
     const wasm = await fetch(`${base}/_jar/${transformAssets.wasm}`)
     expect(wasm.headers.get('content-type')).toBe('application/wasm')
 

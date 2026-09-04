@@ -9,6 +9,9 @@ export function getTransformOptions(
     lang: /\.[cm]?tsx?$/.test(filename) ? 'tsx' : 'jsx',
     sourceType: 'module',
     target: 'es2022',
+    define: {
+      'process.env.NODE_ENV': JSON.stringify(development ? 'development' : 'production'),
+    },
     decorator: {
       legacy: true,
     },
