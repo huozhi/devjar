@@ -48,11 +48,29 @@ try {
               'Oxc WASI worker asset URL',
             )
 
-            const contents = replaceRequired(
+            const bytesContents = replaceRequired(
               workerContents,
               'const __wasmFile = await __wasmResponse.arrayBuffer()',
               'const __wasmFile = await __wasmResponse.arrayBuffer(); globalThis.__devjarOxcWasmBytes = __wasmFile',
               'Oxc shared WASM bytes',
+            )
+
+            // transformSync runs serially in our compiler worker. Avoid warming
+            // a helper for every CPU core; the runtime can still grow on demand.
+            const asyncContents = replaceRequired(
+              bytesContents,
+              'const __asyncWorkPoolSize = 4',
+              'const __asyncWorkPoolSize = 1',
+              'Oxc async helper pool',
+            )
+            const contents = replaceRequired(
+              asyncContents,
+              `const __workerPoolSize = Math.max(
+  2,
+  globalThis.navigator?.hardwareConcurrency ?? 4,
+)`,
+              'const __workerPoolSize = 1',
+              'Oxc thread helper pool',
             )
 
             return { contents, loader: 'js' }

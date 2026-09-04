@@ -86,6 +86,7 @@ export function Codesandbox({
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const editorLayoutRef = useRef<HTMLDivElement>(null)
   const [previewHeight, setPreviewHeight] = useState(focusFile ? 360 : 340)
+  const [previewEnabled, setPreviewEnabled] = useState(!focusFile)
   const [previewReady, setPreviewReady] = useState(false)
   const [previewPlaying, setPreviewPlaying] = useState(false)
   const activeExtension = activeFile?.split('.').pop() || ''
@@ -97,6 +98,24 @@ export function Codesandbox({
       return separator === -1 ? [] : [path.slice(0, separator)]
     }),
   ])]
+
+  useEffect(() => {
+    if (previewEnabled) return
+    const preview = previewRef.current
+    if (!preview) return
+    if (typeof IntersectionObserver === 'undefined') {
+      setPreviewEnabled(true)
+      return
+    }
+    const observer = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting)) {
+        setPreviewEnabled(true)
+        observer.disconnect()
+      }
+    }, { rootMargin: '200px' })
+    observer.observe(preview)
+    return () => observer.disconnect()
+  }, [previewEnabled])
 
   useEffect(() => {
     const handleEditRequest = (event: MessageEvent) => {
@@ -204,7 +223,7 @@ export function Codesandbox({
       if (frame) cancelAnimationFrame(frame)
       if (probeFrame) cancelAnimationFrame(probeFrame)
     }
-  }, [focusFile])
+  }, [focusFile, previewEnabled])
 
   useEffect(() => {
     if (initialFiles !== files) {
@@ -273,7 +292,8 @@ export function Codesandbox({
             <span className="preview--loading-label">rendering preview</span>
           </div>
         </div>
-        <DevJar
+        {previewEnabled && <DevJar
+          tailwind={!focusFile}
           className={'preview--result ' + (previewReady ? 'is-ready' : '')}
           files={files}
           ref={iframeRef}
@@ -282,7 +302,7 @@ export function Codesandbox({
             if (err) console.error(err)
           }}
           resolveModule={resolveModule}
-        />
+        />}
       </div>
       <div className="codesandbox-layout" ref={editorLayoutRef} data-editor-action={editorAction ? "true" : undefined}>
         {!focusFile && <div className="filetree">
