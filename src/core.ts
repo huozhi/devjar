@@ -1,6 +1,7 @@
 import { useEffect, useCallback, useState, useId, useMemo, useRef } from 'react'
 import { createModule } from './module'
 import type { ModuleRuntime } from './module'
+import { createTransformPool, type TransformClient } from './transform-pool'
 import { init, parse } from 'es-module-lexer'
 import { CDN_HOST, createEsmShResolver } from './cdn'
 import { routeFromPagePath, sourceExtensions } from './project'
@@ -23,15 +24,6 @@ declare global {
   }
 }
 
-type TransformWorkerResponse = {
-  id: number
-  transformed: Record<string, string>
-  error?: never
-} | {
-  id: number
-  transformed?: never
-  error: { message: string, stack?: string }
-}
 type TransformAssetManifest = {
   worker: string
   binding: string
@@ -89,7 +81,7 @@ async function loadTransformAssetManifest() {
   return transformAssetManifestPromise
 }
 
-async function createTransformWorker(transformWorkerUrl?: string | URL) {
+async function createTransformWorker(transformWorkerUrl: string | undefined) {
   const manifestUrl = new URL('./transform-assets.json', import.meta.url)
   const assets = await loadTransformAssetManifest()
   const workerUrl = new URL(
@@ -114,6 +106,8 @@ async function createTransformWorker(transformWorkerUrl?: string | URL) {
     name: 'devjar-transform',
   })
 }
+
+const acquireTransformClient = createTransformPool(createTransformWorker)
 
 function getModuleKey(filename: string) {
   return `@${normalizeProjectPath(filename)}`
@@ -575,14 +569,8 @@ function useLiveCode({
   const appScriptRef = useScript()
   const tailwindcssScriptRef = useScript()
   const tailwindReadyRef = useRef<Promise<void>>(Promise.resolve())
-  const transformWorkerRef = useRef<Worker | undefined>(undefined)
-  const transformWorkerPromiseRef = useRef<Promise<Worker> | undefined>(undefined)
+  const transformClientRef = useRef<TransformClient | undefined>(undefined)
   const transformCacheRef = useRef(new Map<string, { source: string, code: string }>())
-  const transformRequestsRef = useRef(new Map<number, {
-    resolve: (value: Record<string, string>) => void
-    reject: (error: Error) => void
-  }>())
-  const transformRequestIdRef = useRef(0)
   const loadIdRef = useRef(0)
   const uid = useId()
 
@@ -606,16 +594,8 @@ function useLiveCode({
   useEffect(() => {
     return () => {
       loadIdRef.current++
-      const worker = transformWorkerRef.current
-      const workerPromise = transformWorkerPromiseRef.current
-      transformWorkerPromiseRef.current = undefined
-      transformWorkerRef.current?.terminate()
-      transformWorkerRef.current = undefined
-      if (!worker) void workerPromise?.then(pendingWorker => pendingWorker.terminate(), () => {})
-      for (const { reject } of transformRequestsRef.current.values()) {
-        reject(new Error('devjar: transform worker was terminated'))
-      }
-      transformRequestsRef.current.clear()
+      transformClientRef.current?.release()
+      transformClientRef.current = undefined
     }
   }, [])
 
@@ -658,58 +638,10 @@ function useLiveCode({
     }
   }, [])
 
-  const transformFiles = useCallback(async (files: Record<string, string>) => {
-    let workerPromise = transformWorkerPromiseRef.current
-    if (!workerPromise) {
-      workerPromise = createTransformWorker(transformWorkerUrl)
-      transformWorkerPromiseRef.current = workerPromise
-    }
-
-    let worker: Worker
-    try {
-      worker = await workerPromise
-    } catch (error) {
-      if (transformWorkerPromiseRef.current === workerPromise) {
-        transformWorkerPromiseRef.current = undefined
-      }
-      throw error
-    }
-
-    if (transformWorkerPromiseRef.current !== workerPromise) {
-      worker.terminate()
-      throw new Error('devjar: transform worker was terminated')
-    }
-
-    if (!transformWorkerRef.current) {
-      worker.onmessage = ({ data }: MessageEvent<TransformWorkerResponse>) => {
-        const request = transformRequestsRef.current.get(data.id)
-        if (!request) return
-        transformRequestsRef.current.delete(data.id)
-        if (data.error) {
-          const error = new Error(data.error.message)
-          if (data.error.stack) error.stack = data.error.stack
-          request.reject(error)
-        } else {
-          request.resolve(data.transformed)
-        }
-      }
-      worker.onerror = (event) => {
-        const error = new Error(event.message || 'devjar: transform worker failed')
-        for (const { reject } of transformRequestsRef.current.values()) reject(error)
-        transformRequestsRef.current.clear()
-      }
-      transformWorkerRef.current = worker
-    }
-
-    const id = ++transformRequestIdRef.current
-    return new Promise<Record<string, string>>((resolve, reject) => {
-      transformRequestsRef.current.set(id, { resolve, reject })
-      worker.postMessage({
-        id,
-        files,
-      })
-    })
-  }, [resolveModule, transformWorkerUrl])
+  const transformFiles = useCallback((files: Record<string, string>) => {
+    transformClientRef.current ??= acquireTransformClient(transformWorkerUrl?.toString())
+    return transformClientRef.current.transform(files)
+  }, [transformWorkerUrl])
 
   const load = useCallback(async (files: Record<string, string>) => {
     const loadId = ++loadIdRef.current

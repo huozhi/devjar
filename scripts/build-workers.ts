@@ -41,11 +41,18 @@ try {
               'globalThis.__devjarOxcWasmUrl',
               'Oxc WASM asset URL',
             )
-            const contents = replaceRequired(
+            const workerContents = replaceRequired(
               wasmContents,
               "new URL('@oxc-transform/binding-wasm32-wasi/wasi-worker-browser.mjs', import.meta.url)",
               'globalThis.__devjarOxcWasiWorkerUrl',
               'Oxc WASI worker asset URL',
+            )
+
+            const contents = replaceRequired(
+              workerContents,
+              'const __wasmFile = await __wasmResponse.arrayBuffer()',
+              'const __wasmFile = await __wasmResponse.arrayBuffer(); globalThis.__devjarOxcWasmBytes = __wasmFile',
+              'Oxc shared WASM bytes',
             )
 
             return { contents, loader: 'js' }
@@ -54,11 +61,11 @@ try {
           build.onLoad({ filter: /@emnapi\/wasi-threads\/dist\/wasi-threads\.js$/ }, async ({ path }) => {
             const source = await Bun.file(path).text()
             // Safari cannot clone a compiled WebAssembly.Module to a worker.
-            // Send the clone-safe asset URL and compile it in each WASI worker.
+            // Share the fetched bytes instead; each worker can compile them without another fetch.
             const contents = replaceRequired(
               source,
               'wasmModule: this.wasmModule,',
-              'wasmModule: globalThis.__devjarOxcWasmUrl ?? this.wasmModule,',
+              'wasmModule: globalThis.__devjarOxcWasmBytes ?? this.wasmModule,',
               'Oxc WASM worker payload',
             )
 

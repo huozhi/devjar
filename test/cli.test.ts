@@ -453,7 +453,7 @@ describe('dev server', () => {
     expect(worker.headers.get('cache-control')).toBe('public, max-age=31536000, immutable')
     const binding = await (await fetch(`${base}/_jar/${transformAssets.binding}`)).text()
     expect(binding).toContain(
-      'wasmModule:globalThis.__devjarOxcWasmUrl??this.wasmModule',
+      'wasmModule:globalThis.__devjarOxcWasmBytes??this.wasmModule',
     )
     const wasiWorker = await (await fetch(`${base}/_jar/${transformAssets.wasiWorker}`)).text()
     expect(wasiWorker).toContain('devjar: Failed to load WASM module')
