@@ -27,6 +27,7 @@ try {
     naming: '[name]-[hash].[ext]',
     target: 'browser',
     format: 'esm',
+    minify: true,
     footer: 'export {}',
     plugins: [
       {
