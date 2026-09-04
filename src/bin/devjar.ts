@@ -16,7 +16,7 @@ function help() {
 Turn a folder of React pages into a prototype.
 
 Commands:
-  dev      Start a development server (default)
+  dev      Start a development server
   build    Create production output in <root>/dist
   start    Serve the production build from <root>/dist
 
@@ -30,7 +30,7 @@ Options:
   -h, --help       Show this help
 
 Examples:
-  devjar
+  devjar dev
   devjar dev examples/dashboard
   devjar build examples/dashboard
   devjar start examples/dashboard`)
@@ -85,7 +85,7 @@ async function startRoot(root: string, outDir: string | undefined) {
 
 async function run() {
   const args = process.argv.slice(2)
-  if (args.includes('--help') || args.includes('-h')) {
+  if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
     help()
     return
   }

@@ -164,8 +164,8 @@ my-prototype/
 npx devjar dev
 ```
 
-Running `devjar` without a command is an alias for `devjar dev`. The development
-server watches the project and updates the browser as files change.
+Running `devjar` without arguments shows help. Use `devjar dev` to start the
+development server, which watches the project and updates the browser as files change.
 
 The pages directory maps directly to URLs:
 
