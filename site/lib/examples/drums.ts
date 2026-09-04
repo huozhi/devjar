@@ -299,7 +299,7 @@ export const drumFiles = {
   footer { display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid #41423a; padding-top: 12px; margin-top: 10px; font-size: 9px; color: #aaa99a; } footer span:last-child { font: 7px monospace; white-space: nowrap; }
   button:focus-visible, input:focus-visible, .sequence-scroll:focus-visible { outline: 2px solid #ffd3a5; outline-offset: 3px; }
   @media (max-width: 600px) {
-    .room { padding: 16px 10px; }.machine { padding: 16px 12px; } header { flex-wrap: wrap; gap: 16px; }
+    .room { padding: 10px 8px; }.machine { padding: 12px 10px; } header { flex-wrap: wrap; gap: 12px; }
     .transport { flex: 1; justify-content: flex-end; gap: 12px; } canvas, footer span:last-child { display: none; }
     h1 { font-size: 26px; }.tempo { width: 90px; }.sequence-scroll { padding-bottom: 9px; }
   }

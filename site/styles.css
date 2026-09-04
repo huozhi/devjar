@@ -303,21 +303,21 @@ footer {
 
 @media (max-width: 640px) {
   main {
-    padding: 0 0.5rem;
+    padding: 0;
   }
   footer {
     padding: 0 0.5rem 2rem;
   }
   .intro-section {
-    margin: 3.5rem auto 3rem;
-    padding: 0 0.5rem;
+    margin: 2.5rem auto 2rem;
+    padding: 0 12px;
   }
   .intro-section h1 {
     font-size: clamp(2.5rem, 13vw, 3.5rem);
   }
   .usage-section {
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
+    padding-left: 12px;
+    padding-right: 12px;
   }
   .site-footer {
     align-items: flex-start;
@@ -414,9 +414,9 @@ footer {
   }
   .preview {
     min-height: 260px;
-    padding: 1rem 0.75rem;
+    padding: 0;
   }
   .playground-wrapper {
-    padding: 0 0.5rem;
+    padding: 0 12px;
   }
 }

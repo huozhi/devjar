@@ -37,3 +37,11 @@
   [data-codesandbox="react"][data-focused] [data-editor-action] .editor { padding-bottom: 0; }
   .floating-editor-action { position: static; transform: none; flex-shrink: 0; justify-content: center; padding: 12px 0 16px; border-top: 1px solid #eeede6; background: #fff; }
 }
+
+@media (max-width: 640px) {
+  .example-gallery { padding: 0; margin-top: 36px; }
+  .examples-intro { margin-bottom: 24px; }
+  .example-row { margin-bottom: 32px; }
+  .focused-editor-heading { padding: 4px 10px; }
+  .floating-editor-action { padding: 8px 0; }
+}

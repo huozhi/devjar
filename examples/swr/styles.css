@@ -16,7 +16,7 @@ button { font: inherit; cursor: pointer; color: inherit; }button:disabled { opac
 .activity { border: 1px solid #dce4d5; border-radius: 7px; background: #f1f5ed; padding: 14px; }.activity h3 { font-size: 12px; font-weight: 500; margin: 0; }.live-badge { display: grid; grid-template-columns: 6px 1fr; gap: 8px; align-items: baseline; margin: 14px 0 10px; font-size: 10px; line-height: 16px; color: #517556; }.live-badge > span:first-child { color: #75a176; font-size: 8px; }
 .event { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0 7px 14px; border-top: 1px solid #e0e7d9; font-size: 10px; line-height: 16px; color: #7e8b76; }.event time { flex-shrink: 0; font-size: 9px; color: #9aa48f; }
 .hint { color: #969e8e; font-size: 9px; margin: 12px 0 0; }.disconnected { font-size: 11px; color: #87927d; margin: 14px 0 0; }
-@media (max-width: 420px) { main { padding: 16px; }h2 { font-size: 18px; }.event { font-size: 9px; gap: 6px; }.live-badge { font-size: 9px; }.event time { font-size: 8px; } }
+@media (max-width: 420px) { main { padding: 12px; }.activity { padding: 10px; }.save-controls { padding-bottom: 12px; }h2 { font-size: 18px; }.event { font-size: 9px; gap: 6px; }.live-badge { font-size: 9px; }.event time { font-size: 8px; } }
 
 .latest { animation: activity-arrive 240ms ease-out both; }
 @keyframes activity-arrive { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
