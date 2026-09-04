@@ -28,7 +28,7 @@
     }
   },
   "bin": {
-    "jar": "./dist/bin.js"
+    "devjar": "./dist/bin.js"
   },
   "files": [
     "dist"

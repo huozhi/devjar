@@ -164,7 +164,7 @@ my-prototype/
 npx devjar dev
 ```
 
-Running `jar` without a command is an alias for `jar dev`. The development
+Running `devjar` without a command is an alias for `devjar dev`. The development
 server watches the project and updates the browser as files change.
 
 The pages directory maps directly to URLs:
@@ -225,7 +225,7 @@ The CLI reads the local library's `exports`, `module`, or `main` entry point,
 including exported subpaths. Local entries must be ES modules; TypeScript and
 JSX are compiled automatically. If the entry points into `dist/`, run the
 library's build or watch command first. Library edits reload the playground in
-`jar dev`. Builds include the local modules, and prerendering can use them too.
+`devjar dev`. Builds include the local modules, and prerendering can use them too.
 Other dependencies still use the CDN, with React shared with the playground.
 
 Files below `public/` are served from `/`. JSON and text files below `api/`
@@ -247,22 +247,22 @@ production modules. Select a different ESM-compatible CDN with the `--cdn`
 flag:
 
 ```sh
-jar dev --cdn https://modules.example.com
-jar build --cdn https://modules.example.com
+devjar dev --cdn https://modules.example.com
+devjar build --cdn https://modules.example.com
 ```
 
 The CLI applies dependency versions to CDN URLs using the
-`package@version/subpath` convention. During `jar build`, the selected CDN must
+`package@version/subpath` convention. During `devjar build`, the selected CDN must
 be available while dependencies are collected, but it is not contacted by the
 deployed site. Modules and their referenced assets are stored below a
 content-hashed directory and can be cached as immutable files.
 
 Use `--base <path>` when the site will be hosted below the domain root. The
-same base is embedded in the build, so `jar start` reads it automatically:
+same base is embedded in the build, so `devjar start` reads it automatically:
 
 ```sh
-jar dev --base /preview/
-jar build --base /preview/
+devjar dev --base /preview/
+devjar build --base /preview/
 ```
 
 Pages, public files, API files, and Devjar runtime assets are then served below
@@ -274,8 +274,8 @@ Create a static build, then serve it without source-file watching or on-request
 transforms:
 
 ```sh
-jar build
-jar start
+devjar build
+devjar start
 ```
 
 The build writes the initial React content and imported CSS into an HTML file for
@@ -285,7 +285,7 @@ are loaded from the selected CDN during the build and emitted as local files, so
 the project does not need a local `node_modules` directory and the deployed site
 does not need the CDN.
 
-`jar start [root]` treats `root` as the project directory and serves its `dist`
+`devjar start [root]` treats `root` as the project directory and serves its `dist`
 build by default. Pass the same `--out-dir <directory>` used for the build when
 using a custom output directory. A build directory passed directly remains
 supported for compatibility.
@@ -322,9 +322,9 @@ must remain inside the project root.
 The repository includes three runnable examples:
 
 ```sh
-jar dev examples/basic
-jar dev examples/dashboard
-jar dev examples/swr
+devjar dev examples/basic
+devjar dev examples/dashboard
+devjar dev examples/swr
 ```
 
 The dashboard demonstrates page navigation, shared components, a CDN-loaded
@@ -335,10 +335,10 @@ also powers the homepage demo; after editing it, run
 `bun scripts/sync-swr-example.ts` to update the embedded copy.
 
 The site in `site/` runs Devjar's own editor and live preview as a pages-based
-Devjar project (`jar dev site`).
+Devjar project (`devjar dev site`).
 
 ```sh
-jar dev [root] --host localhost --port 3000
+devjar dev [root] --host localhost --port 3000
 ```
 
 ## Notice: iframe cross-origin isolation
@@ -347,8 +347,8 @@ The iframe transforms code in the browser using Oxc and shared WebAssembly
 memory, so its host page must be cross-origin isolated. Devjar packages the
 browser transformer, WASM binary, and helper worker as lazy runtime assets;
 compatible bundlers emit these files without requiring a manual copy step.
-The `jar dev` server sends the required headers so an editor can be added while
-it is running. `jar start` sends them only for builds that use the editor.
+The `devjar dev` server sends the required headers so an editor can be added while
+it is running. `devjar start` sends them only for builds that use the editor.
 Static deployments that use `devjar` must configure equivalent headers on
 their hosting platform; sites without the editor do not need them.
 

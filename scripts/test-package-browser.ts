@@ -112,8 +112,8 @@ export default function Page() {
 }`)
 
   await run('npm', ['install', '--ignore-scripts', tarball], projectRoot)
-  const jar = join(projectRoot, 'node_modules', '.bin', executable('jar'))
-  await run(jar, ['build', '--base', '/preview/'], projectRoot)
+  const devjar = join(projectRoot, 'node_modules', '.bin', executable('devjar'))
+  await run(devjar, ['build', '--base', '/preview/'], projectRoot)
   const builtRuntimeFiles = await readdir(join(projectRoot, 'dist/_jar'))
   assert(!builtRuntimeFiles.includes('runtime.js'))
   assert(!builtRuntimeFiles.includes('transform-assets.json'))
@@ -123,7 +123,7 @@ export default function Page() {
     1,
   )
 
-  server = spawn(jar, ['start', 'project', '--host', '127.0.0.1', '--port', '0'], {
+  server = spawn(devjar, ['start', 'project', '--host', '127.0.0.1', '--port', '0'], {
     cwd: temporaryRoot,
     stdio: ['ignore', 'pipe', 'pipe'],
   })

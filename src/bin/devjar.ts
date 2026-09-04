@@ -11,7 +11,7 @@ function style(code: number, value: string) {
 }
 
 function help() {
-  console.log(`jar [command] [root] [options]
+  console.log(`devjar [command] [root] [options]
 
 Turn a folder of React pages into a prototype.
 
@@ -30,10 +30,10 @@ Options:
   -h, --help       Show this help
 
 Examples:
-  jar
-  jar dev examples/dashboard
-  jar build examples/dashboard
-  jar start examples/dashboard`)
+  devjar
+  devjar dev examples/dashboard
+  devjar build examples/dashboard
+  devjar start examples/dashboard`)
 }
 
 function valueAfter(args: string[], index: number) {
@@ -181,6 +181,6 @@ async function run() {
 }
 
 run().catch(error => {
-  console.error(`Jar: ${friendlyError(error)}`)
+  console.error(`Devjar: ${friendlyError(error)}`)
   process.exitCode = 1
 })
