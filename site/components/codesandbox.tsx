@@ -1,6 +1,7 @@
 'use client'
 
 import './codesandbox.css'
+import { demoContentModule, demoContentPresets } from '../lib/demo-files'
 
 const CDN_HOST = 'https://esm.sh'
 const REACT_DEV_MODULES = new Set([
@@ -68,6 +69,7 @@ export function Codesandbox({
   // Initialize activeFile with the root page when available.
   const getInitialActiveFile = (files: Record<string, string>) => {
     if (focusFile) return focusFile
+    if (files['content.ts']) return 'content.ts'
     const rootPage = ['pages/index.tsx', 'pages/index.ts', 'pages/index.jsx', 'pages/index.js']
       .find(filename => filename in files)
     if (rootPage) return rootPage
@@ -118,14 +120,34 @@ export function Codesandbox({
   }, [previewEnabled])
 
   useEffect(() => {
+    const preview = previewRef.current
+    if (!editorAction?.playback || !preview || !previewReady || typeof IntersectionObserver === 'undefined') return
+    const observer = new IntersectionObserver(entries => {
+      if (entries.some(entry => !entry.isIntersecting)) {
+        iframeRef.current?.contentWindow?.postMessage({ type: 'devjar:stop-playback' }, window.location.origin)
+      }
+    })
+    observer.observe(preview)
+    return () => observer.disconnect()
+  }, [editorAction?.playback, previewReady])
+
+  useEffect(() => {
     const handleEditRequest = (event: MessageEvent) => {
       if (event.source !== iframeRef.current?.contentWindow) return
       if (event.data?.type === 'devjar:playback' && typeof event.data.playing === 'boolean') {
         setPreviewPlaying(event.data.playing)
         return
       }
-      if (event.data !== 'devjar:edit-demo') return
-      editorLayoutRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      if (event.data !== 'devjar:change-content') return
+      setFiles(current => {
+        if (!current['content.ts']) return current
+        const index = demoContentPresets.findIndex(content => demoContentModule(content) === current['content.ts'])
+        return {
+          ...current,
+          'content.ts': demoContentModule(demoContentPresets[(index + 1) % demoContentPresets.length]),
+        }
+      })
+      setActiveFile('content.ts')
     }
 
     window.addEventListener('message', handleEditRequest)

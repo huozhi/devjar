@@ -256,7 +256,7 @@ addEventListener('unhandledrejection', event => showBootstrapError(event.reason?
 </script>`
     : ''
   const errorStyles = options.liveReload
-    ? '.devjar-error{box-sizing:border-box;position:fixed;z-index:10;inset:auto 16px 16px;padding:14px 16px;border:0;border-radius:8px;background:#fff7f6;box-shadow:0 8px 30px rgba(0,0,0,.12);color:#9f2d20;font:13px/1.5 ui-monospace,monospace;white-space:pre-wrap}'
+    ? '.devjar-error{box-sizing:border-box;position:fixed;z-index:10;inset:auto 0 0;margin:0;padding:6px 12px;max-height:25vh;overflow:auto;border:0;border-radius:0;background:#fff7f6;color:#9f2d20;font:11px/1.4 ui-monospace,monospace;white-space:pre-wrap}'
     : ''
   return `<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">

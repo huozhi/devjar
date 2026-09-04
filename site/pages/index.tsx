@@ -27,10 +27,11 @@ export default function Page() {
             </a>
           </nav>
           <h1>devjar</h1>
-          <p className="intro-copy">Zero-dependency React prototyping.</p>
+          <p className="intro-copy">Make an idea real. Change it live.</p>
+          <a className="intro-try-live" href="#live-demo"><span className="intro-try-pointer" aria-hidden="true">→</span><span className="intro-try-label">Try it live</span></a>
         </section>
 
-        <div className="playground-container">
+        <div className="playground-container" id="live-demo">
           <div className="playground-wrapper">
             <ExampleGallery />
           </div>

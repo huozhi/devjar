@@ -420,3 +420,25 @@ footer {
     padding: 0 12px;
   }
 }
+
+.intro-try-live {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  margin-top: 18px;
+  color: #737373;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  text-decoration: none;
+}
+.intro-try-label { border-bottom: 1px solid #737373; }
+.intro-try-pointer { font-size: 1.1rem; animation: intro-point 1s ease-in-out infinite; }
+.intro-try-live:focus-visible { outline: 2px solid #737373; outline-offset: 4px; }
+@keyframes intro-point { 50% { transform: translateX(3px); } }
+@media (prefers-reduced-motion: reduce) { .intro-try-pointer { animation: none; } }
+#live-demo { scroll-margin-top: 20px; }
+
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}

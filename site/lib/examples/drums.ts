@@ -13,7 +13,7 @@ export const drumFiles = {
     const [bpm, setBpm] = useState(112)
     const scope = useRef(null)
     useEffect(() => { setPattern(pocket) }, [pocket])
-    const { playing, step, toggle, audition, error } = useDrumMachine({
+    const { playing, step, toggle, stop, audition, error } = useDrumMachine({
       pattern, bpm, swing: 0, volume: 65, scope,
     })
   
@@ -22,11 +22,13 @@ export const drumFiles = {
     }, [playing])
     useEffect(() => {
       const control = event => {
-        if (event.source === window.parent && event.data?.type === 'devjar:toggle-playback') toggle()
+        if (event.source !== window.parent) return
+        if (event.data?.type === 'devjar:toggle-playback') toggle()
+        if (event.data?.type === 'devjar:stop-playback') stop()
       }
       window.addEventListener('message', control)
       return () => window.removeEventListener('message', control)
-    }, [toggle])
+    }, [toggle, stop])
 
     function edit(row, column) {
       setPattern(current => current.map((notes, index) => index !== row ? notes
@@ -191,13 +193,19 @@ export const drumFiles = {
       return instrument
     }
   
+    function stop() {
+      starting.current = false
+      engine.current?.stop()
+      setPlaying(false)
+    }
+
     async function toggle() {
       if (playing) { setPlaying(false); return }
       if (starting.current) return
       starting.current = true
       try {
         await ready()
-        if (alive.current) { setError(''); setPlaying(true) }
+        if (alive.current && starting.current) { setError(''); setPlaying(true) }
       } catch { if (alive.current) setError('Audio could not start. Try pressing play again.') }
       finally { starting.current = false }
     }
@@ -291,7 +299,7 @@ export const drumFiles = {
       }
     }, [playing, scope])
   
-    return { playing, step, toggle, audition, error }
+    return { playing, step, toggle, stop, audition, error }
   }
   `,
   'styles.css': source`\
