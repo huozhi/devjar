@@ -603,7 +603,12 @@ describe('production build', () => {
     expect(manifest.base).toBe('/preview/')
     expect(manifest.liveReload).toBe(false)
     expect(manifest.routes['/'].module).toMatch(/^\/preview\/_jar\/modules\/.+\.js$/)
-    expect(await readFile(join(buildRoot, '_jar/client.js'), 'utf8')).toContain('_jar/routes.json')
+    const assetFiles = await readdir(join(buildRoot, '_jar/assets'))
+    const clientAssets = assetFiles.filter(file => /^client-[a-f0-9]{10}\.js$/.test(file))
+    expect(clientAssets).toHaveLength(1)
+    const clientAsset = clientAssets[0]
+    expect(await readFile(join(buildRoot, '_jar/assets', clientAsset), 'utf8'))
+      .toContain('_jar/routes.json')
     expect(await readFile(join(buildRoot, '_jar/routes.json'), 'utf8')).toBe(JSON.stringify(manifest))
     const entryModule = await readFile(
       join(buildRoot, withoutBase(manifest.base, manifest.routes['/'].module)!),
@@ -618,7 +623,7 @@ describe('production build', () => {
     const builtHtml = await readFile(join(buildRoot, 'index.html'), 'utf8')
     expect(builtHtml).toContain('<title data-devjar-default>Devjar</title>')
     expect(builtHtml).toContain('<meta name="devjar-base" content="/preview/">')
-    expect(builtHtml).toContain('src="/preview/_jar/client.js"')
+    expect(builtHtml).toContain(`src="/preview/_jar/assets/${clientAsset}"`)
     expect(builtHtml).toMatch(/<link data-devjar-tailwind rel="stylesheet" href="\/preview\/_jar\/assets\/tailwind-[a-f0-9]{10}\.css">/)
     expect(builtHtml).not.toContain('<script data-devjar-tailwind')
     expect(builtHtml).not.toContain('react-refresh')
@@ -627,14 +632,14 @@ describe('production build', () => {
     expect(builtHtml).not.toContain('/_jar/runtime.js')
     expect(builtHtml).not.toContain('es-module-lexer')
     const runtimeFiles = await readdir(join(buildRoot, '_jar'))
-    expect(runtimeFiles).toContain('client.js')
     expect(runtimeFiles).toContain('vendor')
     expect(runtimeFiles).not.toContain('runtime.js')
+    expect(runtimeFiles.some(file => /^runtime-[a-f0-9]{10}\.js$/.test(file))).toBe(false)
     expect(runtimeFiles).not.toContain('transform-assets.json')
-    const assetFiles = await readdir(join(buildRoot, '_jar/assets'))
-    expect(assetFiles).toHaveLength(1)
-    expect(assetFiles[0]).toMatch(/^tailwind-[a-f0-9]{10}\.css$/)
-    const tailwindCss = await readFile(join(buildRoot, '_jar/assets', assetFiles[0]), 'utf8')
+    expect(assetFiles).toHaveLength(2)
+    const tailwindAsset = assetFiles.find(file => /^tailwind-[a-f0-9]{10}\.css$/.test(file))
+    expect(tailwindAsset).toBeDefined()
+    const tailwindCss = await readFile(join(buildRoot, '_jar/assets', tailwindAsset!), 'utf8')
     expect(tailwindCss).toContain('hover:bg-white')
     expect(tailwindCss).toContain('shadow-[3px_3px_0_#1c1917]')
     expect(await readFile(join(buildRoot, 'api/projects.json'), 'utf8')).toContain('Mobile refresh')
@@ -668,6 +673,10 @@ describe('production build', () => {
     expect(shell).not.toContain('http://')
     expect(shell).not.toContain('https://')
     expect(shell).not.toContain('?dev')
+    const clientPath = shell.match(/\/preview\/_jar\/assets\/client-[a-f0-9]{10}\.js/)![0]
+    const clientModule = await fetch(`${origin}${clientPath}`)
+    expect(clientModule.status).toBe(200)
+    expect(clientModule.headers.get('cache-control')).toBe('public, max-age=31536000, immutable')
     const vendorPath = shell.match(/\/preview\/_jar\/vendor\/[a-f0-9]{12}\/[a-f0-9]{12}\.js/)![0]
     const vendorModule = await fetch(`${origin}${vendorPath}`)
     expect(vendorModule.status).toBe(200)
@@ -766,11 +775,20 @@ export default function Page() {
       expect(notFoundDocument).toContain('<h1>Static not found</h1>')
       expect(await readFile(join(result.outDir, '404/index.html'), 'utf8'))
         .toContain('<h1>Static not found</h1>')
-      expect(await readFile(join(result.outDir, '_jar/client.js'), 'utf8'))
+      const clientAsset = document.match(/\/_jar\/assets\/(client-[a-f0-9]{10}\.js)/)![1]
+      expect(await readFile(join(result.outDir, '_jar/assets', clientAsset), 'utf8'))
         .toContain('hydrateRoot')
+      const runtimePath = document.match(/\/_jar\/(runtime-[a-f0-9]{10}\.js)/)!
+      const runtime = await readFile(join(result.outDir, '_jar', runtimePath[1]), 'utf8')
+      expect(Buffer.byteLength(runtime)).toBeLessThan(20_000)
+      expect(runtime).not.toContain('sourceMappingURL')
+      const runtimeFiles = await readdir(join(result.outDir, '_jar'))
+      expect(runtimeFiles.filter(file => /^runtime-[a-f0-9]{10}\.js$/.test(file)))
+        .toEqual([runtimePath[1]])
       const manifest = JSON.parse(await readFile(join(result.outDir, 'manifest.json'), 'utf8'))
       const pageModule = await readFile(join(result.outDir, manifest.routes['/'].module), 'utf8')
-      expect(pageModule).toContain('/_jar/runtime.js')
+      expect(pageModule).toContain(runtimePath[0])
+      expect(pageModule).not.toContain('/_jar/runtime.js')
       expect(pageModule).not.toContain(`${address.port}/devjar`)
       const assetFiles = await readdir(join(result.outDir, '_jar/assets'))
       expect(assetFiles.some(file => /^logo-[a-f0-9]{10}\.svg$/.test(file))).toBe(true)
@@ -790,6 +808,11 @@ export default function Page() {
         const response = await fetch(`http://${builtServer.host}:${builtServer.port}`)
         expect(response.headers.get('cross-origin-opener-policy')).toBe('same-origin')
         expect(response.headers.get('cross-origin-embedder-policy')).toBe('require-corp')
+        const runtimeResponse = await fetch(
+          `http://${builtServer.host}:${builtServer.port}${runtimePath[0]}`,
+        )
+        expect(runtimeResponse.headers.get('cache-control'))
+          .toBe('public, max-age=31536000, immutable')
       } finally {
         await builtServer.close()
       }
