@@ -247,7 +247,7 @@ export async function collectProjectFiles(root: string, entry: string) {
     for (const specifier of await localImports(projectPath, source)) {
       const imported = await findSourceFile(resolve(canonicalPath, '..', specifier))
       if (!imported) {
-        throw new Error(`Cannot resolve ${specifier} imported by ${projectPath}`)
+        throw new Error(`Cannot resolve "${specifier}" imported by ${projectPath}.\nCheck that the file exists and the import path matches its capitalization.`)
       }
       queue.push(imported)
     }

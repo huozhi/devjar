@@ -384,7 +384,7 @@ export async function startDevServer(options: DevServerOptions) {
     && !(await fileExists(join(root, 'pages/index.ts')))
     && !(await fileExists(join(root, 'pages/index.jsx')))
     && !(await fileExists(join(root, 'pages/index.js')))) {
-    throw new Error(`Devjar expected an index page in ${join(root, 'pages')}`)
+    throw new Error(`No index page found in ${join(root, 'pages')}.\nCreate pages/index.tsx (or .ts, .jsx, .js), or pass your project directory to devjar dev.`)
   }
 
   const server = createServer(async (request, response) => {
@@ -603,7 +603,7 @@ export async function startDevServer(options: DevServerOptions) {
 async function discoverRoutes(root: string) {
   const pagesRoot = join(root, 'pages')
   if (!await directoryExists(pagesRoot)) {
-    throw new Error(`Devjar expected a pages directory in ${root}`)
+    throw new Error(`No pages directory found in ${root}.\nCreate pages/index.tsx, or pass your project directory to devjar build.`)
   }
 
   const files: string[] = []
@@ -629,7 +629,7 @@ async function discoverRoutes(root: string) {
   }
 
   if (!routes.has('/')) {
-    throw new Error(`Devjar expected an index page in ${pagesRoot}`)
+    throw new Error(`No index page found in ${pagesRoot}.\nCreate pages/index.tsx (or .ts, .jsx, .js) to define the home page.`)
   }
   return { routes, notFound }
 }
@@ -954,7 +954,7 @@ async function buildProjectWithLocalPackages(options: BuildOptions, localPackage
 export async function startBuiltServer(options: StartServerOptions) {
   const requestedRoot = resolve(options.root)
   if (!await directoryExists(requestedRoot)) {
-    throw new Error(`Devjar build directory not found: ${requestedRoot}`)
+    throw new Error(`Build directory not found: ${requestedRoot}.\nRun devjar build for this project first. If you used --out-dir, pass the same flag to devjar start.`)
   }
   const root = await realpath(requestedRoot)
   const host = options.host
