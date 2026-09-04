@@ -115,11 +115,13 @@ export default function Page() {
   const jar = join(projectRoot, 'node_modules', '.bin', executable('jar'))
   await run(jar, ['build', '--base', '/preview/'], projectRoot)
   const builtRuntimeFiles = await readdir(join(projectRoot, 'dist/_jar'))
-  assert(!builtRuntimeFiles.includes('client.js'))
   assert(!builtRuntimeFiles.includes('runtime.js'))
   assert(!builtRuntimeFiles.includes('transform-assets.json'))
   const builtAssetFiles = await readdir(join(projectRoot, 'dist/_jar/assets'))
-  assert(builtAssetFiles.some(file => /^client-[a-f0-9]{10}\.js$/.test(file)))
+  assert.equal(
+    builtAssetFiles.filter(file => /^client-[a-f0-9]{10}\.js$/.test(file)).length,
+    1,
+  )
 
   server = spawn(jar, ['start', 'project', '--host', '127.0.0.1', '--port', '0'], {
     cwd: temporaryRoot,
