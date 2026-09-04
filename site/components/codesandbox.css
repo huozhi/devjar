@@ -11,7 +11,7 @@ textarea:focus-visible {
   min-height: 320px;
 }
 .preview--result {
-  font-family: Consolas, Monaco, monospace;
+  font-family: var(--font-ioskeley-mono);
   border: none;
   font-size: 16px;
   line-height: 1.25em;
@@ -61,7 +61,7 @@ textarea:focus-visible {
   flex-direction: column;
   align-items: center;
   gap: 12px;
-  font-family: SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+  font-family: var(--font-ioskeley-mono);
 }
 
 .preview--loading-frames {

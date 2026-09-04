@@ -1,3 +1,11 @@
+@font-face {
+  font-family: 'Ioskeley Mono';
+  src: url('./assets/fonts/IoskeleyMono-Regular.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -15,6 +23,10 @@ html, body {
   max-width: 100%;
 }
 
+button, input, select, textarea {
+  font-family: inherit;
+}
+
 html::-webkit-scrollbar,
 body::-webkit-scrollbar {
   display: none;
@@ -23,6 +35,8 @@ body::-webkit-scrollbar {
 }
 
 :root {
+  --font-ioskeley-mono: 'Ioskeley Mono', ui-monospace, SFMono-Regular, Menlo, Monaco,
+    Consolas, monospace;
   --sh-class: #24292e;
   --sh-identifier: #354150;
   --sh-sign: #24292e;
@@ -224,6 +238,7 @@ footer {
 }
 
 .section p code {
+  font-family: var(--font-ioskeley-mono);
   color: #404756;
   font-size: 0.875em;
 }
@@ -253,8 +268,7 @@ footer {
 }
 
 .code-block code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    "Liberation Mono", "Courier New", monospace;
+  font-family: var(--font-ioskeley-mono);
   user-select: text;
 }
 

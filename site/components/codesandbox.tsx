@@ -494,6 +494,7 @@ export function Codesandbox({
             title={null}
             lineNumbers={true}
             fontSize={13}
+            fontFamily="var(--font-ioskeley-mono)"
             textareaProps={editorTextareaProps}
             extension={activeExtension}
             data-active-extension={activeExtension}
