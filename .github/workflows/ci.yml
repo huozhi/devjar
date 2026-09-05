@@ -27,6 +27,10 @@ jobs:
       - name: Use Bun
         uses: oven-sh/setup-bun@v2
 
+      - name: Set up browser compiler
+        if: hashFiles('compiler/Cargo.toml') != ''
+        run: pnpm run setup:compiler
+
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
@@ -62,14 +66,20 @@ jobs:
       - name: Use Bun
         uses: oven-sh/setup-bun@v2
 
+      - name: Set up browser compiler
+        if: hashFiles('compiler/Cargo.toml') != ''
+        run: pnpm run setup:compiler
+
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Install Chromium
-        run: pnpm exec playwright install --with-deps chromium
+      - name: Install browsers
+        run: pnpm exec playwright install --with-deps chromium webkit
 
       - name: Build Package
         run: pnpm run build
 
       - name: Test Packaged Browser
-        run: bun scripts/test-package-browser.ts
+        run: |
+          bun scripts/test-package-browser.ts
+          DEVJAR_TEST_BROWSER=webkit bun scripts/test-package-browser.ts

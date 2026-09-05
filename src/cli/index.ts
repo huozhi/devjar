@@ -170,11 +170,6 @@ function createRouteManifest(
   }
 }
 
-const isolationHeaders = {
-  'Cross-Origin-Opener-Policy': 'same-origin',
-  // Safari does not support COEP credentialless, which leaves SharedArrayBuffer unavailable.
-  'Cross-Origin-Embedder-Policy': 'require-corp',
-}
 const noStore = 'no-store'
 const immutableAsset = 'public, max-age=31536000, immutable'
 
@@ -369,7 +364,7 @@ export async function startDevServer(options: DevServerOptions) {
   const assetsRoot = await runtimeRoot()
   const devjarDependencies = await readDevjarDependencies(assetsRoot)
   const modules = new DevModuleGraph(base)
-  const { send, serveFile } = createResponder(isolationHeaders)
+  const { send, serveFile } = createResponder({})
   let revision = 0
   let localReloadTimer: NodeJS.Timeout | undefined
   const localPackages = new LocalPackages({
@@ -686,7 +681,6 @@ type TransformAssetManifest = {
   worker: string
   binding: string
   wasm: string
-  wasiWorker: string
 }
 
 async function readTransformAssetManifest(source: string): Promise<TransformAssetManifest> {
@@ -695,8 +689,8 @@ async function readTransformAssetManifest(source: string): Promise<TransformAsse
     throw new Error('Devjar transform asset manifest is invalid')
   }
   const value = manifest as Record<string, unknown>
-  const names = ['worker', 'binding', 'wasm', 'wasiWorker'] as const
-  const assetPath = /^assets\/[a-z0-9.-]+-[a-z0-9]+\.(?:js|wasm)$/
+  const names = ['worker', 'binding', 'wasm'] as const
+  const assetPath = /^assets\/[a-z0-9._-]+-[a-z0-9]+\.(?:js|wasm)$/
   if (!names.every(name => typeof value[name] === 'string' && assetPath.test(value[name]))) {
     throw new Error('Devjar transform asset manifest is invalid')
   }
@@ -989,7 +983,7 @@ export async function startBuiltServer(options: StartServerOptions) {
   if (manifest.version !== 3) throw new Error(`Unsupported Devjar build version: ${manifest.version}`)
   const base = normalizeBase(manifest.base)
   const devjarRuntime = await fileExists(join(root, '_jar/transform-assets.json'))
-  const { send, serveFile } = createResponder(devjarRuntime ? isolationHeaders : {})
+  const { send, serveFile } = createResponder({})
   const fallbackHtml = await readFile(join(root, 'index.html'), 'utf8')
   const routeHtml = new Map<string, string>()
   for (const route of Object.keys(manifest.routes)) {

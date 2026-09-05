@@ -1,27 +1,28 @@
 import { createHash } from 'node:crypto'
 import { cp, copyFile, mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { homedir, tmpdir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
-const bindingDirectory = join(root, 'node_modules/@oxc-transform/binding-wasm32-wasi')
+const bindingDirectory = join(root, 'compiler/pkg')
+
+for (const command of [
+  [Bun.which('cargo') ?? join(process.env.CARGO_HOME ?? join(homedir(), '.cargo'), 'bin/cargo'), 'build', '--locked', '--release', '--target', 'wasm32-unknown-unknown'],
+  [join(root, 'compiler/tools/bin/wasm-bindgen'), 'target/wasm32-unknown-unknown/release/devjar_browser_compiler.wasm', '--target', 'web', '--out-dir', 'pkg'],
+]) {
+  const process = Bun.spawn(command, { cwd: join(root, 'compiler'), stdout: 'inherit', stderr: 'inherit' })
+  if (await process.exited !== 0) throw new Error('Compiler build failed. Run pnpm run setup:compiler first.')
+}
 const distDirectory = join(root, 'dist')
 const assetsDirectory = join(distDirectory, 'assets')
 const stagingDirectory = await mkdtemp(join(tmpdir(), 'devjar-transform-assets-'))
-
-function replaceRequired(source: string, search: string, replacement: string, description: string) {
-  const contents = source.replace(search, replacement)
-  if (contents === source) throw new Error(`Unable to patch ${description}`)
-  return contents
-}
 
 try {
   const result = await Bun.build({
     entrypoints: [
       join(root, 'src/transform-worker.ts'),
-      join(bindingDirectory, 'transform.wasi-browser.js'),
-      join(bindingDirectory, 'wasi-worker-browser.mjs'),
+      join(bindingDirectory, 'devjar_browser_compiler.js'),
     ],
     outdir: stagingDirectory,
     naming: '[name]-[hash].[ext]',
@@ -29,93 +30,6 @@ try {
     format: 'esm',
     minify: true,
     footer: 'export {}',
-    plugins: [
-      {
-        name: 'local-oxc-worker',
-        setup(build) {
-          build.onLoad({ filter: /transform\.wasi-browser\.js$/ }, async ({ path }) => {
-            const source = await Bun.file(path).text()
-            const wasmContents = replaceRequired(
-              source,
-              "new URL('./transform.wasm32-wasi.wasm', import.meta.url).href",
-              'globalThis.__devjarOxcWasmUrl',
-              'Oxc WASM asset URL',
-            )
-            const workerContents = replaceRequired(
-              wasmContents,
-              "new URL('@oxc-transform/binding-wasm32-wasi/wasi-worker-browser.mjs', import.meta.url)",
-              'globalThis.__devjarOxcWasiWorkerUrl',
-              'Oxc WASI worker asset URL',
-            )
-
-            const bytesContents = replaceRequired(
-              workerContents,
-              'const __wasmFile = await __wasmResponse.arrayBuffer()',
-              'const __wasmFile = await __wasmResponse.arrayBuffer(); globalThis.__devjarOxcWasmBytes = __wasmFile',
-              'Oxc shared WASM bytes',
-            )
-
-            // transformSync runs serially in our compiler worker. Avoid warming
-            // a helper for every CPU core; the runtime can still grow on demand.
-            const asyncContents = replaceRequired(
-              bytesContents,
-              'const __asyncWorkPoolSize = 4',
-              'const __asyncWorkPoolSize = 1',
-              'Oxc async helper pool',
-            )
-            const contents = replaceRequired(
-              asyncContents,
-              `const __workerPoolSize = Math.max(
-  2,
-  globalThis.navigator?.hardwareConcurrency ?? 4,
-)`,
-              'const __workerPoolSize = 1',
-              'Oxc thread helper pool',
-            )
-
-            return { contents, loader: 'js' }
-          })
-
-          build.onLoad({ filter: /@emnapi\/wasi-threads\/dist\/wasi-threads\.js$/ }, async ({ path }) => {
-            const source = await Bun.file(path).text()
-            // Safari cannot clone a compiled WebAssembly.Module to a worker.
-            // Share the fetched bytes instead; each worker can compile them without another fetch.
-            const contents = replaceRequired(
-              source,
-              'wasmModule: this.wasmModule,',
-              'wasmModule: globalThis.__devjarOxcWasmBytes ?? this.wasmModule,',
-              'Oxc WASM worker payload',
-            )
-
-            return { contents, loader: 'js' }
-          })
-
-          build.onLoad({ filter: /wasi-worker-browser\.mjs$/ }, async ({ path }) => {
-            const source = await Bun.file(path).text()
-            const contents = replaceRequired(
-              source,
-              `  onLoad({ wasmModule, wasmMemory }) {
-    const wasi`,
-              `  async onLoad({ wasmModule, wasmMemory }) {
-    if (typeof wasmModule === 'string') {
-      const response = await fetch(wasmModule)
-      if (!response.ok) {
-        throw new Error(
-          \`devjar: Failed to load WASM module: \${response.status} \${response.statusText}\`,
-        )
-      }
-      wasmModule = await response.arrayBuffer()
-    }
-
-    const wasi`,
-              'Oxc WASI worker module loader',
-            )
-
-            return { contents, loader: 'js' }
-          })
-        },
-      },
-    ],
   })
 
   if (!result.success) {
@@ -129,17 +43,16 @@ try {
     return `assets/${basename(output.path)}`
   }
 
-  const wasmSource = join(bindingDirectory, 'transform.wasm32-wasi.wasm')
+  const wasmSource = join(bindingDirectory, 'devjar_browser_compiler_bg.wasm')
   const wasm = new Uint8Array(await Bun.file(wasmSource).arrayBuffer())
   const wasmHash = createHash('sha256').update(wasm).digest('hex').slice(0, 8)
-  const wasmName = `transform.wasm32-wasi-${wasmHash}.wasm`
+  const wasmName = `transform-${wasmHash}.wasm`
   await copyFile(wasmSource, join(stagingDirectory, wasmName))
 
   const assets = {
     worker: entryAsset('transform-worker'),
-    binding: entryAsset('transform.wasi-browser'),
+    binding: entryAsset('devjar_browser_compiler'),
     wasm: `assets/${wasmName}`,
-    wasiWorker: entryAsset('wasi-worker-browser'),
   }
 
   await rm(assetsDirectory, { recursive: true, force: true })

@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
-import { chromium, type Browser, type Page } from '@playwright/test'
+import { chromium, firefox, webkit, type Browser, type Page } from '@playwright/test'
 
 const runFile = promisify(execFile)
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -129,7 +129,9 @@ export default function Page() {
   })
   const baseUrl = await serverUrl(server)
 
-  browser = await chromium.launch({ headless: true })
+  const engine = { chromium, firefox, webkit }[process.env.DEVJAR_TEST_BROWSER || 'chromium']
+  if (!engine) throw new Error('Unknown DEVJAR_TEST_BROWSER')
+  browser = await engine.launch({ headless: true })
   const page = await browser.newPage()
   const consoleErrors: string[] = []
   const pageErrors: string[] = []
@@ -204,7 +206,56 @@ export default function Page() {
   assert(consoleErrors.every(message => message.includes('404 (Not Found)')))
   assert.deepEqual(pageErrors, [])
 
-  console.log('Packaged CLI vendors dependencies, builds at a subpath, hydrates, navigates, and renders its custom 404 in Chromium without unexpected browser errors.')
+  // Reuse the package fixture to exercise the browser compiler through DevJar.
+  // This catches asset/worker wiring and state preservation that native tests cannot.
+  await stopServer(server)
+  const source = `import { useState } from 'react'
+import content from '../content.json'
+import text from '../message.txt' with { type: 'text' }
+export default function Counter() {
+  const [count, setCount] = useState<number>(0)
+  return <button onClick={() => setCount(count + 1)}>Hello {content.name} {text} {count}</button>
+}`
+  await writeFile(join(projectRoot, 'pages/playground.tsx'), `import { useState } from 'react'
+import { DevJar } from 'devjar'
+const initial = ${JSON.stringify(source)}
+export default function Playground() {
+  const [code, setCode] = useState(initial)
+  const [error, setError] = useState('')
+  return <main>
+    <textarea aria-label="Code" value={code} onChange={event => setCode(event.target.value)} />
+    <pre role="status">{error}</pre>
+    <DevJar title="Live preview" tailwind={false} onError={error => setError(error ? String(error) : '')} files={{
+      'pages/index.tsx': code,
+      'content.json': '{"name":"Devjar"}',
+      'message.txt': 'works',
+    }} />
+  </main>
+}`)
+  await run(devjar, ['build', '--base', '/preview/'], projectRoot)
+  server = spawn(devjar, ['start', 'project', '--host', '127.0.0.1', '--port', '0'], {
+    cwd: temporaryRoot, stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  const previewUrl = await serverUrl(server)
+  const preview = await browser.newPage()
+  const previewErrors: string[] = []
+  preview.on('pageerror', error => previewErrors.push(error.message))
+  const response = await preview.goto(`${previewUrl}playground`)
+  assert.equal(response?.headers()['cross-origin-opener-policy'], undefined)
+  assert.equal(response?.headers()['cross-origin-embedder-policy'], undefined)
+  assert.equal(await preview.evaluate(() => crossOriginIsolated), false)
+  const frame = preview.frameLocator('iframe')
+  await frame.getByRole('button', { name: 'Hello Devjar works 0' }).click()
+  await frame.getByRole('button', { name: 'Hello Devjar works 1' }).waitFor()
+  await preview.getByRole('textbox', { name: 'Code' }).fill(source.replace('Hello', 'Updated'))
+  await frame.getByRole('button', { name: 'Updated Devjar works 1' }).waitFor()
+  await preview.getByRole('textbox', { name: 'Code' }).fill('export default () => <div>')
+  await preview.waitForFunction(() => document.querySelector('[role="status"]')?.textContent?.includes('Unexpected token'))
+  await preview.getByRole('textbox', { name: 'Code' }).fill(source.replace('Hello', 'Recovered'))
+  await frame.getByRole('button', { name: 'Recovered Devjar works 1' }).waitFor()
+  assert.deepEqual(previewErrors, [])
+  console.log('Packaged static export and live DevJar compilation, JSON/text imports, Refresh state preservation, and error recovery passed without isolation headers.')
+
 } finally {
   await browser?.close()
   if (server) await stopServer(server)
