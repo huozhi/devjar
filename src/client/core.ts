@@ -375,31 +375,13 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
 
     beforeCommit()
     flushSync(() => {
+      let shouldRender = !reactRoot || renderedEntry !== renderedPage
       if (!reactRoot) {
         reactRoot = ReactDOMMod.createRoot(root)
-        revision++
-        reactRoot.render(_jsx(
-          ErrorBoundary!,
-          { revision, ref: setErrorBoundaryRef },
-          _jsx(App)
-        ))
-        renderedEntry = renderedPage
         moduleRuntime.hasRendered = true
-        return
       }
 
-      if (renderedEntry !== renderedPage) {
-        revision++
-        renderedEntry = renderedPage
-        reactRoot.render(_jsx(
-          ErrorBoundary!,
-          { revision, ref: setErrorBoundaryRef },
-          _jsx(App)
-        ))
-        return
-      }
-
-      if (result?.changed) {
+      if (!shouldRender && result?.changed) {
         const recovering = Boolean(errorBoundary?.state.error)
         const refreshRuntime = moduleRuntime.refreshRuntime
         if (!refreshRuntime) throw new Error('devjar: refresh runtime was not initialized')
@@ -407,15 +389,17 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
         const mountedRootCount = typeof refreshRuntime._getMountedRootCount === 'function'
           ? refreshRuntime._getMountedRootCount()
           : 0
+        shouldRender = recovering || !refreshUpdate || mountedRootCount === 0
+      }
 
-        if (recovering || !refreshUpdate || mountedRootCount === 0) {
-          revision++
-          reactRoot.render(_jsx(
-            ErrorBoundary!,
-            { revision, ref: setErrorBoundaryRef },
-            _jsx(App)
-          ))
-        }
+      if (shouldRender) {
+        renderedEntry = renderedPage
+        revision++
+        reactRoot.render(_jsx(
+          ErrorBoundary!,
+          { revision, ref: setErrorBoundaryRef },
+          _jsx(App)
+        ))
       }
     })
     if (errorBoundary?.state.error) throw errorBoundary.state.error
