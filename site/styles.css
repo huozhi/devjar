@@ -227,6 +227,11 @@ footer {
   font-family: var(--font-ioskeley-mono);
   color: #404756;
   font-size: 0.875em;
+  background-color: #eeece6;
+  border-radius: 4px;
+  padding: 0.12em 0.3em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
 }
 
 .code-block {
