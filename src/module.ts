@@ -26,6 +26,9 @@ async function createModule(
     entry: string
   }
 ): Promise<{ module: ModuleNamespace, changed: boolean }> {
+  // These imports execute inside the preview, not the host application's bundle.
+  const importModule = new Function('url', 'return import(url)') as (url: string) => Promise<ModuleNamespace>
+
   function isRefreshRuntime(value: unknown): value is RefreshRuntime {
     if (typeof value !== 'object' || value === null) return false
     return 'injectIntoGlobalHook' in value
@@ -140,7 +143,7 @@ export default sheet;`
   }
 
   if (!runtime.refreshRuntime) {
-    const refreshModule: ModuleNamespace = await import(/* webpackIgnore: true */ /* @vite-ignore */ /* turbopackIgnore: true */ resolveModule('react-refresh/runtime'))
+    const refreshModule: ModuleNamespace = await importModule(resolveModule('react-refresh/runtime'))
     const refreshRuntime = refreshModule.default || refreshModule
     if (!isRefreshRuntime(refreshRuntime)) {
       throw new Error('devjar: Invalid react-refresh runtime module')
@@ -158,7 +161,7 @@ export default sheet;`
     throw new Error(`devjar: Module not found: ${entry}`)
   }
 
-  const module: ModuleNamespace = await import(/* webpackIgnore: true */ /* @vite-ignore */ /* turbopackIgnore: true */ runtimeUrls[entry])
+  const module: ModuleNamespace = await importModule(runtimeUrls[entry])
   if (runtime.revision === revision) runtime.files = { ...files }
   return { module, changed: changedModules.size > 0 }
 }

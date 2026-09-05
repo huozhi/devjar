@@ -3,6 +3,7 @@ import { createJsonModule } from './json'
 import { useEffect, useCallback, useState, useId, useMemo, useRef } from 'react'
 import { createModule } from './module'
 import type { ModuleRuntime } from './module'
+import { getCompilerWorkerUrl, type CompilerAssets } from './compiler'
 import { createTransformPool, type TransformClient } from './transform-pool'
 import { init, parse } from 'es-module-lexer'
 import { createPreviewResolver } from './cdn'
@@ -26,18 +27,11 @@ declare global {
   }
 }
 
-type TransformAssetManifest = {
-  worker: string
-  binding: string
-  wasm: string
-}
-
 let esModuleLexerInit = false
 const isRelative = (specifier: string) => specifier.startsWith('./') || specifier.startsWith('../')
 const localImportPrefix = '__DEVJAR_LOCAL_IMPORT__'
 const tailwindSrc = 'https://unpkg.com/@tailwindcss/browser@4'
 const localExtensions = [...sourceExtensions, '.css', '.json']
-let transformAssetManifestPromise: Promise<TransformAssetManifest> | undefined
 
 function createLocalImportPlaceholder(moduleKey: string) {
   return `${localImportPrefix}${encodeURIComponent(moduleKey)}__`
@@ -57,51 +51,9 @@ function normalizeProjectPath(filename: string) {
   return parts.join('/')
 }
 
-function isTransformAssetManifest(value: unknown): value is TransformAssetManifest {
-  if (typeof value !== 'object' || value === null) return false
-  const manifest = value as Record<string, unknown>
-  return ['worker', 'binding', 'wasm']
-    .every(name => typeof manifest[name] === 'string')
-}
-
-async function loadTransformAssetManifest() {
-  if (!transformAssetManifestPromise) {
-    transformAssetManifestPromise = (async () => {
-      const url = new URL('./transform-assets.json', import.meta.url)
-      const response = await fetch(url)
-      if (!response.ok) {
-        throw new Error(`devjar: Failed to load transform assets: ${response.status} ${response.statusText}`)
-      }
-      const manifest: unknown = await response.json()
-      if (!isTransformAssetManifest(manifest)) {
-        throw new Error('devjar: Invalid transform asset manifest')
-      }
-      return manifest
-    })()
-  }
-  return transformAssetManifestPromise
-}
-
-async function createTransformWorker(transformWorkerUrl: string | undefined) {
-  const manifestUrl = new URL('./transform-assets.json', import.meta.url)
-  const assets = await loadTransformAssetManifest()
-  const workerUrl = new URL(
-    transformWorkerUrl ?? new URL(assets.worker, manifestUrl),
-    globalThis.location.href,
-  )
-  workerUrl.searchParams.set(
-    'binding',
-    new URL(assets.binding, manifestUrl).href,
-  )
-  workerUrl.searchParams.set(
-    'wasm',
-    new URL(assets.wasm, manifestUrl).href,
-  )
-
-  return new Worker(workerUrl, {
-    type: 'module',
-    name: 'devjar-transform',
-  })
+async function createTransformWorker(url: string | undefined) {
+  if (!url) throw new Error('devjar: compiler worker URL is required')
+  return new globalThis.Worker(url, { type: 'module', name: 'devjar-transform' })
 }
 
 const acquireTransformClient = createTransformPool(createTransformWorker)
@@ -338,6 +290,7 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
     new (props: ErrorBoundaryProps): ErrorBoundaryInstance
   }
 
+  const importModule = new Function('url', 'return import(url)')
   let reactRoot: import('react-dom/client').Root | undefined
   let ErrorBoundary: ErrorBoundaryClass | undefined
   let errorBoundary: ErrorBoundaryInstance | null = null
@@ -385,8 +338,8 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
       reactModuleUrl = nextReactModuleUrl
       reactDomModuleUrl = nextReactDomModuleUrl
       rendererModules = Promise.all([
-        import(/* webpackIgnore: true */ /* @vite-ignore */ /* turbopackIgnore: true */ reactModuleUrl),
-        import(/* webpackIgnore: true */ /* @vite-ignore */ /* turbopackIgnore: true */ reactDomModuleUrl),
+        importModule(reactModuleUrl),
+        importModule(reactDomModuleUrl),
       ])
     }
     const [ReactMod, ReactDOMMod] = await rendererModules
@@ -572,12 +525,14 @@ function useLiveCode({
   transform = true,
   tailwind = true,
   transformWorkerUrl,
+  compiler,
 }: {
   resolveModule?: (specifier: string) => string
   dependencies?: Record<string, string>
   transform?: boolean
   tailwind?: boolean
   transformWorkerUrl?: string | URL
+  compiler?: CompilerAssets
 }) {
   const resolveModule = useMemo(
     () => customResolveModule || createPreviewResolver(dependencies || {}),
@@ -589,7 +544,7 @@ function useLiveCode({
   const appScriptRef = useScript()
   const tailwindcssScriptRef = useScript()
   const tailwindReadyRef = useRef<Promise<void>>(Promise.resolve())
-  const transformClientRef = useRef<TransformClient | undefined>(undefined)
+  const transformClientRef = useRef<{ url: string; client: TransformClient } | undefined>(undefined)
   const transformCacheRef = useRef(new Map<string, { source: string, code: string }>())
   const loadIdRef = useRef(0)
   const uid = useId()
@@ -614,7 +569,7 @@ function useLiveCode({
   useEffect(() => {
     return () => {
       loadIdRef.current++
-      transformClientRef.current?.release()
+      transformClientRef.current?.client.release()
       transformClientRef.current = undefined
     }
   }, [])
@@ -659,9 +614,13 @@ function useLiveCode({
   }, [])
 
   const transformFiles = useCallback((files: Record<string, string>) => {
-    transformClientRef.current ??= acquireTransformClient(transformWorkerUrl?.toString())
-    return transformClientRef.current.transform(files)
-  }, [transformWorkerUrl])
+    const url = getCompilerWorkerUrl(compiler, transformWorkerUrl)
+    if (transformClientRef.current?.url !== url) {
+      transformClientRef.current?.client.release()
+      transformClientRef.current = { url, client: acquireTransformClient(url) }
+    }
+    return transformClientRef.current.client.transform(files)
+  }, [compiler, transformWorkerUrl])
 
   const load = useCallback(async (files: Record<string, string>) => {
     const loadId = ++loadIdRef.current

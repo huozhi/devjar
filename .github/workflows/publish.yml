@@ -106,6 +106,10 @@ jobs:
           bun scripts/test-package-browser.ts
           DEVJAR_TEST_BROWSER=webkit bun scripts/test-package-browser.ts
 
+      - name: Test Next.js host
+        if: ${{ !inputs.force }}
+        run: bun scripts/test-next-host.ts
+
       - name: Record forced publish
         if: github.event_name == 'workflow_dispatch' && inputs.force
         env:

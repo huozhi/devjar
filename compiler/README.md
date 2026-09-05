@@ -14,7 +14,10 @@ pnpm run build:worker
 
 Setup installs the Rust toolchain pinned in `rust-toolchain.toml` and
 wasm-bindgen-cli 0.2.114 into `compiler/tools`. Builds use the checked-in
-Cargo.lock. Generated bindings (`pkg`), binaries (`target`), and build tools
+Cargo.lock. The worker build also generates static URL references in
+`src/generated/compiler-assets.ts` before the library build, so host bundlers
+can emit the compiler assets. The JSON manifest is retained for CLI copying,
+but is not fetched by the browser. Generated bindings (`pkg`), binaries (`target`), and build tools
 (`tools`) are ignored. The npm package ships the generated worker, binding,
 and WASM; consumers do not need Rust.
 

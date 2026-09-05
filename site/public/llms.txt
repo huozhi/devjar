@@ -38,15 +38,17 @@ To update a preview, replace the edited file's string in a new files object.
 Keep files and custom resolver functions stable between unrelated renders.
 DevJar accepts ordinary iframe props and a ref. Relevant options include
 onError, dependencies (package versions), resolveModule (an ESM URL resolver),
-tailwind (defaults to true), and transform (defaults to true).
+tailwind (defaults to true), transform (defaults to true), and compiler
+({ workerUrl, bindingUrl, wasmUrl }) for a complete asset URL override.
 
 useLiveCode returns { ref, load, error }. Attach ref to an iframe and call
 load(files) when the project should run. load returns a promise.
 
 Embedded previews compile in a browser worker using non-shared WebAssembly.
 No cross-origin isolation headers or server-side compiler are required.
-Serve the packaged worker, binding, and WASM assets alongside the runtime;
-Devjar's CLI includes them automatically for sites using the component.
+Bundlers discover the worker, binding, and WASM through static asset URLs.
+Next.js hosts only need a Client Component; no asset copy or resolver patch.
+An explicit compiler option bypasses default asset discovery completely.
 
 ## CLI
 

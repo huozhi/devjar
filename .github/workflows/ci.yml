@@ -83,3 +83,6 @@ jobs:
         run: |
           bun scripts/test-package-browser.ts
           DEVJAR_TEST_BROWSER=webkit bun scripts/test-package-browser.ts
+
+      - name: Test Next.js host
+        run: bun scripts/test-next-host.ts
