@@ -34,6 +34,21 @@ jobs:
       - name: Use Bun
         uses: oven-sh/setup-bun@v2
 
+      - name: Determine npm tag
+        id: npm-tag
+        shell: bash
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if [[ "$GITHUB_REF_NAME" != "v$version" ]]; then
+            echo "Git tag $GITHUB_REF_NAME must match package.json version v$version" >&2
+            exit 1
+          fi
+          if [[ "${version%%+*}" == *-* ]]; then
+            echo "tag=next" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
@@ -48,16 +63,6 @@ jobs:
 
       - name: Test Packaged Browser
         run: bun scripts/test-package-browser.ts
-
-      - name: Determine npm tag
-        id: npm-tag
-        shell: bash
-        run: |
-          if [[ "$GITHUB_REF_NAME" =~ (alpha|beta|rc) ]]; then
-            echo "tag=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
-          else
-            echo "tag=latest" >> "$GITHUB_OUTPUT"
-          fi
 
       - name: Publish to npm
         run: npm publish --tag ${{ steps.npm-tag.outputs.tag }}
