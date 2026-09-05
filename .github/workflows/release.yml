@@ -1,0 +1,59 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release, e.g. 1.0.0-next.1 or 1.0.0 (without v)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: prepare-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Prepare version
+        id: release
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: node scripts/prepare-release.ts
+
+      - name: Commit and tag as GitHub Actions
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add package.json
+          git commit -m "chore: release $RELEASE_TAG"
+          git tag -a "$RELEASE_TAG" -m "$RELEASE_TAG"
+          git push --atomic origin HEAD:refs/heads/main "refs/tags/$RELEASE_TAG"
+
+      # GITHUB_TOKEN pushes do not trigger tag workflows. Run publishing on
+      # the new tag explicitly so provenance identifies the release commit.
+      - name: Start publishing from release tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          gh workflow run publish.yml --ref "$RELEASE_TAG"
+          echo "Publishing $RELEASE_TAG. Follow the Publish workflow for npm and release notes." >> "$GITHUB_STEP_SUMMARY"

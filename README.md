@@ -499,6 +499,13 @@ bun test
 Run the full build after runtime changes to regenerate client and worker assets.
 CLI tests open local HTTP servers.
 
+To release, open **Actions → Release → Run workflow** on `main` and enter a
+version such as `1.0.0-next.1`. Actions commits the version as
+`github-actions[bot]`, pushes its tag, and starts the **Publish** workflow.
+Publish runs the checks, publishes prereleases to `next` (stable versions to
+`latest`), and generates GitHub release notes. Follow the Publish run for the
+final result. The version commit and tag remain available if publishing fails.
+
 </details>
 
 ## License
