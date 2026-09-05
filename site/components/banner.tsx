@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 const tabs = [
-  { id: 'prompt', label: 'Prompt', text: 'Build a website with Devjar. Follow https://raw.githubusercontent.com/huozhi/devjar/main/site/public/llms.txt' },
+  { id: 'prompt', label: 'Prompt', text: 'Build a website with Devjar. Follow https://devjar.vercel.app/llms.txt' },
   { id: 'install', label: 'Install', text: 'npm install devjar' },
   { id: 'cli', label: 'CLI', text: 'npx devjar dev' },
 ]
