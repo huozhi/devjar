@@ -33,6 +33,15 @@ each time. Cache misses build from source, reusing Cargo dependencies, target
 files, and the wasm-bindgen executable when available. Local builds continue
 to use Cargo's normal build cache.
 
+Vercel uses `bun scripts/build-vercel.ts` to keep the generated binding and WASM
+in `node_modules/.cache/devjar-compiler`, inside its persisted dependency cache.
+The cache key covers compiler sources, Cargo manifests and configuration, the
+toolchain, and compiler build/setup scripts. A hit restores `compiler/pkg` and
+skips Rust setup and compilation while still rebuilding the current worker,
+library, and website. Missing, damaged, or outdated artifacts trigger a source
+build. The first deployment, or a deployment without a restored build cache,
+still needs Rust; this cache is separate from GitHub Actions' cache.
+
 Keep the Oxc crate versions aligned with `oxc-transform` and the wasm-bindgen
 crate aligned with the CLI version in `scripts/setup-compiler.sh`. The wrapper
 matches `src/transform.ts` with development and Refresh enabled. Update the
