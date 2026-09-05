@@ -272,15 +272,15 @@ from the project manifest. Builds vendor CDN packages into the output.
 ### Personal website: playground to static export
 
 ```sh
-# From this repository, after pnpm run build
-node dist/bin.js dev examples/personal
-node dist/bin.js build examples/personal --exclude pages/playground.tsx
-node dist/bin.js start examples/personal/dist
+# From this repository
+npx devjar dev examples/personal
+npx devjar build examples/personal --exclude pages/playground.tsx
+npx devjar start examples/personal/dist
 ```
 
 The [personal résumé](./examples/personal) includes a simple website and
 `/playground`. Edit its JSON live, copy it to `content.json`, then export the
-same site. Uses the repository CLI until text imports are published.
+same site.
 
 <details>
 <summary>All commands and flags</summary>

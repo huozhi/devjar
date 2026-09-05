@@ -1,7 +1,7 @@
 {
   "name": "devjar",
   "version": "0.11.0",
-  "description": "Zero-config React static site builder.",
+  "description": "Live React playgrounds and zero-config static site export.",
   "keywords": [
     "react",
     "static-site-generator",

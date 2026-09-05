@@ -5,11 +5,10 @@ content and the example.com email address with your own.
 
 ## Run locally
 
-From the Devjar repository root:
+From this example directory:
 
 ```sh
-pnpm run build
-node dist/bin.js dev examples/personal
+npx devjar dev
 ```
 
 Open `/` for the website and `/playground` for the live editor. No dependency
@@ -28,21 +27,17 @@ edits do not write to disk or survive a reload.
 
 ## Export the same website
 
-From the repository root:
+From this example directory:
 
 ```sh
-node dist/bin.js build examples/personal --exclude pages/playground.tsx
-node dist/bin.js start examples/personal/dist
+npx devjar build --exclude pages/playground.tsx
+npx devjar start
 ```
 
-The build writes `examples/personal/dist/`, including prerendered page HTML,
+The build writes `dist/`, including prerendered page HTML,
 CSS, and vendored dependencies. The playground and its browser compiler are
 excluded; the editor link is hidden in production. Publish the contents to a
 static host.
-
-Once text imports and build exclusions are published, you can also run `npx devjar dev`,
-`npx devjar build --exclude pages/playground.tsx`, and `npx devjar start` from this example directory. Until then,
-use the repository CLI above.
 
 <details>
 <summary>Include the playground in the export</summary>

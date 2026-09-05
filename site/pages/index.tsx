@@ -5,7 +5,7 @@ import { ExampleGallery } from '../components/example-gallery'
 import '../styles.css'
 
 const title = 'Devjar — Live Playground & Static Site Export'
-const description = 'Live React playgrounds and a zero-config CLI for exporting React pages as static websites.'
+const description = 'Live React playgrounds and zero-config static site export.'
 const socialImage = '/og-image.jpg'
 
 export default function Page() {
