@@ -6,8 +6,16 @@ import { fileURLToPath } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const bindingDirectory = join(root, 'compiler/pkg')
+if (process.argv.includes('--clean')) await rm(join(root, 'dist'), { recursive: true, force: true })
 
-for (const command of [
+if (process.env.DEVJAR_COMPILER_CACHE_HIT === 'true') {
+  for (const name of ['devjar_browser_compiler.js', 'devjar_browser_compiler_bg.wasm']) {
+    if (!await Bun.file(join(bindingDirectory, name)).exists()) {
+      throw new Error(`Cached compiler asset is missing: ${name}`)
+    }
+  }
+  console.log('Reusing cached browser compiler')
+} else for (const command of [
   [Bun.which('cargo') ?? join(process.env.CARGO_HOME ?? join(homedir(), '.cargo'), 'bin/cargo'), 'build', '--locked', '--release', '--target', 'wasm32-unknown-unknown'],
   [join(root, 'compiler/tools/bin/wasm-bindgen'), 'target/wasm32-unknown-unknown/release/devjar_browser_compiler.wasm', '--target', 'web', '--out-dir', 'pkg'],
 ]) {
@@ -53,6 +61,16 @@ try {
     worker: entryAsset('transform-worker'),
     binding: entryAsset('devjar_browser_compiler'),
     wasm: `assets/${wasmName}`,
+  }
+
+  const generatedDirectory = join(root, 'src/generated')
+  await mkdir(generatedDirectory, { recursive: true })
+  // Literal asset references survive into the npm entry, allowing host bundlers
+  // to discover and emit every compiler file without a runtime JSON fetch.
+  const generated = `export function defaultCompilerAssets() {\n  return {\n${Object.entries(assets).map(([key, path]) => `    ${key}Url: new URL('./${path}', import.meta.url),`).join('\n')}\n  }\n}\n`
+  const generatedPath = join(generatedDirectory, 'compiler-assets.ts')
+  if (!await Bun.file(generatedPath).exists() || await Bun.file(generatedPath).text() !== generated) {
+    await writeFile(generatedPath, generated)
   }
 
   await rm(assetsDirectory, { recursive: true, force: true })

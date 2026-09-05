@@ -80,7 +80,11 @@ jobs:
         uses: oven-sh/setup-bun@v2
 
       - name: Set up browser compiler
-        if: hashFiles('compiler/Cargo.toml') != ''
+        if: hashFiles('compiler/Cargo.toml') != '' && hashFiles('.github/actions/setup-compiler/action.yml') != ''
+        uses: ./.github/actions/setup-compiler
+
+      - name: Set up compiler for older release tags
+        if: hashFiles('compiler/Cargo.toml') != '' && hashFiles('.github/actions/setup-compiler/action.yml') == ''
         run: pnpm run setup:compiler
 
       - name: Install Dependencies
@@ -105,6 +109,10 @@ jobs:
         run: |
           bun scripts/test-package-browser.ts
           DEVJAR_TEST_BROWSER=webkit bun scripts/test-package-browser.ts
+
+      - name: Test Next.js host
+        if: ${{ !inputs.force }}
+        run: bun scripts/test-next-host.ts
 
       - name: Record forced publish
         if: github.event_name == 'workflow_dispatch' && inputs.force

@@ -97,7 +97,8 @@ export default function LiveExample() {
 | `transform` | `boolean` | Default `true`; compile JSX and TypeScript in a worker |
 | `tailwind` | `boolean` | Default `true`; enable the iframe's Tailwind browser runtime |
 | `onError` | `(error: unknown) => void` | Called when error state changes; defaults to `console.error` in the browser |
-| `transformWorkerUrl` | `string` or `URL` | Optional custom transform worker location |
+| `compiler` | `CompilerAssets` | Complete worker, binding, and WASM URL override; bypasses default asset discovery |
+| `transformWorkerUrl` | `string` or `URL` | Legacy worker-only override; uses default binding and WASM assets |
 | `ref` | `React.Ref<HTMLIFrameElement>` | Access the rendered iframe |
 | Other iframe props | `React.IframeHTMLAttributes` | Forwarded to the iframe, including `title`, `style`, and `className` |
 
@@ -142,8 +143,8 @@ Use `useLiveCode` when you want to own the iframe and decide when a project runs
 <summary>Hook example and return values</summary>
 
 Use `useLiveCode` when you want to own the iframe and decide when to load files.
-It accepts the same `dependencies`, `resolveModule`, `transform`, `tailwind`, and
-`transformWorkerUrl` options as the component.
+It accepts the same `dependencies`, `resolveModule`, `transform`, `tailwind`,
+`compiler`, and `transformWorkerUrl` options as the component.
 
 ```tsx
 'use client'
@@ -186,10 +187,40 @@ isolation headers or server-side compiler are needed.
 <summary>Compiler assets and deployment</summary>
 
 Devjar packages the browser worker, JavaScript binding, and WASM binary as
-lazy runtime assets. Serve these assets alongside the package output;
-Devjar's CLI copies them automatically when a site uses the component.
+lazy runtime assets with static URL references for host bundlers. Next.js
+and Devjar's CLI emit these files automatically; no copy script is needed.
 The compiler uses ordinary, non-shared WebAssembly memory, so embedding a
 preview does not require COOP or COEP headers.
+
+Content Security Policy is separate: the preview inherits the host's policy.
+Policies that block JavaScript eval are not supported yet because the current
+`es-module-lexer` dependency uses eval to decode import names.
+
+</details>
+
+<details>
+<summary>Next.js and custom compiler hosting</summary>
+
+Import `DevJar` from a Client Component (`'use client'`). No `next/dynamic`,
+package patches, resolver override, or isolation headers are needed.
+
+For custom asset hosting, supply all three URLs:
+
+```tsx
+const compiler = {
+  workerUrl: '/compiler/worker.js',
+  bindingUrl: '/compiler/binding.js',
+  wasmUrl: '/compiler/compiler.wasm',
+}
+
+<DevJar files={files} compiler={compiler} tailwind={false} />
+```
+
+Use matching worker, binding, and WASM files from the same Devjar build.
+This override bypasses default discovery entirely. It takes precedence over
+`transformWorkerUrl`, which remains available for worker-only overrides.
+Keep the worker on the host's origin; remotely hosted binding/WASM assets
+must permit cross-origin requests. `useLiveCode` accepts the same option.
 
 </details>
 

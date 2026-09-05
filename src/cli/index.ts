@@ -14,6 +14,7 @@ import {
   DevModuleGraph,
   isStaticAsset,
   moduleAssetName,
+  minifyModule,
   staticAssetExtensions,
   staticAssetName,
   usesDevjarRuntime,
@@ -715,7 +716,9 @@ async function copyRuntimeAssets(destination: string, devjarRuntime: boolean) {
   if (!devjarRuntime) return { clientAsset, runtimeAsset: undefined }
 
   const transformAssets = await readTransformAssetManifest(source)
-  const runtimeContents = withoutSourceMapReference(await readFile(join(source, 'index.js')))
+  // The npm entry keeps bundler hints; static exports are ready for the browser.
+  const runtimeContents = Buffer.from(minifyModule('runtime.js',
+    withoutSourceMapReference(await readFile(join(source, 'index.js'))).toString('utf8')))
   const runtimeAsset = staticAssetName('runtime.js', runtimeContents)
   const assets: Array<[string, string]> = [
     ['index.js', runtimeAsset],

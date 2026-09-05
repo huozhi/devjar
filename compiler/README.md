@@ -14,9 +14,24 @@ pnpm run build:worker
 
 Setup installs the Rust toolchain pinned in `rust-toolchain.toml` and
 wasm-bindgen-cli 0.2.114 into `compiler/tools`. Builds use the checked-in
-Cargo.lock. Generated bindings (`pkg`), binaries (`target`), and build tools
+Cargo.lock. The worker build also generates static URL references in
+`src/generated/compiler-assets.ts` before the library build, so host bundlers
+can emit the compiler assets. The JSON manifest is retained for CLI copying,
+but is not fetched by the browser. Generated bindings (`pkg`), binaries (`target`), and build tools
 (`tools`) are ignored. The npm package ships the generated worker, binding,
 and WASM; consumers do not need Rust.
+
+Keep the library build unminified: Bunchee's minifier strips the import-ignore
+comments needed by host bundlers. Hosts can minify after processing those hints.
+The standalone worker and binding assets remain minified.
+
+CI and publishing share `.github/actions/setup-compiler`. An exact cache hit
+for the Rust sources, manifests, toolchain, and build/setup scripts restores
+`compiler/pkg` and sets `DEVJAR_COMPILER_CACHE_HIT=true`, skipping Rust setup
+and compilation. Worker JavaScript and hashed asset references are still built
+each time. Cache misses build from source, reusing Cargo dependencies, target
+files, and the wasm-bindgen executable when available. Local builds continue
+to use Cargo's normal build cache.
 
 Keep the Oxc crate versions aligned with `oxc-transform` and the wasm-bindgen
 crate aligned with the CLI version in `scripts/setup-compiler.sh`. The wrapper
@@ -27,3 +42,7 @@ browser/native contract test when changing compiler behavior.
 `scripts/test-package-browser.ts` checks actual iframe updates and React state
 preservation without isolation headers. Set `DEVJAR_TEST_BROWSER` to
 `chromium`, `firefox`, or `webkit` to select the browser engine.
+`scripts/test-next-host.ts` checks packaged Next.js integration in development
+and production. Native runtime imports do not use `Function`, but the current
+`es-module-lexer` dependency still uses eval to decode import names, so a CSP
+that disallows JavaScript eval is not supported yet.

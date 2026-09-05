@@ -1,0 +1,36 @@
+name: Set up browser compiler
+description: Reuse generated WASM for unchanged sources and Cargo build files otherwise
+runs:
+  using: composite
+  steps:
+    - name: Restore generated compiler
+      id: compiler
+      uses: actions/cache@v6
+      with:
+        path: compiler/pkg
+        key: compiler-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('compiler/src/**', 'compiler/*.rs', 'compiler/Cargo.toml', 'compiler/Cargo.lock', 'compiler/rust-toolchain.toml', 'scripts/setup-compiler.sh', 'scripts/build-workers.ts', '.github/actions/setup-compiler/action.yml') }}
+
+    - name: Restore Rust build cache
+      if: steps.compiler.outputs.cache-hit != 'true'
+      uses: actions/cache@v6
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git/db
+          compiler/target
+          compiler/tools
+        key: rust-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('compiler/rust-toolchain.toml', 'scripts/setup-compiler.sh') }}-${{ hashFiles('compiler/Cargo.lock', 'compiler/Cargo.toml') }}-${{ hashFiles('compiler/src/**', 'compiler/*.rs') }}
+        restore-keys: |
+          rust-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('compiler/rust-toolchain.toml', 'scripts/setup-compiler.sh') }}-${{ hashFiles('compiler/Cargo.lock', 'compiler/Cargo.toml') }}-
+          rust-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('compiler/rust-toolchain.toml', 'scripts/setup-compiler.sh') }}-
+
+    - name: Install Rust and wasm-bindgen
+      if: steps.compiler.outputs.cache-hit != 'true'
+      shell: bash
+      run: pnpm run setup:compiler
+
+    - name: Use restored compiler
+      shell: bash
+      env:
+        COMPILER_CACHE_HIT: ${{ steps.compiler.outputs.cache-hit == 'true' }}
+      run: echo "DEVJAR_COMPILER_CACHE_HIT=$COMPILER_CACHE_HIT" >> "$GITHUB_ENV"

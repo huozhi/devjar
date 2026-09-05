@@ -140,7 +140,7 @@ export default sheet;`
   }
 
   if (!runtime.refreshRuntime) {
-    const refreshModule: ModuleNamespace = await import(/* webpackIgnore: true */ /* @vite-ignore */ /* turbopackIgnore: true */ resolveModule('react-refresh/runtime'))
+    const refreshModule: ModuleNamespace = await import(/* webpackIgnore: true */ /* turbopackIgnore: true */ /* @vite-ignore */ resolveModule('react-refresh/runtime'))
     const refreshRuntime = refreshModule.default || refreshModule
     if (!isRefreshRuntime(refreshRuntime)) {
       throw new Error('devjar: Invalid react-refresh runtime module')
@@ -158,7 +158,7 @@ export default sheet;`
     throw new Error(`devjar: Module not found: ${entry}`)
   }
 
-  const module: ModuleNamespace = await import(/* webpackIgnore: true */ /* @vite-ignore */ /* turbopackIgnore: true */ runtimeUrls[entry])
+  const module: ModuleNamespace = await import(/* webpackIgnore: true */ /* turbopackIgnore: true */ /* @vite-ignore */ runtimeUrls[entry])
   if (runtime.revision === revision) runtime.files = { ...files }
   return { module, changed: changedModules.size > 0 }
 }
