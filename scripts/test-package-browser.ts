@@ -209,26 +209,32 @@ export default function Page() {
   // Reuse the package fixture to exercise the browser compiler through DevJar.
   // This catches asset/worker wiring and state preservation that native tests cannot.
   await stopServer(server)
-  const source = `import { useState } from 'react'
+  const source = `import { useEffect, useState } from 'react'
 import content from '../content.json'
 import text from '../message.txt' with { type: 'text' }
+globalThis.__devjarModuleRuns = (globalThis.__devjarModuleRuns || 0) + 1
 export default function Counter() {
   const [count, setCount] = useState<number>(0)
+  useEffect(() => () => {
+    window.parent.__devjarCleanups = (window.parent.__devjarCleanups || 0) + 1
+  }, [])
   return <button onClick={() => setCount(count + 1)}>Hello {content.name} {text} {count}</button>
 }`
-  await writeFile(join(projectRoot, 'pages/playground.tsx'), `import { useMemo, useState } from 'react'
+  await writeFile(join(projectRoot, 'pages/playground.tsx'), `import { useMemo, useRef, useState } from 'react'
 import { DevJar } from 'devjar'
 const initial = ${JSON.stringify(source)}
 export default function Playground() {
+  const apiRef = useRef(null)
   const [code, setCode] = useState(initial)
   const [error, setError] = useState('')
   const [status, setStatus] = useState('idle')
   const files = useMemo(() => ({ 'pages/index.tsx': code, 'content.json': '{"name":"Devjar"}', 'message.txt': 'works' }), [code])
   return <main>
+    <button onClick={() => void apiRef.current?.reset()}>Reset runtime</button>
     <textarea aria-label="Code" value={code} onChange={event => setCode(event.target.value)} />
     <pre role="status">{error}</pre>
     <output aria-label="Preview status">{status}</output>
-    <DevJar title="Live preview" tailwind={false} onStatusChange={setStatus} onError={error => setError(error ? String(error) : '')} files={files} />
+    <DevJar title="Live preview" apiRef={apiRef} tailwind={false} onStatusChange={setStatus} onError={error => setError(error ? String(error) : '')} files={files} />
   </main>
 }`)
   await run(devjar, ['build', '--base', '/preview/'], projectRoot)
@@ -252,6 +258,12 @@ export default function Playground() {
   await preview.waitForFunction(() => document.querySelector('[role="status"]')?.textContent?.includes('Unexpected token'))
   await preview.getByRole('textbox', { name: 'Code' }).fill(source.replace('Hello', 'Recovered'))
   await frame.getByRole('button', { name: 'Recovered Devjar works 1' }).waitFor()
+  await preview.getByLabel('Preview status').filter({ hasText: 'ready' }).waitFor()
+  const cleanupsBeforeReset = await preview.evaluate(() => (window as any).__devjarCleanups || 0)
+  await preview.getByRole('button', { name: 'Reset runtime' }).click()
+  await frame.getByRole('button', { name: 'Recovered Devjar works 0' }).waitFor()
+  assert(await preview.evaluate(() => (window as any).__devjarCleanups) > cleanupsBeforeReset)
+  assert.equal(await frame.locator('body').evaluate(() => (window as any).__devjarModuleRuns), 1)
   await preview.getByLabel('Preview status').filter({ hasText: 'ready' }).waitFor()
   await preview.getByRole('textbox', { name: 'Code' }).fill('export default function Broken() { throw new Error("Render failed") }')
   await preview.getByLabel('Preview status').filter({ hasText: 'failed' }).waitFor()
