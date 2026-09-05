@@ -217,8 +217,6 @@ a loading or failed preview. The iframe's native `onLoad` is not preview readine
 Prefer `<DevJar>` for managed previews. Use `useDevJar` when you need to own the
 iframe markup and control when files load.
 
-`useLiveCode` remains available as a deprecated alias; existing calls continue to work.
-
 <details>
 <summary>Hook example and return values</summary>
 

@@ -63,6 +63,3 @@ export function useDevJar({
 
   return { ref: iframeRef, error, status, load, reset }
 }
-
-/** @deprecated Use useDevJar. */
-export const useLiveCode = useDevJar

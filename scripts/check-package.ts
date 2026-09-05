@@ -62,8 +62,8 @@ if (missing.length || !hasRuntimeChunk) {
 }
 
 const runtime = await import(join(root, 'dist/index.js'))
-if (typeof runtime.useDevJar !== 'function' || runtime.useLiveCode !== runtime.useDevJar) {
-  throw new Error('Package must export useDevJar and its deprecated useLiveCode alias')
+if (typeof runtime.useDevJar !== 'function' || 'useLiveCode' in runtime) {
+  throw new Error('Package must export useDevJar without the removed useLiveCode name')
 }
 
 const cli = Bun.spawnSync(['node', 'dist/bin.js', '--version'], { cwd: root })
