@@ -23,11 +23,12 @@ test('JSON imports link into the live module graph', async () => {
 
 test('JSON modules preserve arrays, null, and __proto__ data', async () => {
   for (const source of ['null', '[1,true,"text"]', '{"__proto__":{"value":1}}']) {
-    const code = createJsonModule('data.json', source)
+    const code = createJsonModule(source)
     const result = Function(code.replace('export default', 'return'))()
     expect(result).toEqual(JSON.parse(source))
   }
-  expect(() => createJsonModule('broken.json', '{')).toThrow('Invalid JSON in broken.json')
+  const invalid = createJsonModule('{')
+  expect(() => Function(invalid.replace('export default', 'return'))()).toThrow(SyntaxError)
 })
 
 test('CLI discovers and compiles JSON imports for development and production', async () => {
@@ -50,7 +51,7 @@ test('CLI discovers and compiles JSON imports for development and production', a
       }
     }
     await writeFile(join(root, 'data.json'), '{')
-    await expect(collectProjectFiles(root, join(root, 'pages/index.js'))).rejects.toThrow('Invalid JSON in data.json')
+    expect(await collectProjectFiles(root, join(root, 'pages/index.js'))).toContain('data.json')
   } finally {
     await rm(root, { recursive: true, force: true })
   }

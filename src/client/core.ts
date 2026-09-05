@@ -185,7 +185,7 @@ async function linkModules(
     }
 
     if (filename.endsWith('.json')) {
-      linkedFiles[moduleKey] = createJsonModule(filename, source)
+      linkedFiles[moduleKey] = createJsonModule(source)
       dependencies[moduleKey] = []
       continue
     }

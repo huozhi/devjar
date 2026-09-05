@@ -240,13 +240,9 @@ export async function collectProjectFiles(root: string, entry: string) {
     const projectPath = relative(root, canonicalPath).split(sep).join('/')
     projectPaths.add(projectPath + (text ? textModuleSuffix : ''))
     if (text) continue
-    if (isStaticAsset(canonicalPath)) continue
+    if (isStaticAsset(canonicalPath) || extname(canonicalPath) === '.json') continue
 
     const source = await readFile(canonicalPath, 'utf8')
-    if (extname(canonicalPath) === '.json') {
-      createJsonModule(projectPath, source)
-      continue
-    }
     if (extname(canonicalPath) === '.css') {
       for (const asset of (await resolveCssAssets(root, canonicalPath, source)).values()) {
         queue.push(asset.path)
@@ -371,7 +367,7 @@ export async function compileProjectModule(
   let source = contents.toString('utf8')
   if (extname(sourcePath) === '.json') {
     return {
-      code: outputModuleCode(options, projectPath, createJsonModule(projectPath, source)),
+      code: outputModuleCode(options, projectPath, createJsonModule(source)),
       dependencies: [],
       refreshBoundary: false,
       style: undefined,
