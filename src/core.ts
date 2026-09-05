@@ -5,7 +5,7 @@ import { createModule } from './module'
 import type { ModuleRuntime } from './module'
 import { createTransformPool, type TransformClient } from './transform-pool'
 import { init, parse } from 'es-module-lexer'
-import { CDN_HOST, createEsmShResolver } from './cdn'
+import { createPreviewResolver } from './cdn'
 import { routeFromPagePath, sourceExtensions } from './project'
 
 type ResolveModule = (specifier: string) => string
@@ -585,7 +585,7 @@ function useLiveCode({
   transformWorkerUrl?: string | URL
 }) {
   const resolveModule = useMemo(
-    () => customResolveModule || createEsmShResolver(dependencies || {}, CDN_HOST, true),
+    () => customResolveModule || createPreviewResolver(dependencies || {}),
     [customResolveModule, dependencies]
   )
   const iframeRef = useRef<HTMLIFrameElement | null>(null)

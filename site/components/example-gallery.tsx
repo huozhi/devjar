@@ -5,7 +5,7 @@ import { shaderFiles, shuffleShaderColor } from '../lib/examples/shader'
 import { jarFiles } from '../lib/examples/jar'
 import './example-gallery.css'
 
-const contentScroll = { intervalMs: undefined, file: 'content.json', values: demoContentPresets.map(demoContentJson), labels: ['Features', 'Getting started', 'Build & share'] }
+const contentScroll = { intervalMs: undefined, file: 'content.json', values: demoContentPresets.map(demoContentJson) }
 const themeScroll = {
   intervalMs: 5000,
   file: 'vgpu.ts',
@@ -13,11 +13,10 @@ const themeScroll = {
     { speed: 0.35, scale: 2.4, warp: 1.2, hue: 0.15, bands: 3 },
     { speed: 0.25, scale: 1.8, warp: 0.7, hue: 0.55, bands: 5 },
     { speed: 0.45, scale: 3.0, warp: 1.5, hue: 0.85, bands: 2 },
-  ].map(config => Object.entries(config).reduce(
+  ].map((config, index) => Object.entries(config).reduce(
     (code, [key, value]) => code.replace(new RegExp(`(${key}: )[\\d.]+`), `$1${value}`),
-    shaderFiles['vgpu.ts'],
+    shaderFiles['vgpu.ts'].replace(/^\/\/[^\n]*/, `// ${['Warm', 'Cool', 'Violet'][index]} — change a number to reshape the light.`),
   )),
-  labels: ['Warm', 'Cool', 'Violet'],
 }
 
 const shaderAction = { label: 'Shuffle color', generate: shuffleShaderColor, playback: false }

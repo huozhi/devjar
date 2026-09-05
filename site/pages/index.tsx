@@ -18,6 +18,7 @@ export default function Page() {
       <meta property="og:image" content={socialImage} />
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:image" content={socialImage} />
+      <link rel="alternate" type="text/plain" title="Devjar agent reference" href="/llms.txt" />
       <link rel="icon" href="/icon.svg" type="image/svg+xml" />
       <main>
         <Banner />
@@ -55,6 +56,7 @@ function Preview() {
 }`}</Code>
               </div>
               <p>Embedded previews need a secure context and cross-origin isolation headers.</p>
+              <p><a href="https://github.com/huozhi/devjar/tree/main/examples/personal">Personal website example: live playground to static export →</a></p>
               <a href="https://github.com/huozhi/devjar#devjar-component" target="_blank" rel="noopener noreferrer">
                 Read the component and iframe documentation →
               </a>
@@ -125,9 +127,7 @@ npx devjar start`}</Code>
               <p>
                 Deploy the generated files at the domain root or use <code>--base</code> for a subdirectory.
               </p>
-              <a href="https://github.com/huozhi/devjar#cli" target="_blank" rel="noopener noreferrer">
-                Read the CLI documentation →
-              </a>
+
             </div>
           </div>
         </section>

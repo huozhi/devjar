@@ -1,0 +1,38 @@
+{
+  "name": "Alex Placeholder",
+  "role": "Product designer · Fictional person",
+  "location": "Somewhere on the internet",
+  "email": "hello@example.com",
+  "intro": "A fictional designer with real opinions about button spacing. I turn vague ideas into useful interfaces, usually after asking whether we need another dropdown.",
+  "experience": [
+    {
+      "period": "2024 — Present",
+      "role": "Independent designer",
+      "company": "Definitely a Real Studio",
+      "description": "Turning “make it pop” into something people can actually use. Invoices remain my most successful design system."
+    },
+    {
+      "period": "2021 — 2024",
+      "role": "Senior button alignment specialist",
+      "company": "Almost Launched, Inc.",
+      "description": "Moved a button two pixels to the left. Then back. Led the team through all seven versions of the final final homepage."
+    },
+    {
+      "period": "2018 — 2021",
+      "role": "Junior pixel negotiator",
+      "company": "The Fold Research Institute",
+      "description": "Kept everything above the fold until we discovered scrolling. Promoted after naming a layer something other than Rectangle 42."
+    }
+  ],
+  "projects": [
+    {
+      "title": "Is This the Final Version?",
+      "description": "A file-naming system that bravely replaces final_final_v8 with final_final_v9."
+    },
+    {
+      "title": "Meeting About the Meeting",
+      "description": "A scheduling tool that suggests an email instead. Investors requested a meeting."
+    }
+  ],
+  "education": "BA, Applied Overthinking · Placeholder University, 2018"
+}

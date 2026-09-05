@@ -69,7 +69,7 @@ export function Codesandbox({
   files: Record<string, string>
   focusFile: string | undefined
   editorAction: { label: string; generate: (code: string) => string; playback: boolean } | undefined
-  scrollDemo: { file: string; values: string[]; labels: string[]; intervalMs: number | undefined } | undefined
+  scrollDemo: { file: string; values: string[]; intervalMs: number | undefined } | undefined
 }) {
   // Initialize activeFile with the root page when available.
   const getInitialActiveFile = (files: Record<string, string>) => {
@@ -193,7 +193,6 @@ export function Codesandbox({
     }
   }, [files, scrollDemo])
 
-  const scrollLabel = scrollDemo ? scrollDemo.labels[scrollDemo.values.indexOf(files[scrollDemo.file])] || 'Your edit' : ''
   const activeExtension = activeFile?.split('.').pop() || ''
   const projectFolders = [...new Set([
     ...folders,
@@ -655,7 +654,6 @@ export function Codesandbox({
         </div>}
         {focusFile && <div className="focused-editor-heading">
           <span>{focusFile}</span>
-          {scrollDemo && <span className="scroll-stage" aria-live="polite">{scrollLabel}</span>}
           <button onClick={() => { manuallyEdited.current = false; setFiles(initialFiles) }}>Reset code ↺</button>
         </div>}
           <Editor

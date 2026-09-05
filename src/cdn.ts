@@ -44,3 +44,16 @@ export function createEsmShResolver(
     return `${host}/${name}@${encodeURIComponent(version)}${subpath}${query}`
   }
 }
+
+// Iframes do not inherit the host page's import map. Ask esm.sh to resolve
+// React inside dependency modules instead of leaving a bare React import.
+export function createPreviewResolver(dependencies: Record<string, string>) {
+  const resolveModule = createEsmShResolver(dependencies, CDN_HOST, true)
+  return (specifier: string) => {
+    if (packageName(specifier) === 'react') return resolveModule(specifier)
+    const url = new URL(resolveModule(specifier))
+    url.searchParams.delete('external')
+    url.searchParams.set('deps', `react@${dependencies.react || defaultVersions.react}`)
+    return url.href
+  }
+}

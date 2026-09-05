@@ -11,18 +11,18 @@ export const shaderFiles = {
   'pages/index.tsx': source`\
   import { useEffect, useRef, useState } from 'react'
   import { init, effect, surface, frame } from 'vgpu@0.4.0'
-  import { look } from '../vgpu'
+  import { appearance } from '../vgpu'
   import { fragment } from '../fragment'
   import '../styles.css'
 
   export default function Shader() {
     const canvas = useRef(null)
-    const settings = useRef(look)
+    const settings = useRef(appearance)
     const paused = useRef(false)
     const pointer = useRef([0.5, 0.5])
     const [isPaused, setPaused] = useState(false)
     const [status, setStatus] = useState('Starting shader…')
-    settings.current = look
+    settings.current = appearance
 
     useEffect(() => {
       let alive = true, gpu, screen, animation
@@ -92,8 +92,8 @@ export const shaderFiles = {
   }
   `,
   'vgpu.ts': source`\
-  // Change a number. Reshape the light.
-  export const look = {
+  // Warm — change a number to reshape the light.
+  export const appearance = {
     speed: 0.35,  // 0 freezes time.
     scale: 2.4,   // Zoom into the pattern.
     warp: 1.2,    // Twist the flowing bands.

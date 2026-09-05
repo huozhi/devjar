@@ -9,6 +9,8 @@ Make an idea real. Change it live.
 Devjar has two main features: live code APIs for embedding editable React
 projects in an iframe, and a zero-config CLI for building static websites.
 
+Agent reference: [llms.txt](./site/public/llms.txt).
+
 ## Live code APIs
 
 Embed a live React preview with `<DevJar>`. Requires React 19.
@@ -217,26 +219,21 @@ const nextConfig = {
 
 ## CLI
 
-Turn a folder of React pages into a static website. Requires Node.js 22+.
-
-Create `pages/index.tsx`:
-
 ```tsx
+// pages/index.tsx
 export default function Page() {
   return <h1>Hello from devjar</h1>
 }
 ```
 
-Then run:
-
 ```sh
 npx devjar dev    # Develop with live updates
-npx devjar build  # Generate dist/
-npx devjar start  # Preview the build
+npx devjar build  # Export to dist/
+npx devjar start  # Preview the export
 ```
 
-Deploy `dist/` to a static host. Builds include prerendered HTML, CSS, assets,
-and vendored dependencies. Run `npx devjar` for help.
+Requires Node.js 22+. Deploy `dist/` to a static host. No configuration file or
+local dependency installation needed. Run `npx devjar` for help.
 
 ### Routes and dependencies
 
@@ -245,15 +242,15 @@ package.json          # Optional: dependency versions
 pages/
 ├── index.tsx         → /
 ├── about.tsx         → /about
-└── docs/start.tsx    → /docs/start
+├── docs/start.tsx    → /docs/start
+└── 404.tsx           → unmatched routes
 ```
 
-Packages load from the CDN; no local installation is needed. An optional
-`package.json` pins versions through `dependencies` or `devDependencies`.
-All CLI settings use flags, with no configuration file.
+Each page default-exports a React component. Import shared components explicitly;
+packages load from the CDN. Configure the CLI with flags.
 
 <details>
-<summary>Example: pin dependency versions</summary>
+<summary>Pin dependency versions</summary>
 
 ```json
 {
@@ -264,11 +261,23 @@ All CLI settings use flags, with no configuration file.
 }
 ```
 
-Import packages by name in your pages. The CLI reads only `dependencies` and
-`devDependencies` from the project manifest. Production builds vendor CDN
-modules so deployed sites do not need the CDN.
+Put this in `package.json`. Only `dependencies` and `devDependencies` are read
+from the project manifest. Builds vendor CDN packages into the output.
 
 </details>
+
+### Personal website: playground to static export
+
+```sh
+# From this repository, after pnpm run build
+node dist/bin.js dev examples/personal
+node dist/bin.js build examples/personal
+node dist/bin.js start examples/personal/dist
+```
+
+The [personal résumé](./examples/personal) includes a simple website and
+`/playground`. Edit its JSON live, copy it to `content.json`, then export the
+same site. Uses the repository CLI until text imports are published.
 
 <details>
 <summary>All commands and flags</summary>
@@ -277,241 +286,154 @@ modules so deployed sites do not need the CDN.
 npx devjar [command] [root] [options]
 ```
 
-`root` defaults to the current directory. Running `npx devjar` with no command
-prints help.
+`root` defaults to the current directory. No command prints help.
 
 | Command | Purpose |
 | --- | --- |
 | `dev [root]` | Serve source files with live updates |
-| `build [root]` | Generate static output in `<root>/dist` |
+| `build [root]` | Generate `<root>/dist` |
 | `start [root]` | Serve the existing build |
 
 | Flag | Commands | Default / purpose |
 | --- | --- | --- |
-| `--host <host>` | `dev`, `start` | `localhost`; use `0.0.0.0` for network access |
+| `--host <host>` | `dev`, `start` | `localhost`; `0.0.0.0` enables network access |
 | `--port <port>` | `dev`, `start` | `3000` |
 | `--cdn <url>` | `dev`, `build` | `https://esm.sh` |
 | `--base <path>` | `dev`, `build` | `/`; deployment subdirectory |
-| `-o, --out-dir <directory>` | `build`, `start` | `dist`; must be inside the project |
+| `-o, --out-dir <directory>` | `build`, `start` | `dist`; must stay inside the project |
 | `-h, --help` | All | Show help |
 | `-v, --version` | All | Show installed version |
 
 </details>
 
 <details>
-<summary>Project structure, nested routes, and custom 404 pages</summary>
-
-The project does not need a bundler configuration or a local `node_modules`
-directory:
-
-```text
-my-prototype/
-├── package.json       # optional
-├── pages/
-│   ├── index.jsx
-│   └── about.jsx
-├── components/
-│   └── card.jsx
-├── api/
-│   ├── status.json
-│   └── message.txt
-└── public/
-    └── logo.svg
-```
-
-```sh
-npx devjar dev
-```
-
-Running `devjar` without arguments shows help. Use `devjar dev` to start the
-development server, which watches the project and updates the browser as files change.
-
-The pages directory maps directly to URLs:
-
-| File | URL |
-| --- | --- |
-| `pages/index.jsx` | `/` |
-| `pages/about.jsx` | `/about` |
-| `pages/docs/index.jsx` | `/docs` |
-| `pages/docs/start.jsx` | `/docs/start` |
-| `pages/404.jsx` | unmatched routes |
-
-</details>
-
-<details>
-<summary>JSON, CSS, and asset imports</summary>
-
-JSON files provide a default export and update live when edited:
+<summary>JSON, text, CSS, and assets</summary>
 
 ```tsx
 import settings from '../settings.json'
-```
-
-Use valid JSON (double-quoted keys, without comments or trailing commas).
-
-Pages can import local JavaScript, TypeScript, JSX, TSX, JSON, and CSS files. Image,
-font, audio, video, and PDF imports export their public URL, and relative
-`url(...)` references in CSS use the same asset pipeline:
-
-```jsx
+import notes from '../notes.md' with { type: 'text' }
 import logo from '../assets/logo.svg'
 import '../styles.css'
-
-export default function Page() {
-  return <img src={logo} alt="Logo" />
-}
 ```
+
+JSON exports data; `type: 'text'` exports file contents. Images, fonts, audio,
+video, and PDFs export URLs. CSS `url(...)` references are handled too.
+Use valid JSON: double quotes, no comments or trailing commas.
 
 </details>
 
 <details>
 <summary>Local package development</summary>
 
-To develop a playground alongside a local library, point the dependency at its
-directory:
-
 ```json
 {
   "dependencies": {
-    "respinner": "file:../respinner"
+    "my-library": "file:../my-library"
   }
 }
 ```
 
-Absolute paths such as `/Users/huozhi/code/respinner` and file URLs such as
-`file:///Users/huozhi/code/respinner` also work. Relative paths resolve from the
-project directory. Import the library by its package name as usual.
-
-The CLI reads the local library's `exports`, `module`, or `main` entry point,
-including exported subpaths. Local entries must be ES modules; TypeScript and
-JSX are compiled automatically. If the entry points into `dist/`, run the
-library's build or watch command first. Library edits reload the playground in
-`devjar dev`. Builds include the local modules, and prerendering can use them too.
-Other dependencies still use the CDN, with React shared with the playground.
+Import `my-library` by name. Relative paths resolve from the project; absolute
+paths and file URLs also work. Devjar resolves `exports`, `module`, or `main`,
+compiles TS/JSX, watches edits, and includes the library in builds.
+If its entry points to `dist/`, run the library's build or watcher first.
 
 </details>
 
 <details>
 <summary>Public files and static APIs</summary>
 
-Files below `public/` are served from `/`. JSON and text files below `api/`
-are available at their corresponding `/api/` URLs. Executable API routes are
-not supported.
+```text
+public/logo.svg  → /logo.svg
+api/status.json  → /api/status.json
+api/message.txt  → /api/message.txt
+```
+
+Public files are copied into the build. APIs serve static JSON or text;
+executable API routes are not supported.
 
 </details>
 
 <details>
 <summary>Tailwind CSS</summary>
 
-For CLI projects, add `tailwindcss` or `@tailwindcss/browser` to the dependency
-list to enable Tailwind. Development uses Tailwind's browser compiler for live
-updates. Production builds use the matching Tailwind compiler to collect static
-class candidates from project source and prerendered pages, then emit a hashed
-stylesheet under `_jar/assets/`. The deployed site does not load or compile
-Tailwind at runtime.
+```json
+{
+  "dependencies": {
+    "tailwindcss": "^4.1.0"
+  }
+}
+```
 
-Use complete class names for conditional styles instead of constructing them
-dynamically so the production build can detect every candidate.
+Add `tailwindcss` or `@tailwindcss/browser` to enable Tailwind. Development
+compiles in the browser; builds emit CSS with no runtime compiler.
+Use complete class names rather than constructing them dynamically.
 
 </details>
 
 <details>
 <summary>Custom module CDN</summary>
 
-Non-local bare imports use esm.sh in development and as the source for vendored
-production modules. Select a different ESM-compatible CDN with the `--cdn`
-flag:
-
 ```sh
 npx devjar dev --cdn https://modules.example.com
 npx devjar build --cdn https://modules.example.com
 ```
 
-The CLI applies dependency versions to CDN URLs using the
-`package@version/subpath` convention. During `devjar build`, the selected CDN must
-be available while dependencies are collected, but it is not contacted by the
-deployed site. Modules and their referenced assets are stored below a
-content-hashed directory and can be cached as immutable files.
+Use an ESM CDN supporting `package@version/subpath` URLs. It must be available
+during the build; deployed dependencies are served locally.
 
 </details>
 
 <details>
 <summary>Deploy under a base path</summary>
 
-Use `--base <path>` when the site will be hosted below the domain root. The
-same base is embedded in the build, so `devjar start` reads it automatically:
-
 ```sh
 npx devjar dev --base /preview/
 npx devjar build --base /preview/
+npx devjar start
 ```
 
-Pages, public files, API files, and Devjar runtime assets are then served below
-`/preview/`. Base paths are normalized with one leading and trailing slash.
+Pages and assets use `/preview/`. The preview server reads the base from the build.
 
 </details>
 
 <details>
-<summary>Build output, metadata, and prerendering</summary>
-
-Create a static build, then serve it without source-file watching or on-request
-transforms:
+<summary>Build output</summary>
 
 ```sh
-npx devjar build
-npx devjar start
+npx devjar build --out-dir output
+npx devjar start --out-dir output
 ```
 
-The build writes the initial React content and imported CSS into an HTML file for
-each route, then hydrates that content in the browser. Opening or hosting the
-HTML therefore shows page content before client JavaScript runs. Package imports
-are loaded from the selected CDN during the build and emitted as local files, so
-the project does not need a local `node_modules` directory and the deployed site
-does not need the CDN.
+Builds include prerendered HTML, CSS, public files, hashed assets, and vendored
+dependencies. Only sites importing `devjar` include its runtime and compiler.
+Custom output directories must stay inside the project.
 
-`devjar start [root]` treats `root` as the project directory and serves its `dist`
-build by default. Pass the same `--out-dir <directory>` used for the build when
-using a custom output directory. A build directory passed directly remains
-supported for compatibility.
+</details>
 
-Files from `public/` are copied to the root of the output directory. For example,
-`public/logo.svg` becomes `dist/logo.svg` and remains available at `/logo.svg`.
-Imports from `devjar` use the runtime and worker assets included in the build
-instead of loading another copy of Devjar from the package CDN. Builds without
-a `devjar` import omit the Devjar runtime, transformer workers, and WASM.
+<details>
+<summary>Page metadata and prerendering</summary>
 
-Pages can render React 19 document metadata directly. Devjar preserves these
-elements in each route's `<head>` during static export:
-
-```jsx
+```tsx
 export default function Page() {
   return (
     <>
-      <title>My prototype</title>
-      <meta name="description" content="A small React prototype" />
-      <link rel="icon" href="/icon.svg" />
-      <main>...</main>
+      <title>My website</title>
+      <meta name="description" content="Notes and projects" />
+      <h1>Hello</h1>
     </>
   )
 }
 ```
 
-Static rendering executes every page once during the build. Browser APIs can be
-used in effects and event handlers, but using `window` or `document` directly
-during render will fail the build with the affected route.
-
-Use `--out-dir <directory>` to change the build location. The output directory
-must remain inside the project root.
-
-Imported assets are emitted under `_jar/assets/` with content-hashed filenames.
-Vendored dependencies and their transitive assets are stored under `_jar/vendor/`.
+Metadata is placed in each exported page's `<head>`. Pages render once at build
+time, then hydrate in the browser. Use `window` and `document` in effects or
+event handlers, not during render.
 
 </details>
 
 <details>
-<summary>Runnable examples</summary>
-
-The repository includes these runnable examples:
+<summary>More examples</summary>
 
 ```sh
 npx devjar dev examples/basic
@@ -519,19 +441,9 @@ npx devjar dev examples/dashboard
 npx devjar dev examples/swr
 ```
 
-The dashboard demonstrates page navigation, shared components, a CDN-loaded
-icon package, Tailwind, static API data, and a public SVG asset.
-The SWR example demonstrates optimistic task updates, rollback, and a shared
-`useSWRSubscription` activity stream using a local simulated transport. Its source
-also powers the homepage demo; after editing it, run
-`bun scripts/sync-swr-example.ts` to update the embedded copy.
-
-The site in `site/` runs Devjar's own editor and live preview as a pages-based
-Devjar project (`devjar dev site`).
-
-```sh
-npx devjar dev [root] --host localhost --port 3000
-```
+[Basic](./examples/basic): minimal pages.
+[Dashboard](./examples/dashboard): navigation, Tailwind, and static data.
+[SWR](./examples/swr): optimistic updates, rollback, and simulated subscriptions.
 
 </details>
 
@@ -542,11 +454,9 @@ npx devjar dev [root] --host localhost --port 3000
 npx devjar dev --host 0.0.0.0
 ```
 
-Open the printed Network URL on a phone connected to the same Wi-Fi. Network
-URLs include your selected port and base path. This also works with `devjar start`.
-The default host remains localhost; pass `--host 0.0.0.0` to expose the server
-on your network. Embedded editors require a secure, cross-origin-isolated context,
-so use ordinary CLI pages for HTTP phone previews.
+Open the printed Network URL on the same Wi-Fi. Also works with `start`.
+Embedded editors need a secure, cross-origin-isolated context; use ordinary
+CLI pages for HTTP phone previews.
 
 </details>
 
@@ -555,14 +465,14 @@ so use ordinary CLI pages for HTTP phone previews.
 
 ```sh
 pnpm install
-pnpm run build      # Build library, CLI, client, and worker assets
-pnpm run dev        # Watch the library and serve the website
+pnpm run build
+pnpm run dev
 pnpm run typecheck
 bun test
 ```
 
-Run the full build after changing runtime code; the package needs its client and
-worker assets as well as the library bundle. CLI tests open local HTTP servers.
+Run the full build after runtime changes to regenerate client and worker assets.
+CLI tests open local HTTP servers.
 
 </details>
 
