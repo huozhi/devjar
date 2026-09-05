@@ -36,12 +36,15 @@ export function DevJar({
 } & React.IframeHTMLAttributes<HTMLIFrameElement>) {
   const onErrorRef = useRef(onError)
   const onStatusRef = useRef(onStatusChange)
-  onErrorRef.current = onError
-  onStatusRef.current = onStatusChange
   const { ref, error, status, load, reset } = useLiveCode({ resolveModule, dependencies, transform, tailwind, transformWorkerUrl, compiler })
 
   useImperativeHandle(apiRef, () => ({ reset }), [reset])
   useImperativeHandle(forwardedRef, () => ref.current!, [ref])
+
+  useEffect(() => {
+    onErrorRef.current = onError
+    onStatusRef.current = onStatusChange
+  }, [onError, onStatusChange])
 
   useEffect(() => {
     onErrorRef.current(error)
@@ -54,7 +57,7 @@ export function DevJar({
   // load code files and execute them as live code
   useEffect(() => {
     load(files)
-  }, [files])
+  }, [files, load])
 
   // Attach the ref to an iframe element for runtime of code execution
   return <iframe {...props} ref={ref} />

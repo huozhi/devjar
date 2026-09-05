@@ -1,7 +1,8 @@
 import { textModuleSuffix, isTextImport, createTextModule } from './text'
+import { createFrameSession, type FrameSession } from './frame'
 import { createLoadQueue } from './load-queue'
 import { createJsonModule } from './json'
-import { useEffect, useCallback, useState, useId, useMemo, useRef } from 'react'
+import { useEffect, useCallback, useState, useMemo, useRef } from 'react'
 import { createModule } from './module'
 import type { ModuleRuntime } from './module'
 import { getCompilerWorkerUrl, type CompilerAssets } from './compiler'
@@ -17,23 +18,10 @@ export type IframeRouteManifest = {
   routes: Record<string, string>
   notFound: string | undefined
 }
-type RenderFunction = ((
-  files: Record<string, string>,
-  dependencies: Record<string, string[]>,
-  manifest: IframeRouteManifest,
-) => Promise<void>) & { dispose: () => void }
-
-declare global {
-  var __jar__: Record<string, { resolveModule?: ResolveModule }> | undefined
-  interface Window {
-    __render__?: RenderFunction
-  }
-}
 
 let esModuleLexerInit = false
 const isRelative = (specifier: string) => specifier.startsWith('./') || specifier.startsWith('../')
 const localImportPrefix = '__DEVJAR_LOCAL_IMPORT__'
-const tailwindSrc = 'https://unpkg.com/@tailwindcss/browser@4'
 const localExtensions = [...sourceExtensions, '.css', '.json']
 
 function createLocalImportPlaceholder(moduleKey: string) {
@@ -303,6 +291,7 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
     typeof import('react-dom/client'),
     typeof import('react-dom'),
   ]> | undefined
+  let disposed = false
   let renderRequestId = 0
   let renderQueue = Promise.resolve()
   let revision = 0
@@ -321,6 +310,7 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
     dependencies: Record<string, string[]>,
     manifest: IframeRouteManifest,
     requestId: number,
+    beforeCommit: () => void,
   ) {
     const cleanRoute = currentRoute.replace(/^\/+|\/+$/g, '')
     const route = cleanRoute ? `/${cleanRoute}` : '/'
@@ -348,7 +338,7 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
       ])
     }
     const [ReactMod, ReactDOMMod, { flushSync }] = await rendererModules
-    if (requestId !== renderRequestId) return
+    if (disposed || requestId !== renderRequestId) return
 
     const _jsx = ReactMod.createElement
     const root = document.getElementById('__reactRoot')
@@ -401,6 +391,7 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
       }
     }
 
+    beforeCommit()
     flushSync(() => {
       if (!reactRoot) {
         reactRoot = ReactDOMMod.createRoot(root)
@@ -454,20 +445,22 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
     files: Record<string, string>,
     dependencies: Record<string, string[]>,
     manifest: IframeRouteManifest,
+    beforeCommit: () => void,
   ) {
+    if (disposed) return Promise.resolve()
     const requestId = ++renderRequestId
     currentFiles = files
     currentDependencies = dependencies
     currentManifest = manifest
     const pendingRender = renderQueue.then(() => {
-      if (requestId !== renderRequestId) return
-      return renderCurrent(files, dependencies, manifest, requestId)
+      if (disposed || requestId !== renderRequestId) return
+      return renderCurrent(files, dependencies, manifest, requestId, beforeCommit)
     })
     renderQueue = pendingRender.catch(() => {})
     return pendingRender
   }
 
-  document.addEventListener('click', (event) => {
+  const onClick = (event: MouseEvent) => {
     if (event.defaultPrevented || event.button !== 0) return
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
     const anchor = event.target instanceof Element
@@ -485,11 +478,15 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
     event.preventDefault()
     currentRoute = url.pathname
     if (currentManifest) {
-      void render(currentFiles, currentDependencies, currentManifest)
+      void render(currentFiles, currentDependencies, currentManifest, () => {})
     }
-  })
+  }
+  document.addEventListener('click', onClick)
 
   render.dispose = () => {
+    if (disposed) return
+    disposed = true
+    document.removeEventListener('click', onClick)
     renderRequestId++
     reactRoot?.unmount()
     reactRoot = undefined
@@ -497,43 +494,17 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
   return render
 }
 
-function createMainScript({ uid }: { uid: string }) {
-  const code = (`\
+function createMainScript() {
+  return `(() => {
 'use strict';
-const _createModule = ${createModule.toString()};
-const _createRenderer = ${createRenderer.toString()};
-
-const resolveModule = (specifier) => window.parent.__jar__[globalThis.uid].resolveModule(specifier)
-
-globalThis.uid = ${JSON.stringify(uid)};
-globalThis.__render__ = _createRenderer(_createModule, resolveModule);
-`)
-  return code
-}
-
-function useScript() {
-  return useRef<HTMLScriptElement | null>(null)
-}
-
-function createScript(
-  scriptRef: React.RefObject<HTMLScriptElement | null>,
-  { content, src, type }: {
-    content?: string
-    src?: string
-    type?: string
-  } = {}
-) {
-  const script = scriptRef.current || document.createElement('script')
-  scriptRef.current = script
-  if (type) script.type = type
-
-  if (content) {
-    script.src = `data:text/javascript;utf-8,${encodeURIComponent(content)}`
-  }
-  if (src) {
-    script.src = src
-  }
-  return script
+const script = document.currentScript;
+if (!script?.isConnected) return;
+const createModule = ${createModule.toString()};
+const createRenderer = ${createRenderer.toString()};
+script.dispatchEvent(new CustomEvent('devjar:initialize', {
+  detail: resolveModule => createRenderer(createModule, resolveModule),
+}));
+})();`
 }
 
 function useLiveCode({
@@ -551,147 +522,72 @@ function useLiveCode({
   transformWorkerUrl?: string | URL
   compiler?: CompilerAssets
 }) {
+  // Equal dependency/asset values must not reload a preview merely because a
+  // parent creates fresh options objects while handling status notifications.
+  const dependenciesKey = JSON.stringify(Object.entries(dependencies || {}).sort(([a], [b]) => a.localeCompare(b)))
   const resolveModule = useMemo(
-    () => customResolveModule || createPreviewResolver(dependencies || {}),
-    [customResolveModule, dependencies]
+    () => customResolveModule || createPreviewResolver(Object.fromEntries(JSON.parse(dependenciesKey))),
+    [customResolveModule, dependenciesKey]
   )
+  const workerUrl = compiler?.workerUrl.toString()
+  const bindingUrl = compiler?.bindingUrl.toString()
+  const wasmUrl = compiler?.wasmUrl.toString()
+  const legacyUrl = compiler ? undefined : transformWorkerUrl?.toString()
+  const transformKey = JSON.stringify([transform, workerUrl, bindingUrl, wasmUrl, legacyUrl])
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
-  const [error, setError] = useState<unknown>()
-  const [status, setStatus] = useState<PreviewStatus>('idle')
-  const appScriptRef = useScript()
-  const tailwindcssScriptRef = useScript()
-  const tailwindReadyRef = useRef<Promise<void>>(Promise.resolve())
-  const transformClientRef = useRef<{ url: string; client: TransformClient } | undefined>(undefined)
-  const transformCacheRef = useRef(new Map<string, { source: string, code: string }>())
+  const [{ error, status }, setPreview] = useState<{ error: unknown; status: PreviewStatus }>({ error: undefined, status: 'idle' })
+  const sessionRef = useRef<FrameSession | undefined>(undefined)
+  const transformClientRef = useRef<TransformClient | undefined>(undefined)
+  const transformCacheRef = useRef<{ key: string; files: Map<string, { source: string; code: string }> } | undefined>(undefined)
   const loadQueueRef = useRef(createLoadQueue())
-  const lastFilesRef = useRef<Record<string, string> | undefined>(undefined)
-  const cleanupFrameRef = useRef<(() => void) | undefined>(undefined)
-  const frameReadyRef = useRef<Promise<void>>(Promise.resolve())
-  const cancelNavigationRef = useRef<(() => void) | undefined>(undefined)
+  const lastLoadRef = useRef<{ files: Record<string, string>; promise: Promise<void> } | undefined>(undefined)
   const pendingResetRef = useRef<Promise<void> | undefined>(undefined)
   const loadIdRef = useRef(0)
-  const runtimeFailureRef = useRef<number | undefined>(undefined)
-  const scriptReadyRef = useRef<Promise<void>>(Promise.resolve())
-  const uid = useId()
 
-  // Let resolveModule execute on parent window side since it might involve
-  // variables that iframe cannot access.
   useEffect(() => {
-    if (!globalThis.__jar__) {
-      globalThis.__jar__ = {};
-    }
-    globalThis.__jar__[uid] = {
+    const iframe = iframeRef.current
+    if (!iframe) return
+    const queue = createLoadQueue()
+    loadQueueRef.current = queue
+    const session = createFrameSession(iframe, {
+      script: createMainScript(),
       resolveModule,
-    }
-
-    return () => {
-      if (globalThis.__jar__) {
-        delete globalThis.__jar__[uid]
-      }
-    }
-  }, [resolveModule, uid])
-
-  useEffect(() => {
+      tailwind,
+      onError: error => setPreview({ error, status: 'failed' }),
+    })
+    sessionRef.current = session
+    setPreview({ error: undefined, status: 'idle' })
     return () => {
       loadIdRef.current++
       loadQueueRef.current.clear()
-      transformClientRef.current?.client.release()
+      session.dispose()
+      transformClientRef.current?.release()
       transformClientRef.current = undefined
+      pendingResetRef.current = undefined
+      if (sessionRef.current === session) sessionRef.current = undefined
     }
-  }, [])
-
-  const initializeFrame = useCallback(() => {
-    const iframe = iframeRef.current
-    if (!iframe || !iframe.contentDocument) return
-
-    const doc = iframe.contentDocument
-    const body = doc.body
-    const div = document.createElement('div')
-    div.id = '__reactRoot'
-
-    const appScriptContent = createMainScript({ uid })
-
-    const appScript = createScript(appScriptRef, { content: appScriptContent })
-    const tailwindScript = tailwind
-      ? createScript(tailwindcssScriptRef, { src: tailwindSrc })
-      : null
-
-    let resolveTailwind: (() => void) | undefined
-    tailwindReadyRef.current = tailwindScript
-      ? new Promise<void>((resolve) => {
-          const ready = () => resolve()
-          resolveTailwind = ready
-          tailwindScript.addEventListener('load', ready, { once: true })
-          tailwindScript.addEventListener('error', ready, { once: true })
-        })
-      : Promise.resolve()
-
-    const reportError = (error: unknown) => {
-      runtimeFailureRef.current = loadIdRef.current
-      setError(error)
-      setStatus('failed')
-    }
-    const onRuntimeError = (event: ErrorEvent) => reportError(event.error || new Error(event.message))
-    const onRejection = (event: PromiseRejectionEvent) => reportError(event.reason)
-    const onReactError = (event: Event) => {
-      setError((event as CustomEvent).detail)
-      setStatus('failed')
-    }
-    const frameWindow = iframe.contentWindow!
-    frameWindow.addEventListener('error', onRuntimeError)
-    frameWindow.addEventListener('unhandledrejection', onRejection)
-    doc.addEventListener('devjar:error', onReactError)
-    let resolveScript: (() => void) | undefined
-    scriptReadyRef.current = new Promise<void>((resolve, reject) => {
-      resolveScript = resolve
-      appScript.onload = () => resolve()
-      appScript.onerror = () => reject(new Error('devjar: application script failed to load'))
-    })
-    // A load may start after the script fails; keep the rejection observable then.
-    void scriptReadyRef.current.catch(() => {})
-    body.appendChild(div)
-    if (tailwindScript) body.appendChild(tailwindScript)
-    body.appendChild(appScript)
-
-    return () => {
-      frameWindow.__render__?.dispose()
-      appScriptRef.current = null
-      tailwindcssScriptRef.current = null
-      frameWindow.removeEventListener('error', onRuntimeError)
-      frameWindow.removeEventListener('unhandledrejection', onRejection)
-      doc.removeEventListener('devjar:error', onReactError)
-      div.remove()
-      appScript.remove()
-      tailwindScript?.remove()
-      resolveTailwind?.()
-      resolveScript?.()
-    }
-  }, [uid, tailwind])
-
-  useEffect(() => {
-    cleanupFrameRef.current = initializeFrame()
-    return () => {
-      cancelNavigationRef.current?.()
-      cleanupFrameRef.current?.()
-      cleanupFrameRef.current = undefined
-    }
-  }, [initializeFrame])
+  }, [resolveModule, tailwind])
 
   const transformFiles = useCallback((files: Record<string, string>) => {
-    const url = getCompilerWorkerUrl(compiler, transformWorkerUrl)
-    if (transformClientRef.current?.url !== url) {
-      transformClientRef.current?.client.release()
-      transformClientRef.current = { url, client: acquireTransformClient(url) }
+    if (!transformClientRef.current) {
+      const assets = workerUrl === undefined ? undefined : { workerUrl, bindingUrl: bindingUrl!, wasmUrl: wasmUrl! }
+      transformClientRef.current = acquireTransformClient(getCompilerWorkerUrl(assets, legacyUrl))
     }
-    return transformClientRef.current.client.transform(files)
-  }, [compiler, transformWorkerUrl])
+    return transformClientRef.current.transform(files)
+  }, [workerUrl, bindingUrl, wasmUrl, legacyUrl])
 
   const runLoad = useCallback(async (files: Record<string, string>, loadId: number) => {
     if (loadId !== loadIdRef.current) return
 
     try {
-      await frameReadyRef.current
-      if (loadId !== loadIdRef.current) return
+      const session = sessionRef.current
+      if (!session) return
+      if (transformCacheRef.current?.key !== transformKey) {
+        transformClientRef.current?.release()
+        transformClientRef.current = undefined
+        transformCacheRef.current = { key: transformKey, files: new Map() }
+      }
+      const cache = transformCacheRef.current.files
       const resolveModuleForLoad = resolveModule
       const manifest = createIframeRouteManifest(files)
 
@@ -715,12 +611,12 @@ function useLiveCode({
         if (!sourceExtensions.some(extension => filename.endsWith(extension))) {
           throw new Error(`Cannot import ${filename} as JavaScript. Use with { type: "text" } to import its contents.`)
         }
-        let cached = transformCacheRef.current.get(filename)
+        let cached = cache.get(filename)
         if (cached?.source !== source) {
           const output = transform ? await transformFiles({ [filename]: source }) : { [filename]: source }
           if (loadId !== loadIdRef.current) return
           cached = { source, code: output[filename] }
-          transformCacheRef.current.set(filename, cached)
+          cache.set(filename, cached)
         }
         transformedSources[filename] = cached.code
         for (const imported of parse(cached.code)[0]) {
@@ -728,85 +624,57 @@ function useLiveCode({
           queue.push(resolveRelativeModule(filename, imported.n, localFiles, false))
         }
       }
-      for (const filename of transformCacheRef.current.keys()) {
-        if (!(filename in files)) transformCacheRef.current.delete(filename)
+      for (const filename of cache.keys()) {
+        if (!(filename in files)) cache.delete(filename)
       }
       const linked = await linkModules(transformedSources, resolveModuleForLoad, files)
       if (loadId !== loadIdRef.current) return
 
-      setStatus('loading')
-      await Promise.all([tailwindReadyRef.current, scriptReadyRef.current])
+      setPreview({ error: undefined, status: 'loading' })
+      await session.render(linked.files, linked.dependencies, manifest)
       if (loadId !== loadIdRef.current) return
-      const iframe = iframeRef.current
-      const render = iframe?.contentWindow?.__render__
-      if (!render) throw new Error('devjar: renderer was not initialized')
-      await render(linked.files, linked.dependencies, manifest)
+      setPreview({ error: undefined, status: 'ready' })
+      iframeRef.current?.dispatchEvent(new CustomEvent('devjar:render'))
+    } catch (error) {
       if (loadId !== loadIdRef.current) return
-      if (runtimeFailureRef.current === loadId) return
-      setError(undefined)
-      setStatus('ready')
-      iframe.dispatchEvent(new CustomEvent('devjar:render'))
-    } catch (e) {
-      if (loadId !== loadIdRef.current) return
-      console.warn(e)
-      setError(e)
-      setStatus('failed')
+      setPreview({ error, status: 'failed' })
     }
-  }, [resolveModule, transform, transformFiles])
+  }, [resolveModule, transform, transformFiles, transformKey])
 
+  // Changing Tailwind also replaces the session and must retrigger the component load.
   const load = useCallback((files: Record<string, string>) => {
-    lastFilesRef.current = files
     const loadId = ++loadIdRef.current
-    setError(undefined)
-    setStatus('compiling')
-    return loadQueueRef.current.enqueue(() => runLoad(files, loadId))
-  }, [runLoad])
+    setPreview({ error: undefined, status: 'compiling' })
+    const promise = loadQueueRef.current.enqueue(() => runLoad(files, loadId))
+    lastLoadRef.current = { files, promise }
+    return promise
+  }, [runLoad, tailwind])
 
   const reset = useCallback((): Promise<void> => {
     if (pendingResetRef.current) return pendingResetRef.current
-    const iframe = iframeRef.current
-    if (!iframe) return Promise.resolve()
-    loadIdRef.current++
+    const session = sessionRef.current
+    if (!session) return Promise.resolve()
+    const resetId = ++loadIdRef.current
     loadQueueRef.current.clear()
     loadQueueRef.current = createLoadQueue()
-    transformClientRef.current?.client.release()
+    transformClientRef.current?.release()
     transformClientRef.current = undefined
-    transformCacheRef.current.clear()
-    cleanupFrameRef.current?.()
-    cleanupFrameRef.current = undefined
-    setError(undefined)
-    setStatus('loading')
-    frameReadyRef.current = new Promise<void>((resolve, reject) => {
-      const cleanup = () => {
-        clearTimeout(timeout)
-        iframe.removeEventListener('load', ready)
-        cancelNavigationRef.current = undefined
-      }
-      const ready = () => {
-        cleanup()
-        if (iframeRef.current === iframe) cleanupFrameRef.current = initializeFrame()
-        resolve()
-      }
-      const timeout = setTimeout(() => {
-        cleanup()
-        reject(new Error('devjar: reset timed out waiting for the iframe'))
-      }, 10000)
-      cancelNavigationRef.current = () => { cleanup(); resolve() }
-      iframe.addEventListener('load', ready)
-      iframe.srcdoc = '<!doctype html><html><head></head><body></body></html>'
-    })
-    const pending = frameReadyRef.current.then(async () => {
-      if (iframeRef.current !== iframe) return
-      if (lastFilesRef.current) await load(lastFilesRef.current)
-      else setStatus('idle')
+    transformCacheRef.current = undefined
+    setPreview({ error: undefined, status: 'loading' })
+    const pending = session.reset().then(async () => {
+      if (sessionRef.current !== session) return
+      const latest = lastLoadRef.current
+      if (!latest) setPreview({ error: undefined, status: 'idle' })
+      else if (loadIdRef.current === resetId) await load(latest.files)
+      else await latest.promise
     }).catch(error => {
-      if (iframeRef.current !== iframe) return
-      setError(error)
-      setStatus('failed')
-    }).finally(() => { pendingResetRef.current = undefined })
+      if (sessionRef.current === session) setPreview({ error, status: 'failed' })
+    }).finally(() => {
+      if (pendingResetRef.current === pending) pendingResetRef.current = undefined
+    })
     pendingResetRef.current = pending
     return pending
-  }, [initializeFrame, load])
+  }, [load])
 
   return { ref: iframeRef, error, status, load, reset }
 }
