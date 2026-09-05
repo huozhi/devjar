@@ -9,6 +9,8 @@ import { init, parse } from 'es-module-lexer'
 import { createPreviewResolver } from './cdn'
 import { routeFromPagePath, sourceExtensions } from './project'
 
+export type PreviewStatus = 'idle' | 'compiling' | 'loading' | 'ready' | 'failed'
+
 type ResolveModule = (specifier: string) => string
 export type IframeRouteManifest = {
   routes: Record<string, string>
@@ -298,6 +300,7 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
   let rendererModules: Promise<[
     typeof import('react'),
     typeof import('react-dom/client'),
+    typeof import('react-dom'),
   ]> | undefined
   let renderRequestId = 0
   let renderQueue = Promise.resolve()
@@ -340,9 +343,10 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
       rendererModules = Promise.all([
         import(/* webpackIgnore: true */ /* turbopackIgnore: true */ /* @vite-ignore */ reactModuleUrl),
         import(/* webpackIgnore: true */ /* turbopackIgnore: true */ /* @vite-ignore */ reactDomModuleUrl),
+        import(/* webpackIgnore: true */ /* turbopackIgnore: true */ /* @vite-ignore */ resolveModule('react-dom')),
       ])
     }
-    const [ReactMod, ReactDOMMod] = await rendererModules
+    const [ReactMod, ReactDOMMod, { flushSync }] = await rendererModules
     if (requestId !== renderRequestId) return
 
     const _jsx = ReactMod.createElement
@@ -376,6 +380,9 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
         reset() {
           if (this.state.error) this.setState({ error: null })
         }
+        componentDidCatch(error: unknown) {
+          document.dispatchEvent(new CustomEvent('devjar:error', { detail: error }))
+        }
         componentDidUpdate(previousProps: ErrorBoundaryProps) {
           if (previousProps.revision !== this.props.revision && this.state.error) {
             this.setState({ error: null })
@@ -393,49 +400,53 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
       }
     }
 
-    if (!reactRoot) {
-      reactRoot = ReactDOMMod.createRoot(root)
-      revision++
-      reactRoot.render(_jsx(
-        ErrorBoundary,
-        { revision, ref: setErrorBoundaryRef },
-        _jsx(App)
-      ))
-      renderedEntry = renderedPage
-      moduleRuntime.hasRendered = true
-      return
-    }
-
-    if (renderedEntry !== renderedPage) {
-      revision++
-      renderedEntry = renderedPage
-      errorBoundary?.reset()
-      reactRoot.render(_jsx(
-        ErrorBoundary,
-        { revision, ref: setErrorBoundaryRef },
-        _jsx(App)
-      ))
-      return
-    }
-
-    if (result?.changed) {
-      errorBoundary?.reset()
-      const refreshRuntime = moduleRuntime.refreshRuntime
-      if (!refreshRuntime) throw new Error('devjar: refresh runtime was not initialized')
-      const refreshUpdate = refreshRuntime.performReactRefresh()
-      const mountedRootCount = typeof refreshRuntime._getMountedRootCount === 'function'
-        ? refreshRuntime._getMountedRootCount()
-        : 0
-
-      if (!refreshUpdate || mountedRootCount === 0) {
+    flushSync(() => {
+      if (!reactRoot) {
+        reactRoot = ReactDOMMod.createRoot(root)
         revision++
         reactRoot.render(_jsx(
-          ErrorBoundary,
+          ErrorBoundary!,
           { revision, ref: setErrorBoundaryRef },
           _jsx(App)
         ))
+        renderedEntry = renderedPage
+        moduleRuntime.hasRendered = true
+        return
       }
-    }
+
+      if (renderedEntry !== renderedPage) {
+        revision++
+        renderedEntry = renderedPage
+        errorBoundary?.reset()
+        reactRoot.render(_jsx(
+          ErrorBoundary!,
+          { revision, ref: setErrorBoundaryRef },
+          _jsx(App)
+        ))
+        return
+      }
+
+      if (result?.changed) {
+        const recovering = Boolean(errorBoundary?.state.error)
+        errorBoundary?.reset()
+        const refreshRuntime = moduleRuntime.refreshRuntime
+        if (!refreshRuntime) throw new Error('devjar: refresh runtime was not initialized')
+        const refreshUpdate = refreshRuntime.performReactRefresh()
+        const mountedRootCount = typeof refreshRuntime._getMountedRootCount === 'function'
+          ? refreshRuntime._getMountedRootCount()
+          : 0
+
+        if (recovering || !refreshUpdate || mountedRootCount === 0) {
+          revision++
+          reactRoot.render(_jsx(
+            ErrorBoundary!,
+            { revision, ref: setErrorBoundaryRef },
+            _jsx(App)
+          ))
+        }
+      }
+    })
+    if (errorBoundary?.state.error) throw errorBoundary.state.error
   }
 
   function render(
@@ -509,7 +520,7 @@ function createScript(
   const script = scriptRef.current || document.createElement('script')
   scriptRef.current = script
   if (type) script.type = type
-  
+
   if (content) {
     script.src = `data:text/javascript;utf-8,${encodeURIComponent(content)}`
   }
@@ -540,13 +551,15 @@ function useLiveCode({
   )
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
   const [error, setError] = useState<unknown>()
-  const rerender = useState({})[1]
+  const [status, setStatus] = useState<PreviewStatus>('idle')
   const appScriptRef = useScript()
   const tailwindcssScriptRef = useScript()
   const tailwindReadyRef = useRef<Promise<void>>(Promise.resolve())
   const transformClientRef = useRef<{ url: string; client: TransformClient } | undefined>(undefined)
   const transformCacheRef = useRef(new Map<string, { source: string, code: string }>())
   const loadIdRef = useRef(0)
+  const runtimeFailureRef = useRef<number | undefined>(undefined)
+  const scriptReadyRef = useRef<Promise<void>>(Promise.resolve())
   const uid = useId()
 
   // Let resolveModule execute on parent window side since it might involve
@@ -577,14 +590,14 @@ function useLiveCode({
   useEffect(() => {
     const iframe = iframeRef.current
     if (!iframe || !iframe.contentDocument) return
-    
+
     const doc = iframe.contentDocument
     const body = doc.body
     const div = document.createElement('div')
     div.id = '__reactRoot'
-    
+
     const appScriptContent = createMainScript({ uid })
-    
+
     const appScript = createScript(appScriptRef, { content: appScriptContent })
     const tailwindScript = tailwind
       ? createScript(tailwindcssScriptRef, { src: tailwindSrc })
@@ -600,16 +613,43 @@ function useLiveCode({
         })
       : Promise.resolve()
 
+    const reportError = (error: unknown) => {
+      runtimeFailureRef.current = loadIdRef.current
+      setError(error)
+      setStatus('failed')
+    }
+    const onRuntimeError = (event: ErrorEvent) => reportError(event.error || new Error(event.message))
+    const onRejection = (event: PromiseRejectionEvent) => reportError(event.reason)
+    const onReactError = (event: Event) => {
+      setError((event as CustomEvent).detail)
+      setStatus('failed')
+    }
+    const frameWindow = iframe.contentWindow!
+    frameWindow.addEventListener('error', onRuntimeError)
+    frameWindow.addEventListener('unhandledrejection', onRejection)
+    doc.addEventListener('devjar:error', onReactError)
+    let resolveScript: (() => void) | undefined
+    scriptReadyRef.current = new Promise<void>((resolve, reject) => {
+      resolveScript = resolve
+      appScript.onload = () => resolve()
+      appScript.onerror = () => reject(new Error('devjar: application script failed to load'))
+    })
+    // A load may start after the script fails; keep the rejection observable then.
+    void scriptReadyRef.current.catch(() => {})
     body.appendChild(div)
     if (tailwindScript) body.appendChild(tailwindScript)
     body.appendChild(appScript)
-    
+
     return () => {
       if (!iframe || !iframe.contentDocument) return
+      frameWindow.removeEventListener('error', onRuntimeError)
+      frameWindow.removeEventListener('unhandledrejection', onRejection)
+      doc.removeEventListener('devjar:error', onReactError)
       body.removeChild(div)
       body.removeChild(appScript)
       if (tailwindScript) body.removeChild(tailwindScript)
       resolveTailwind?.()
+      resolveScript?.()
     }
   }, [])
 
@@ -624,6 +664,8 @@ function useLiveCode({
 
   const load = useCallback(async (files: Record<string, string>) => {
     const loadId = ++loadIdRef.current
+    setError(undefined)
+    setStatus('compiling')
 
     try {
       const resolveModuleForLoad = resolveModule
@@ -667,48 +709,30 @@ function useLiveCode({
       const linked = await linkModules(transformedSources, resolveModuleForLoad, files)
       if (loadId !== loadIdRef.current) return
 
+      setStatus('loading')
+      await Promise.all([tailwindReadyRef.current, scriptReadyRef.current])
+      if (loadId !== loadIdRef.current) return
       const iframe = iframeRef.current
-      const script = appScriptRef.current
-      if (iframe) {
-        const contentWindow = iframe.contentWindow
-        if (!contentWindow) throw new Error('devjar: iframe window is unavailable')
-        const renderFiles = async () => {
-          await tailwindReadyRef.current
-          if (loadId !== loadIdRef.current) return
-          const render = contentWindow.__render__
-          if (!render) throw new Error('devjar: renderer was not initialized')
-          await render(linked.files, linked.dependencies, manifest)
-          if (loadId === loadIdRef.current) {
-            iframe.dispatchEvent(new CustomEvent('devjar:render'))
-          }
-        }
-
-        const render = contentWindow.__render__
-        if (render) {
-          await renderFiles()
-        } else {
-          // if render is not loaded yet, wait until it's loaded
-          if (!script) throw new Error('devjar: application script was not initialized')
-          script.onload = () => {
-            renderFiles().catch((err) => {
-              if (loadId === loadIdRef.current) setError(err)
-            })
-          }
-        }
-      }
-      if (loadId === loadIdRef.current) setError(undefined)
+      const render = iframe?.contentWindow?.__render__
+      if (!render) throw new Error('devjar: renderer was not initialized')
+      await render(linked.files, linked.dependencies, manifest)
+      if (loadId !== loadIdRef.current) return
+      if (runtimeFailureRef.current === loadId) return
+      setError(undefined)
+      setStatus('ready')
+      iframe.dispatchEvent(new CustomEvent('devjar:render'))
     } catch (e) {
       if (loadId !== loadIdRef.current) return
       console.warn(e)
       setError(e)
+      setStatus('failed')
     }
-    rerender({})
   }, [resolveModule, transform, transformFiles])
 
-  return { ref: iframeRef, error, load }
+  return { ref: iframeRef, error, status, load }
 }
 
-export { 
+export {
   createModule,
   createIframeRouteManifest,
   createRenderer,

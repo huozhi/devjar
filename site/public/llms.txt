@@ -37,12 +37,16 @@ export default function Preview() {
 To update a preview, replace the edited file's string in a new files object.
 Keep files and custom resolver functions stable between unrelated renders.
 DevJar accepts ordinary iframe props and a ref. Relevant options include
-onError, dependencies (package versions), resolveModule (an ESM URL resolver),
+onError, onStatusChange, dependencies (package versions), resolveModule (an ESM URL resolver),
 tailwind (defaults to true), transform (defaults to true), and compiler
 ({ workerUrl, bindingUrl, wasmUrl }) for a complete asset URL override.
 
-useLiveCode returns { ref, load, error }. Attach ref to an iframe and call
+useLiveCode returns { ref, load, error, status }. Attach ref to an iframe and call
 load(files) when the project should run. load returns a promise.
+status (or the component's onStatusChange) reports idle, compiling, loading,
+ready, or failed. ready means React committed, not that application data is loaded.
+onError reports compilation, module loading, React render errors, uncaught iframe
+errors, and unhandled rejections. A new load clears the previous error.
 
 Embedded previews compile in a browser worker using non-shared WebAssembly.
 No cross-origin isolation headers or server-side compiler are required.
