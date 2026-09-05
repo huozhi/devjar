@@ -1,14 +1,8 @@
 import { textModuleSuffix, isTextImport, createTextModule } from '../text'
-import { createFrameSession, type FrameSession } from './frame'
-import { createLoadQueue } from './load-queue'
 import { createJsonModule } from '../json'
-import { useEffect, useCallback, useState, useMemo, useRef } from 'react'
 import { createModule } from './module'
 import type { ModuleRuntime } from './module'
-import { getCompilerWorkerUrl, type CompilerAssets } from './compiler'
-import { createTransformPool, type TransformClient } from './transform-pool'
 import { init, parse } from 'es-module-lexer'
-import { createPreviewResolver } from '../cdn'
 import { routeFromPagePath, sourceExtensions } from '../project'
 
 export type PreviewStatus = 'idle' | 'compiling' | 'loading' | 'ready' | 'failed'
@@ -41,13 +35,6 @@ function normalizeProjectPath(filename: string) {
   }
   return parts.join('/')
 }
-
-async function createTransformWorker(url: string | undefined) {
-  if (!url) throw new Error('devjar: compiler worker URL is required')
-  return new globalThis.Worker(url, { type: 'module', name: 'devjar-transform' })
-}
-
-const acquireTransformClient = createTransformPool(createTransformWorker)
 
 function getModuleKey(filename: string) {
   return `@${normalizeProjectPath(filename)}`
@@ -507,183 +494,15 @@ script.dispatchEvent(new CustomEvent('devjar:initialize', {
 })();`
 }
 
-function useLiveCode({
-  resolveModule: customResolveModule,
-  dependencies,
-  transform = true,
-  tailwind = true,
-  transformWorkerUrl,
-  compiler,
-}: {
-  resolveModule?: (specifier: string) => string
-  dependencies?: Record<string, string>
-  transform?: boolean
-  tailwind?: boolean
-  transformWorkerUrl?: string | URL
-  compiler?: CompilerAssets
-}) {
-  // Equal dependency/asset values must not reload a preview merely because a
-  // parent creates fresh options objects while handling status notifications.
-  const dependenciesKey = JSON.stringify(Object.entries(dependencies || {}).sort(([a], [b]) => a.localeCompare(b)))
-  const resolveModule = useMemo(
-    () => customResolveModule || createPreviewResolver(Object.fromEntries(JSON.parse(dependenciesKey))),
-    [customResolveModule, dependenciesKey]
-  )
-  const workerUrl = compiler?.workerUrl.toString()
-  const bindingUrl = compiler?.bindingUrl.toString()
-  const wasmUrl = compiler?.wasmUrl.toString()
-  const legacyUrl = compiler ? undefined : transformWorkerUrl?.toString()
-  const transformKey = JSON.stringify([transform, workerUrl, bindingUrl, wasmUrl, legacyUrl])
-  const iframeRef = useRef<HTMLIFrameElement | null>(null)
-  const [{ error, status }, setPreview] = useState<{ error: unknown; status: PreviewStatus }>({ error: undefined, status: 'idle' })
-  const sessionRef = useRef<FrameSession | undefined>(undefined)
-  const transformClientRef = useRef<TransformClient | undefined>(undefined)
-  const transformCacheRef = useRef<{ key: string; files: Map<string, { source: string; code: string }> } | undefined>(undefined)
-  const loadQueueRef = useRef(createLoadQueue())
-  const lastLoadRef = useRef<{ files: Record<string, string>; promise: Promise<void> } | undefined>(undefined)
-  const pendingResetRef = useRef<Promise<void> | undefined>(undefined)
-  const loadIdRef = useRef(0)
-
-  useEffect(() => {
-    const iframe = iframeRef.current
-    if (!iframe) return
-    const queue = createLoadQueue()
-    loadQueueRef.current = queue
-    const session = createFrameSession(iframe, {
-      script: createMainScript(),
-      resolveModule,
-      tailwind,
-      onError: error => setPreview({ error, status: 'failed' }),
-    })
-    sessionRef.current = session
-    setPreview({ error: undefined, status: 'idle' })
-    return () => {
-      loadIdRef.current++
-      loadQueueRef.current.clear()
-      session.dispose()
-      transformClientRef.current?.release()
-      transformClientRef.current = undefined
-      pendingResetRef.current = undefined
-      if (sessionRef.current === session) sessionRef.current = undefined
-    }
-  }, [resolveModule, tailwind])
-
-  const transformFiles = useCallback((files: Record<string, string>) => {
-    if (!transformClientRef.current) {
-      const assets = workerUrl === undefined ? undefined : { workerUrl, bindingUrl: bindingUrl!, wasmUrl: wasmUrl! }
-      transformClientRef.current = acquireTransformClient(getCompilerWorkerUrl(assets, legacyUrl))
-    }
-    return transformClientRef.current.transform(files)
-  }, [workerUrl, bindingUrl, wasmUrl, legacyUrl])
-
-  const runLoad = useCallback(async (files: Record<string, string>, loadId: number) => {
-    if (loadId !== loadIdRef.current) return
-
-    try {
-      const session = sessionRef.current
-      if (!session) return
-      if (transformCacheRef.current?.key !== transformKey) {
-        transformClientRef.current?.release()
-        transformClientRef.current = undefined
-        transformCacheRef.current = { key: transformKey, files: new Map() }
-      }
-      const cache = transformCacheRef.current.files
-      const resolveModuleForLoad = resolveModule
-      const manifest = createIframeRouteManifest(files)
-
-      await init
-      if (loadId !== loadIdRef.current) return
-      const localFiles = new Map(Object.keys(files).map(path => [normalizeProjectPath(path), getModuleKey(path)]))
-      const filenames = new Map(Object.keys(files).map(path => [getModuleKey(path), path]))
-      const queue = [...Object.values(manifest.routes)]
-      const transformedSources: Record<string, string> = {}
-      const visited = new Set<string>()
-      while (queue.length) {
-        const moduleKey = queue.shift()!
-        if (visited.has(moduleKey)) continue
-        visited.add(moduleKey)
-        const filename = filenames.get(moduleKey)!
-        const source = files[filename]
-        if (filename.endsWith('.css') || filename.endsWith('.json')) {
-          transformedSources[filename] = source
-          continue
-        }
-        if (!sourceExtensions.some(extension => filename.endsWith(extension))) {
-          throw new Error(`Cannot import ${filename} as JavaScript. Use with { type: "text" } to import its contents.`)
-        }
-        let cached = cache.get(filename)
-        if (cached?.source !== source) {
-          const output = transform ? await transformFiles({ [filename]: source }) : { [filename]: source }
-          if (loadId !== loadIdRef.current) return
-          cached = { source, code: output[filename] }
-          cache.set(filename, cached)
-        }
-        transformedSources[filename] = cached.code
-        for (const imported of parse(cached.code)[0]) {
-          if (!imported.n || !isRelative(imported.n) || isTextImport(cached.code, imported)) continue
-          queue.push(resolveRelativeModule(filename, imported.n, localFiles, false))
-        }
-      }
-      for (const filename of cache.keys()) {
-        if (!(filename in files)) cache.delete(filename)
-      }
-      const linked = await linkModules(transformedSources, resolveModuleForLoad, files)
-      if (loadId !== loadIdRef.current) return
-
-      setPreview({ error: undefined, status: 'loading' })
-      await session.render(linked.files, linked.dependencies, manifest)
-      if (loadId !== loadIdRef.current) return
-      setPreview({ error: undefined, status: 'ready' })
-      iframeRef.current?.dispatchEvent(new CustomEvent('devjar:render'))
-    } catch (error) {
-      if (loadId !== loadIdRef.current) return
-      setPreview({ error, status: 'failed' })
-    }
-  }, [resolveModule, transform, transformFiles, transformKey])
-
-  // Changing Tailwind also replaces the session and must retrigger the component load.
-  const load = useCallback((files: Record<string, string>) => {
-    const loadId = ++loadIdRef.current
-    setPreview({ error: undefined, status: 'compiling' })
-    const promise = loadQueueRef.current.enqueue(() => runLoad(files, loadId))
-    lastLoadRef.current = { files, promise }
-    return promise
-  }, [runLoad, tailwind])
-
-  const reset = useCallback((): Promise<void> => {
-    if (pendingResetRef.current) return pendingResetRef.current
-    const session = sessionRef.current
-    if (!session) return Promise.resolve()
-    const resetId = ++loadIdRef.current
-    loadQueueRef.current.clear()
-    loadQueueRef.current = createLoadQueue()
-    transformClientRef.current?.release()
-    transformClientRef.current = undefined
-    transformCacheRef.current = undefined
-    setPreview({ error: undefined, status: 'loading' })
-    const pending = session.reset().then(async () => {
-      if (sessionRef.current !== session) return
-      const latest = lastLoadRef.current
-      if (!latest) setPreview({ error: undefined, status: 'idle' })
-      else if (loadIdRef.current === resetId) await load(latest.files)
-      else await latest.promise
-    }).catch(error => {
-      if (sessionRef.current === session) setPreview({ error, status: 'failed' })
-    }).finally(() => {
-      if (pendingResetRef.current === pending) pendingResetRef.current = undefined
-    })
-    pendingResetRef.current = pending
-    return pending
-  }, [load])
-
-  return { ref: iframeRef, error, status, load, reset }
-}
-
 export {
   createModule,
   createIframeRouteManifest,
   createRenderer,
+  createMainScript,
   linkModules,
   replaceImports,
-  useLiveCode,
+  normalizeProjectPath,
+  getModuleKey,
+  resolveRelativeModule,
+  isRelative,
 }

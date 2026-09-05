@@ -1,4 +1,4 @@
-export { useLiveCode } from './client/core'
+export { useLiveCode } from './client/use-live-code'
 export { DevJar } from './client/render'
 export type { CompilerAssets } from './client/compiler'
 export type { PreviewStatus } from './client/core'

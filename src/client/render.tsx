@@ -1,5 +1,6 @@
 import { useEffect, useImperativeHandle, useRef } from 'react'
-import { useLiveCode, type PreviewStatus } from './core'
+import { useLiveCode } from './use-live-code'
+import type { PreviewStatus } from './core'
 import type { CompilerAssets } from './compiler'
 
 const defaultOnError: (error: unknown) => void = typeof window !== 'undefined'
