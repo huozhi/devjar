@@ -136,6 +136,26 @@ in the host's origin; it is not a security boundary for untrusted code.
 
 </details>
 
+### Scheduling edits
+
+Pass a new `files` object for each edit, keeping the object stable for unrelated
+renders. Devjar starts updates immediately; it does not impose a typing debounce.
+Use a host-side debounce if you want fewer updates, or call the hook's `load(files)`
+from a Run button for explicit scheduling.
+
+Each preview runs one load at a time and retains only the newest pending edit.
+Superseded pending loads are skipped, and their `load()` promises resolve without
+rendering. Work already executing (including synchronous WASM compilation and
+browser module imports) is allowed to finish; stale results and compilation errors
+are discarded at the load's asynchronous checkpoints. This does not roll back
+module side effects or a React commit that already happened.
+
+Incomplete source reports an error while leaving the last successful preview
+visible. The next valid edit clears the error and uses Fast Refresh where possible.
+`load()` resolves after completion or supersession; load failures are reported via
+`error`/`onError` and `status`, rather than rejecting that promise. Supersession is
+not an error. Unmounting discards pending edits and releases the compiler client.
+
 ### Preview lifecycle
 
 Use `onStatusChange` on `<DevJar>` or `status` from `useLiveCode` for a loading

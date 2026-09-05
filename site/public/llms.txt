@@ -36,6 +36,12 @@ export default function Preview() {
 
 To update a preview, replace the edited file's string in a new files object.
 Keep files and custom resolver functions stable between unrelated renders.
+Updates start immediately, with one active load and only the newest pending edit.
+Superseded queued edits are skipped; running compilation/imports finish and stale
+results are discarded. This cannot undo module side effects. Incomplete source
+reports an error while keeping the last successful preview. Debounce in the host
+if desired; load() promises resolve on completion or supersession, with failures
+reported through error/onError and status.
 DevJar accepts ordinary iframe props and a ref. Relevant options include
 onError, onStatusChange, dependencies (package versions), resolveModule (an ESM URL resolver),
 tailwind (defaults to true), transform (defaults to true), and compiler
