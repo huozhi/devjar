@@ -382,8 +382,8 @@ describe('dev server', () => {
 
     const shell = await fetch(`${base}/about`)
     expect(shell.status).toBe(200)
-    expect(shell.headers.get('cross-origin-opener-policy')).toBe('same-origin')
-    expect(shell.headers.get('cross-origin-embedder-policy')).toBe('require-corp')
+    expect(shell.headers.get('cross-origin-opener-policy')).toBeNull()
+    expect(shell.headers.get('cross-origin-embedder-policy')).toBeNull()
     const shellSource = await shell.text()
     expect(shellSource).toContain('/_jar/client.js')
     expect(shellSource).toContain("import * as RefreshModule from 'react-refresh/runtime'")
@@ -435,17 +435,14 @@ describe('dev server', () => {
     expect(transformAssetsResponse.headers.get('cache-control')).toBe('no-store')
     const transformAssets = await transformAssetsResponse.json()
     expect(transformAssets.worker).toMatch(/^assets\/transform-worker-[a-z0-9]+\.js$/)
-    expect(transformAssets.wasm).toMatch(/^assets\/transform\.wasm32-wasi-[a-z0-9]+\.wasm$/)
+    expect(transformAssets.wasm).toMatch(/^assets\/transform-[a-z0-9]+\.wasm$/)
     const worker = await fetch(`${base}/_jar/${transformAssets.worker}`)
     expect(worker.headers.get('content-type')).toContain('text/javascript')
-    expect(worker.headers.get('cross-origin-embedder-policy')).toBe('require-corp')
+    expect(worker.headers.get('cross-origin-embedder-policy')).toBeNull()
     expect(worker.headers.get('cache-control')).toBe('public, max-age=31536000, immutable')
-    const binding = await (await fetch(`${base}/_jar/${transformAssets.binding}`)).text()
-    expect(binding).toContain(
-      'wasmModule:globalThis.__devjarOxcWasmBytes??this.wasmModule',
-    )
-    const wasiWorker = await (await fetch(`${base}/_jar/${transformAssets.wasiWorker}`)).text()
-    expect(wasiWorker).toContain('devjar: Failed to load WASM module')
+    const binding = await fetch(`${base}/_jar/${transformAssets.binding}`)
+    expect(binding.status).toBe(200)
+    expect(binding.headers.get('content-type')).toContain('text/javascript')
     const wasm = await fetch(`${base}/_jar/${transformAssets.wasm}`)
     expect(wasm.headers.get('content-type')).toBe('application/wasm')
 
@@ -798,7 +795,7 @@ export default function Page() {
       const transformAssets = JSON.parse(
         await readFile(join(result.outDir, '_jar/transform-assets.json'), 'utf8'),
       )
-      expect(Object.values(transformAssets)).toHaveLength(4)
+      expect(Object.values(transformAssets)).toHaveLength(3)
       const builtServer = await startBuiltServer({
         root: result.outDir,
         host: '127.0.0.1',
@@ -807,8 +804,8 @@ export default function Page() {
       try {
         expect(builtServer.devjarRuntime).toBe(true)
         const response = await fetch(`http://${builtServer.host}:${builtServer.port}`)
-        expect(response.headers.get('cross-origin-opener-policy')).toBe('same-origin')
-        expect(response.headers.get('cross-origin-embedder-policy')).toBe('require-corp')
+        expect(response.headers.get('cross-origin-opener-policy')).toBeNull()
+        expect(response.headers.get('cross-origin-embedder-policy')).toBeNull()
         const runtimeResponse = await fetch(
           `http://${builtServer.host}:${builtServer.port}${runtimePath[0]}`,
         )

@@ -177,43 +177,19 @@ export default function ManualPreview() {
 
 </details>
 
-### Iframe hosting requirements
+### Hosting embedded previews
 
-Embedded previews require a secure context and cross-origin isolation. Devjar's
-CLI sets the headers for you; other hosts need:
-
-```http
-Cross-Origin-Opener-Policy: same-origin
-Cross-Origin-Embedder-Policy: credentialless
-```
+DevJar compiles JSX and TypeScript in a browser worker. No cross-origin
+isolation headers or server-side compiler are needed.
 
 <details>
-<summary>Hosting details and Next.js configuration</summary>
+<summary>Compiler assets and deployment</summary>
 
-The iframe transforms code in the browser using Oxc and shared WebAssembly
-memory, so its host page must be cross-origin isolated. Devjar packages the
-browser transformer, WASM binary, and helper worker as lazy runtime assets;
-compatible bundlers emit these files without requiring a manual copy step.
-The `devjar dev` server sends the required headers so an editor can be added while
-it is running. `devjar start` sends them only for builds that use the editor.
-Static deployments that use `devjar` must configure equivalent headers on
-their hosting platform; sites without the editor do not need them.
-
-#### Next.js headers example
-
-```js
-const nextConfig = {
-  async headers() {
-    return [{
-      source: '/:path*',
-      headers: [
-        { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
-        { key: 'Cross-Origin-Embedder-Policy', value: 'credentialless' },
-      ],
-    }]
-  },
-}
-```
+Devjar packages the browser worker, JavaScript binding, and WASM binary as
+lazy runtime assets. Serve these assets alongside the package output;
+Devjar's CLI copies them automatically when a site uses the component.
+The compiler uses ordinary, non-shared WebAssembly memory, so embedding a
+preview does not require COOP or COEP headers.
 
 </details>
 
@@ -480,8 +456,7 @@ npx devjar dev --host 0.0.0.0
 ```
 
 Open the printed Network URL on the same Wi-Fi. Also works with `start`.
-Embedded editors need a secure, cross-origin-isolated context; use ordinary
-CLI pages for HTTP phone previews.
+Embedded previews also work over HTTP on your local network.
 
 </details>
 
@@ -490,11 +465,16 @@ CLI pages for HTTP phone previews.
 
 ```sh
 pnpm install
+pnpm run setup:compiler
 pnpm run build
 pnpm run dev
 pnpm run typecheck
 bun test
 ```
+
+Source builds require Rust and wasm-bindgen; `setup:compiler` installs the pinned
+toolchain and binding generator. Published npm packages include the compiled
+WASM and do not require Rust.
 
 Run the full build after runtime changes to regenerate client and worker assets.
 CLI tests open local HTTP servers.

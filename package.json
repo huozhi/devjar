@@ -57,7 +57,8 @@
     "demo:start": "node ./dist/bin.js start examples/dashboard/dist",
     "test": "bun test",
     "test:package": "bun scripts/check-package.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "setup:compiler": "bash scripts/setup-compiler.sh"
   },
   "peerDependencies": {
     "react": "^19.0.0"
@@ -68,7 +69,6 @@
     "oxc-transform": "^0.144.0"
   },
   "devDependencies": {
-    "@oxc-transform/binding-wasm32-wasi": "0.144.0",
     "@playwright/test": "^1.62.1",
     "@sugar-high/react": "2.2.1",
     "@types/node": "^22.10.7",

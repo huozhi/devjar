@@ -79,15 +79,19 @@ jobs:
       - name: Use Bun
         uses: oven-sh/setup-bun@v2
 
+      - name: Set up browser compiler
+        if: hashFiles('compiler/Cargo.toml') != ''
+        run: pnpm run setup:compiler
+
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Build Package
         run: pnpm run build
 
-      - name: Install Chromium
+      - name: Install browsers
         if: ${{ !inputs.force }}
-        run: pnpm exec playwright install --with-deps chromium
+        run: pnpm exec playwright install --with-deps chromium webkit
 
       - name: Check Package
         run: pnpm typecheck && pnpm test:package
@@ -98,7 +102,9 @@ jobs:
 
       - name: Test Packaged Browser
         if: ${{ !inputs.force }}
-        run: bun scripts/test-package-browser.ts
+        run: |
+          bun scripts/test-package-browser.ts
+          DEVJAR_TEST_BROWSER=webkit bun scripts/test-package-browser.ts
 
       - name: Record forced publish
         if: github.event_name == 'workflow_dispatch' && inputs.force

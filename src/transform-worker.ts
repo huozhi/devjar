@@ -1,9 +1,10 @@
-import { getTransformErrorMessage, getTransformOptions } from './transform'
+type BrowserCompiler = {
+  default: (options: { module_or_path: string }) => Promise<unknown>
+  transform: (filename: string, source: string) => string
+}
 
-type OxcTransform = Pick<typeof import('oxc-transform'), 'transformSync'>
-
-// Keep the local runtime import opaque so this worker can install its message
-// handler before the WASI module begins its asynchronous initialization.
+// Keep loading behind the worker's message handler so initialization failures
+// are returned through the same error channel as compilation failures.
 const dynamicImport = new Function('specifier', 'return import(specifier)')
 const workerUrl = new URL(globalThis.location.href)
 
@@ -13,39 +14,13 @@ function requiredAssetUrl(name: string) {
   return url
 }
 
-const bindingUrl = requiredAssetUrl('binding')
-const wasmUrl = requiredAssetUrl('wasm')
-const wasiWorkerUrl = requiredAssetUrl('wasiWorker')
-
-Object.assign(globalThis, {
-  __devjarOxcWasmUrl: wasmUrl,
-  __devjarOxcWasiWorkerUrl: wasiWorkerUrl,
-})
-
-function isOxcTransform(value: unknown): value is OxcTransform {
-  return typeof value === 'object'
-    && value !== null
-    && 'transformSync' in value
-    && typeof value.transformSync === 'function'
+async function loadCompiler(): Promise<BrowserCompiler> {
+  const compiler = await dynamicImport(requiredAssetUrl('binding')) as BrowserCompiler
+  await compiler.default({ module_or_path: requiredAssetUrl('wasm') })
+  return compiler
 }
 
-async function loadOxc() {
-  const wasiWorkerResponse = await fetch(wasiWorkerUrl)
-  if (!wasiWorkerResponse.ok) {
-    throw new Error(
-      `devjar: Failed to preload WASI worker: ${wasiWorkerResponse.status} ${wasiWorkerResponse.statusText}`,
-    )
-  }
-  await wasiWorkerResponse.arrayBuffer()
-
-  const module: unknown = await dynamicImport(bindingUrl)
-  if (!isOxcTransform(module)) {
-    throw new Error('devjar: Invalid Oxc transform module')
-  }
-  return module
-}
-
-let oxcPromise: Promise<OxcTransform> | undefined
+let compilerPromise: Promise<BrowserCompiler> | undefined
 
 self.onmessage = async ({ data }: MessageEvent<{
   id: number
@@ -53,27 +28,22 @@ self.onmessage = async ({ data }: MessageEvent<{
 }>) => {
   const { id, files } = data
   try {
-    oxcPromise ??= loadOxc()
-    const oxc = await oxcPromise
-
+    compilerPromise ??= loadCompiler().catch(error => {
+      compilerPromise = undefined
+      throw error
+    })
+    const compiler = await compilerPromise
     const transformed: Record<string, string> = {}
     for (const [filename, source] of Object.entries(files)) {
-      const output = oxc.transformSync(filename, source, getTransformOptions(filename, true, true))
-
-      const errorMessage = getTransformErrorMessage(output.errors)
-      if (errorMessage) throw new Error(errorMessage)
-
-      transformed[filename] = output.code
+      transformed[filename] = compiler.transform(filename, source)
     }
     self.postMessage({ id, transformed })
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error)
-    const stack = error instanceof Error ? error.stack : undefined
     self.postMessage({
       id,
       error: {
-        message,
-        stack,
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
       },
     })
   }

@@ -1,0 +1,25 @@
+[package]
+name = "devjar_browser_compiler"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+oxc_allocator = "=0.144.0"
+oxc_codegen = { version = "=0.144.0", default-features = false }
+oxc_parser = "=0.144.0"
+oxc_semantic = "=0.144.0"
+oxc_span = "=0.144.0"
+oxc_transformer = "=0.144.0"
+oxc_transformer_plugins = "=0.144.0"
+wasm-bindgen = "=0.2.114"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

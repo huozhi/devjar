@@ -30,7 +30,6 @@ type TransformAssetManifest = {
   worker: string
   binding: string
   wasm: string
-  wasiWorker: string
 }
 
 let esModuleLexerInit = false
@@ -61,7 +60,7 @@ function normalizeProjectPath(filename: string) {
 function isTransformAssetManifest(value: unknown): value is TransformAssetManifest {
   if (typeof value !== 'object' || value === null) return false
   const manifest = value as Record<string, unknown>
-  return ['worker', 'binding', 'wasm', 'wasiWorker']
+  return ['worker', 'binding', 'wasm']
     .every(name => typeof manifest[name] === 'string')
 }
 
@@ -97,10 +96,6 @@ async function createTransformWorker(transformWorkerUrl: string | undefined) {
   workerUrl.searchParams.set(
     'wasm',
     new URL(assets.wasm, manifestUrl).href,
-  )
-  workerUrl.searchParams.set(
-    'wasiWorker',
-    new URL(assets.wasiWorker, manifestUrl).href,
   )
 
   return new Worker(workerUrl, {

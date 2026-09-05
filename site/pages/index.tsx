@@ -58,7 +58,7 @@ function Preview() {
   )
 }`}</Code>
               </div>
-              <p>Embedded previews need a secure context and cross-origin isolation headers.</p>
+              <p>Embedded previews run in the browser. No special hosting headers required.</p>
               <p><a href="https://github.com/huozhi/devjar/tree/main/examples/personal">Personal website example: live playground to static export →</a></p>
               <a href="https://github.com/huozhi/devjar#devjar-component" target="_blank" rel="noopener noreferrer">
                 Read the component and iframe documentation →
