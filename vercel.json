@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
-  "buildCommand": "pnpm run setup:compiler && pnpm run build:website",
+  "buildCommand": "bun scripts/build-vercel.ts",
   "outputDirectory": "site/dist",
   "headers": [
     {
