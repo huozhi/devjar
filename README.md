@@ -6,8 +6,8 @@
 
 Make an idea real. Change it live.
 
-Devjar has two main features: live code APIs for embedding editable React
-projects in an iframe, and a zero-config CLI for building static websites.
+Embed editable React previews in your app, or build a static website with a
+zero-config CLI.
 
 Agent reference: [llms.txt](./site/public/llms.txt).
 
@@ -18,8 +18,6 @@ Embed a live React preview with `<DevJar>`. Requires React 19.
 ```sh
 pnpm add devjar
 ```
-
-### DevJar component
 
 ```tsx
 import { DevJar } from 'devjar'
@@ -38,12 +36,13 @@ export default function App() {
 ```
 
 Pass a new `files` object to update the preview. Add your own editor or controls;
-Devjar handles compilation and renders the project inside an iframe. All four
-homepage gallery demos use this API through
-[`Codesandbox`](./site/components/codesandbox.tsx).
+Devjar compiles the files and renders the project inside an iframe, with
+React Fast Refresh where possible.
 
-The host needs the [iframe hosting headers](#iframe-hosting-requirements).
-Use a client component in frameworks with server components.
+Use a client component (`'use client'`) in frameworks with server components.
+The preview runs in the host's origin, so only run code you trust. No cross-origin
+isolation headers or server-side compiler are needed. See
+[hosting requirements](./docs/API.md#hosting-embedded-previews) for asset and CSP details.
 
 <details>
 <summary>Example: update JSON content with React state</summary>
@@ -86,232 +85,13 @@ export default function LiveExample() {
 
 </details>
 
-<details>
-<summary>Component props and defaults</summary>
+For props, file imports, and routing, see the [API reference](./docs/API.md).
+Advanced controls are covered there too:
 
-| Prop | Type | Behavior |
-| --- | --- | --- |
-| `files` | `Record<string, string>` | Required. Virtual paths mapped to source text |
-| `dependencies` | `Record<string, string>` | Optional package versions for the default esm.sh resolver |
-| `resolveModule` | `(specifier: string) => string` | Optional resolver override returning browser-loadable ESM URLs |
-| `transform` | `boolean` | Default `true`; compile JSX and TypeScript in a worker |
-| `tailwind` | `boolean` | Default `true`; enable the iframe's Tailwind browser runtime |
-| `onStatusChange` | `(status: PreviewStatus) => void` | Reports lifecycle state changes |
-| `onError` | `(error: unknown) => void` | Called when error state changes; defaults to `console.error` in the browser |
-| `compiler` | `CompilerAssets` | Complete worker, binding, and WASM URL override; bypasses default asset discovery |
-| `transformWorkerUrl` | `string` or `URL` | Legacy worker-only override; uses default binding and WASM assets |
-| `apiRef` | `React.Ref<DevJarHandle>` | Access `reset()` to restart the current project |
-| `ref` | `React.Ref<HTMLIFrameElement>` | Access the rendered iframe |
-| Other iframe props | Iframe attributes | Forwarded to the iframe, including `title`, `style`, and `className` |
-
-DevJar owns the iframe document, so `src`, `srcDoc`, `children`, and
-`dangerouslySetInnerHTML` are not component props. `onError` reports preview
-errors; it is not the native iframe error event.
-
-Keep `files` and custom resolver functions stable between unrelated parent
-renders. To edit a file, replace its string in a new `files` object.
-
-The component reloads the current files when compilation options change. Changing
-`transform` or compiler asset URLs invalidates compiled-source caches. Changing
-`dependencies`, `resolveModule`, or `tailwind` starts a fresh iframe runtime;
-React state and iframe globals are reset. Equal dependency versions and compiler
-URLs do not trigger a reload just because their options objects are recreated.
-
-With `useDevJar`, call `load` again to apply changed options. For automatic
-updates, include both `files` and `load` in your effect dependencies.
-
-</details>
-
-<details>
-<summary>Virtual files, JSON imports, and iframe navigation</summary>
-
-The runtime supports JavaScript, TypeScript, JSX, TSX, CSS, and default JSON
-imports. JSON must use double quotes and cannot contain comments or trailing
-commas. Import any local file as a string with an explicit text attribute:
-
-```js
-import text from './notes.md' with { type: 'text' }
-```
-
-This also works in the CLI. Use relative imports between virtual files. Bare package imports resolve
-to CDN modules; React dependencies must use compatible versions.
-
-The iframe uses the same `pages/` route convention as the CLI. Links such as
-`<a href="/about">About</a>` navigate inside the iframe. Provide `pages/404.tsx`
-for a custom missing-page view. Changes propagate through local imports and use
-React Fast Refresh where possible.
-
-The virtual file map contains source strings. The CLI's disk asset pipeline,
-`public/`, and static `api/` serving are separate CLI features. For iframe image
-or media content, use browser-accessible URLs.
-
-The iframe separates the preview's DOM and styles from the host page. It runs
-in the host's origin; it is not a security boundary for untrusted code.
-
-</details>
-
-### Resetting the runtime
-
-Use `apiRef.current.reset()` on the component, or `reset()` from `useDevJar`,
-to restart the current project without restoring the editor's initial source:
-
-```tsx
-import { useRef } from 'react'
-import { DevJar, type DevJarHandle } from 'devjar'
-
-function Playground({ files }: { files: Record<string, string> }) {
-  const api = useRef<DevJarHandle>(null)
-  return <>
-    <button onClick={() => void api.current?.reset()}>Restart preview</button>
-    <DevJar files={files} apiRef={api} title="Live preview" />
-  </>
-}
-```
-
-Reset unmounts React (running effect cleanups), replaces the iframe document with
-an empty `srcdoc` document, and reruns the latest files in a fresh JavaScript realm.
-React state, module instances, iframe globals, timers, and subscriptions belonging
-to that document start over; navigation returns to `/`. The iframe element and its
-`ref` stay the same. Browser HTTP caches, origin storage, and side effects outside
-the iframe are not cleared. Code must still clean up resources it creates outside
-the frame.
-
-Pending edits are discarded and old work cannot publish its result into the new
-preview. Edits submitted during reset become the current source. Concurrent reset
-calls share one promise. Awaiting reset waits for the reload, with failures exposed
-through `error`/`onError` and `status`. To restore initial source as well, update the
-editor's `files` separately. `apiRef` leaves the existing iframe `ref` API intact.
-
-### Scheduling edits
-
-Pass a new `files` object for each edit, keeping the object stable for unrelated
-renders. Devjar starts updates immediately; it does not impose a typing debounce.
-Use a host-side debounce if you want fewer updates, or call the hook's `load(files)`
-from a Run button for explicit scheduling.
-
-Each preview runs one load at a time and retains only the newest pending edit.
-Superseded pending loads are skipped, and their `load()` promises resolve without
-rendering. Work already executing (including synchronous WASM compilation and
-browser module imports) is allowed to finish; stale results and compilation errors
-are discarded at the load's asynchronous checkpoints. This does not roll back
-module side effects or a React commit that already happened.
-
-Incomplete source reports an error while leaving the last successful preview
-visible. The next valid edit clears the error and uses Fast Refresh where possible.
-`load()` resolves after completion or supersession; load failures are reported via
-`error`/`onError` and `status`, rather than rejecting that promise. Supersession is
-not an error. Unmounting discards pending edits and releases the compiler client.
-
-### Preview lifecycle
-
-Use `onStatusChange` on `<DevJar>` or `status` from `useDevJar` for a loading
-indicator. `idle` means no load has started, `compiling` covers source compilation
-and linking, and `loading` covers iframe initialization and module loading.
-`ready` means React committed the preview; it does not wait for application data,
-images, or every asynchronous effect. `failed` accompanies an error. React can
-batch rapid transitions, so callbacks are state notifications, not a phase log.
-
-`onError` also receives React render errors, uncaught iframe errors, and unhandled
-promise rejections. A new load clears the previous error (`undefined`); syntax
-errors leave the previous preview visible. Handle both status and error to explain
-a loading or failed preview. The iframe's native `onLoad` is not preview readiness.
-
-### Advanced API: useDevJar
-
-Prefer `<DevJar>` for managed previews. Use `useDevJar` when you need to own the
-iframe markup and control when files load.
-
-<details>
-<summary>Hook example and return values</summary>
-
-The returned `ref` is a callback, not an object with `.current`. Attaching or
-replacing the iframe initializes a fresh runtime; removing it disposes the runtime.
-For automatic loading, use an effect with `[files, load]` dependencies so it also
-runs when the iframe appears or is replaced. Calls to `load` while no iframe is
-attached do nothing.
-
-The hook accepts the same `dependencies`, `resolveModule`, `transform`, `tailwind`,
-`compiler`, and `transformWorkerUrl` options as the component.
-
-```tsx
-'use client'
-
-import { useDevJar } from 'devjar'
-
-const files = {
-  'pages/index.tsx': `export default function Page() {
-  return <h1>Hello from an iframe</h1>
-}`,
-}
-
-export default function ManualPreview() {
-  const { ref, error, load } = useDevJar({ tailwind: false })
-
-  return (
-    <>
-      <button onClick={() => void load(files)}>Run</button>
-      {error != null && <pre>{String(error)}</pre>}
-      <iframe ref={ref} title="Live React preview" style={{ width: '100%', height: 320 }} />
-    </>
-  )
-}
-```
-
-| Return value | Meaning |
-| --- | --- |
-| `ref` | Callback ref; attach to the iframe that will run the project |
-| `error` | Current compilation, loading, or runtime error, if any |
-| `status` | `idle`, `compiling`, `loading`, `ready`, or `failed` |
-| `reset()` | Recreate the iframe runtime and rerun the current files; returns `Promise<void>` |
-| `load(files)` | Load or update the virtual project; returns `Promise<void>` |
-
-</details>
-
-### Hosting embedded previews
-
-DevJar compiles JSX and TypeScript in a browser worker. No cross-origin
-isolation headers or server-side compiler are needed.
-
-<details>
-<summary>Compiler assets and deployment</summary>
-
-Devjar packages the browser worker, JavaScript binding, and WASM binary as
-lazy runtime assets with static URL references for host bundlers. Next.js
-and Devjar's CLI emit these files automatically; no copy script is needed.
-The compiler uses ordinary, non-shared WebAssembly memory, so embedding a
-preview does not require COOP or COEP headers.
-
-Content Security Policy is separate: the preview inherits the host's policy.
-Policies that block JavaScript eval are not supported yet because the current
-`es-module-lexer` dependency uses eval to decode import names.
-
-</details>
-
-<details>
-<summary>Next.js and custom compiler hosting</summary>
-
-Import `DevJar` from a Client Component (`'use client'`). No `next/dynamic`,
-package patches, resolver override, or isolation headers are needed.
-
-For custom asset hosting, supply all three URLs:
-
-```tsx
-const compiler = {
-  workerUrl: '/compiler/worker.js',
-  bindingUrl: '/compiler/binding.js',
-  wasmUrl: '/compiler/compiler.wasm',
-}
-
-<DevJar files={files} compiler={compiler} tailwind={false} />
-```
-
-Use matching worker, binding, and WASM files from the same Devjar build.
-This override bypasses default discovery entirely. It takes precedence over
-`transformWorkerUrl`, which remains available for worker-only overrides.
-Keep the worker on the host's origin; remotely hosted binding/WASM assets
-must permit cross-origin requests. `useDevJar` accepts the same option.
-
-</details>
+- [Schedule edits](./docs/API.md#scheduling-edits) with a debounce or Run button.
+- [Show loading and error states](./docs/API.md#preview-lifecycle).
+- [Reset the preview](./docs/API.md#resetting-the-runtime) without changing its source.
+- [Use `useDevJar`](./docs/API.md#usedevjar) to manage your own iframe.
 
 ## CLI
 
@@ -331,7 +111,7 @@ npx devjar start  # Preview the export
 Requires Node.js 22+. Deploy `dist/` to a static host. No configuration file or
 local dependency installation needed. Run `npx devjar` for help.
 
-### Routes and dependencies
+### Routes
 
 ```text
 package.json          # Optional: dependency versions
@@ -364,19 +144,6 @@ Put this in `package.json`. Only `dependencies` and `devDependencies` are read
 from the project manifest. Builds vendor CDN packages into the output.
 
 </details>
-
-### Personal website: playground to static export
-
-```sh
-# From this repository
-npx devjar dev examples/personal
-npx devjar build examples/personal --exclude pages/playground.tsx
-npx devjar start examples/personal/dist
-```
-
-The [personal résumé](./examples/personal) includes a simple website and
-`/playground`. Edit its JSON live, copy it to `content.json`, then export the
-same site.
 
 <details>
 <summary>All commands and flags</summary>
@@ -554,21 +321,6 @@ event handlers, not during render.
 </details>
 
 <details>
-<summary>More examples</summary>
-
-```sh
-npx devjar dev examples/basic
-npx devjar dev examples/dashboard
-npx devjar dev examples/swr
-```
-
-[Basic](./examples/basic): minimal pages.
-[Dashboard](./examples/dashboard): navigation, Tailwind, and static data.
-[SWR](./examples/swr): optimistic updates, rollback, and simulated subscriptions.
-
-</details>
-
-<details>
 <summary>Preview on your phone</summary>
 
 ```sh
@@ -580,44 +332,37 @@ Embedded previews also work over HTTP on your local network.
 
 </details>
 
-<details>
-<summary>Repository development</summary>
+## Examples
+
+Run these from a checkout of this repository:
 
 ```sh
-pnpm install
-pnpm run setup:compiler
-pnpm run build
-pnpm run dev
-pnpm run typecheck
-bun test
+npx devjar dev examples/basic
 ```
 
-Source builds require Rust and wasm-bindgen; `setup:compiler` installs the pinned
-toolchain and binding generator. Published npm packages include the compiled
-WASM and do not require Rust.
+| Example | What it shows |
+| --- | --- |
+| [Basic](./examples/basic) | Minimal pages |
+| [Dashboard](./examples/dashboard) | Navigation, Tailwind, and static data |
+| [SWR](./examples/swr) | Optimistic updates, rollback, and simulated subscriptions |
+| [Personal résumé](./examples/personal) | Edit JSON in a playground, then export the site |
 
-Run the full build after runtime changes to regenerate client and worker assets.
-CLI tests open local HTTP servers.
+<details>
+<summary>Export the personal website without its playground</summary>
 
-To release, open **Actions → Release → Run workflow** on `main`. Choose
-**patch / minor / major** and **next / stable**. From `0.11.0`, major + next
-produces `1.0.0-next.1`. During a prerelease cycle, next increments its suffix
-and stable promotes the existing target to `1.0.0`; the bump choice is ignored. Actions commits the version as
-`github-actions[bot]`, pushes its tag, and starts the **Publish** workflow.
-Publish runs the checks, publishes prereleases to `next` (stable versions to
-`latest`), and groups core Conventional Commits into Features and Fixes.
-Website/example polish and maintenance commits are omitted. Stable notes
-compare against the previous published stable release; prereleases compare
-against the nearest published ancestor. Follow the Publish run for the
-final result. The version commit and tag remain available if publishing fails.
+```sh
+npx devjar dev examples/personal
+npx devjar build examples/personal --exclude pages/playground.tsx
+npx devjar start examples/personal/dist
+```
 
-To retry, run **Release** on `main` with **force** enabled. It ignores bump and
-channel and uses the current `package.json` version. Publish reuses its tag
-without moving it, or creates the tag if missing. It skips unit/browser tests
-but still builds, typechecks, and checks the package. An existing npm version
-is left untouched; GitHub release notes are created only if the release is missing.
+Edit the JSON at `/playground`, copy it to `content.json`, then build the site.
 
 </details>
+
+## Contributing
+
+See [AGENTS.md](./AGENTS.md) for development guidelines, local setup, and release instructions.
 
 ## License
 

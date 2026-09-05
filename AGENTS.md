@@ -12,6 +12,16 @@
 
 - When changing a public API, include a short code snippet in the PR description showing how to use the new feature or a before/after code diff showing the change for callers.
 
+## Documentation
+
+- Keep the README focused on what Devjar does, requirements, and the shortest working path for embedded previews and the CLI.
+- Use concise, task-oriented prose and small, runnable examples. Describe observable behavior; omit implementation details unless they affect a user's decision or integration.
+- Put optional examples and CLI reference material in `<details>` blocks with descriptive summaries. Keep essential setup requirements and constraints visible.
+- Keep supporting documentation in `docs/` and detailed runtime contracts in `docs/API.md`, including scheduling, lifecycle, reset behavior, and the lower-level hook. Link to the relevant section from the README instead of duplicating the reference.
+- Group repository demos under Examples. Keep contributor setup and release procedures in `AGENTS.md` so agents and human contributors share one reference.
+- Extend the existing home for a topic instead of adding another top-level README section for every feature. When moving documentation, update links and remove stale or duplicate guidance.
+- For documentation-only changes, check links, Markdown structure, and examples against the current API. Do not add tests for prose changes.
+
 ## TypeScript and API design
 
 - Avoid optional parameters and default arguments when callers can pass values explicitly.
@@ -34,3 +44,41 @@
 - Keep tests isolated: temporary fixtures, local fake CDNs for source tests, explicit synchronization, bounded waits, and cleanup. Fake renderers do not prove real React/browser compatibility.
 - For regressions, fix or extend the owning test. Remove redundant assertions when consolidating, preserving each distinct failure case. Test count and coverage percentage are not goals.
 - Run affected tests first, then the normal CI checks once. Repeat only for new changes, failures, or an unresolved risk.
+
+## Local development
+
+```sh
+pnpm install
+pnpm run setup:compiler
+pnpm run build
+pnpm run dev
+pnpm run typecheck
+bun test
+```
+
+Source builds require Rust and wasm-bindgen; `setup:compiler` installs the pinned
+toolchain and binding generator. Published npm packages include the compiled
+WASM and do not require Rust.
+
+Run the full build after runtime changes to regenerate client and worker assets.
+CLI tests open local HTTP servers.
+
+## Releases
+
+To release, open **Actions → Release → Run workflow** on `main`. Choose
+**patch / minor / major** and **next / stable**. From `0.11.0`, major + next
+produces `1.0.0-next.1`. During a prerelease cycle, next increments its suffix
+and stable promotes the existing target to `1.0.0`; the bump choice is ignored. Actions commits the version as
+`github-actions[bot]`, pushes its tag, and starts the **Publish** workflow.
+Publish runs the checks, publishes prereleases to `next` (stable versions to
+`latest`), and groups core Conventional Commits into Features and Fixes.
+Website/example polish and maintenance commits are omitted. Stable notes
+compare against the previous published stable release; prereleases compare
+against the nearest published ancestor. Follow the Publish run for the
+final result. The version commit and tag remain available if publishing fails.
+
+To retry, run **Release** on `main` with **force** enabled. It ignores bump and
+channel and uses the current `package.json` version. Publish reuses its tag
+without moving it, or creates the tag if missing. It skips unit/browser tests
+but still builds, typechecks, and checks the package. An existing npm version
+is left untouched; GitHub release notes are created only if the release is missing.
