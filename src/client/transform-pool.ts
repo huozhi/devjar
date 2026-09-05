@@ -3,9 +3,9 @@ type Response = { id: number; transformed: Files; error?: never }
   | { id: number; error: { message: string; stack?: string }; transformed?: never }
 export type TransformClient = { transform: (files: Files) => Promise<Files>; release: () => void }
 
-export function createTransformPool(createWorker: (url: string | undefined) => Promise<Worker>) {
+export function createTransformPool(createWorker: (url: string | undefined) => Worker) {
   type Request = { owner: symbol; resolve: (files: Files) => void; reject: (error: Error) => void }
-  type Entry = { users: number; nextId: number; worker: Promise<Worker> | undefined; requests: Map<number, Request> }
+  type Entry = { users: number; nextId: number; worker: Worker | undefined; requests: Map<number, Request> }
   const entries = new Map<string | undefined, Entry>()
 
   return function acquire(url: string | undefined): TransformClient {
@@ -21,30 +21,27 @@ export function createTransformPool(createWorker: (url: string | undefined) => P
 
     function getWorker() {
       if (!entry.worker) {
-        const pending = createWorker(url).then(worker => {
-          worker.onmessage = ({ data }: MessageEvent<Response>) => {
-            const request = entry.requests.get(data.id)
-            if (!request) return
-            entry.requests.delete(data.id)
-            if (data.error) {
-              const error = new Error(data.error.message)
-              if (data.error.stack) error.stack = data.error.stack
-              request.reject(error)
-            } else request.resolve(data.transformed)
-          }
-          const fail = (error: Error) => {
-            if (entry.worker !== pending) return
-            entry.worker = undefined
-            worker.terminate()
-            for (const request of entry.requests.values()) request.reject(error)
-            entry.requests.clear()
-          }
-          worker.onerror = event => fail(new Error(event.message || 'devjar: transform worker failed'))
-          worker.onmessageerror = () => fail(new Error('devjar: invalid transform worker message'))
-          return worker
-        })
-        entry.worker = pending
-        void pending.catch(() => { if (entry.worker === pending) entry.worker = undefined })
+        const worker = createWorker(url)
+        worker.onmessage = ({ data }: MessageEvent<Response>) => {
+          const request = entry.requests.get(data.id)
+          if (!request) return
+          entry.requests.delete(data.id)
+          if (data.error) {
+            const error = new Error(data.error.message)
+            if (data.error.stack) error.stack = data.error.stack
+            request.reject(error)
+          } else request.resolve(data.transformed)
+        }
+        const fail = (error: Error) => {
+          if (entry.worker !== worker) return
+          entry.worker = undefined
+          worker.terminate()
+          for (const request of entry.requests.values()) request.reject(error)
+          entry.requests.clear()
+        }
+        worker.onerror = event => fail(new Error(event.message || 'devjar: transform worker failed'))
+        worker.onmessageerror = () => fail(new Error('devjar: invalid transform worker message'))
+        entry.worker = worker
       }
       return entry.worker
     }
@@ -55,13 +52,12 @@ export function createTransformPool(createWorker: (url: string | undefined) => P
         const id = ++entry.nextId
         return new Promise((resolve, reject) => {
           entry.requests.set(id, { owner, resolve, reject })
-          void getWorker().then(worker => {
-            if (entry.requests.has(id)) worker.postMessage({ id, files })
-          }).catch(error => {
-            const request = entry.requests.get(id)
+          try {
+            getWorker().postMessage({ id, files })
+          } catch (error) {
             entry.requests.delete(id)
-            request?.reject(error)
-          })
+            reject(error)
+          }
         })
       },
       release() {
@@ -74,7 +70,7 @@ export function createTransformPool(createWorker: (url: string | undefined) => P
         }
         if (--entry.users === 0) {
           entries.delete(url)
-          void entry.worker?.then(worker => worker.terminate(), () => {})
+          entry.worker?.terminate()
         }
       },
     }

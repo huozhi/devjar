@@ -17,7 +17,7 @@ const flush = () => new Promise(resolve => setTimeout(resolve, 0))
 
 test('previews share one compiler and route out-of-order replies independently', async () => {
   const workers: FakeWorker[] = []
-  const acquire = createTransformPool(async () => {
+  const acquire = createTransformPool(() => {
     const worker = new FakeWorker(); workers.push(worker); return worker as unknown as Worker
   })
   const a = acquire(undefined), b = acquire(undefined)
@@ -37,36 +37,27 @@ test('previews share one compiler and route out-of-order replies independently',
   expect(workers[0].terminated).toBe(true)
 })
 
-test('unmount cancels only its own requests, even during initialization', async () => {
-  let ready!: (worker: Worker) => void
-  const acquire = createTransformPool(() => new Promise(resolve => { ready = resolve }))
-  const a = acquire(undefined), b = acquire(undefined), worker = new FakeWorker()
+test('unmount cancels only its own in-flight requests and ignores late replies', async () => {
+  const worker = new FakeWorker()
+  const acquire = createTransformPool(() => worker as unknown as Worker)
+  const a = acquire(undefined), b = acquire(undefined)
   const first = a.transform({ a: '' }).catch(error => error.message)
   const second = b.transform({ b: '' })
   a.release(); a.release()
   expect(await first).toContain('released')
-  ready(worker as unknown as Worker); await flush()
-  expect(worker.messages).toHaveLength(1)
-  expect(worker.messages[0].files).toEqual({ b: '' })
-  worker.reply(0, { b: 'compiled' }); await second
-  b.release(); await flush()
+  expect(worker.terminated).toBe(false)
+  worker.reply(0, { a: 'obsolete' })
+  worker.reply(1, { b: 'compiled' })
+  expect(await second).toEqual({ b: 'compiled' })
+  const pending = b.transform({ b: 'pending' }).catch(error => error.message)
+  b.release()
+  expect(await pending).toContain('released')
   expect(worker.terminated).toBe(true)
-})
-
-test('last unmount terminates a worker that is still initializing', async () => {
-  let ready!: (worker: Worker) => void
-  const acquire = createTransformPool(() => new Promise(resolve => { ready = resolve }))
-  const client = acquire(undefined), worker = new FakeWorker()
-  const result = client.transform({ a: '' }).catch(error => error.message)
-  client.release(); await result
-  ready(worker as unknown as Worker); await flush()
-  expect(worker.terminated).toBe(true)
-  expect(worker.messages).toHaveLength(0)
 })
 
 test('worker failure rejects every pending request and the next edit can retry', async () => {
   const workers: FakeWorker[] = []
-  const acquire = createTransformPool(async () => {
+  const acquire = createTransformPool(() => {
     const worker = new FakeWorker(); workers.push(worker); return worker as unknown as Worker
   })
   const a = acquire(undefined), b = acquire(undefined)
@@ -80,10 +71,10 @@ test('worker failure rejects every pending request and the next edit can retry',
   a.release(); b.release()
 })
 
-test('initialization failure can retry and custom worker URLs stay isolated', async () => {
+test('worker construction failure can retry and custom worker URLs stay isolated', async () => {
   let attempts = 0
   const workers: FakeWorker[] = []
-  const acquire = createTransformPool(async () => {
+  const acquire = createTransformPool(() => {
     if (++attempts === 1) throw new Error('Network failed')
     const worker = new FakeWorker(); workers.push(worker); return worker as unknown as Worker
   })

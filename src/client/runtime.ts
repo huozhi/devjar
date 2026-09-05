@@ -16,7 +16,7 @@ export type CompilationOptions = {
   workerUrl: string | undefined
 }
 
-const acquireTransformClient = createTransformPool(async (url: string | undefined) => {
+const acquireTransformClient = createTransformPool((url: string | undefined) => {
   if (!url) throw new Error('devjar: compiler worker URL is required')
   return new globalThis.Worker(url, { type: 'module', name: 'devjar-transform' })
 })
