@@ -38,10 +38,11 @@ export function createPreviewRuntime(iframe: HTMLIFrameElement, {
   const cache = new Map<string, { source: string; code: string }>()
   let latest: { files: Record<string, string>; promise: Promise<void> } | undefined
   let pendingReset: Promise<void> | undefined
-  const session = createFrameSession(iframe, {
+  const frameOptions = {
     script: createMainScript(), resolveModule, tailwind,
-    onError: error => onChange({ error, status: 'failed' }),
-  })
+    onError: (error: unknown) => onChange({ error, status: 'failed' }),
+  }
+  let session = createFrameSession(iframe, frameOptions)
 
   function isCurrent(id: number) {
     return !disposed && id === generation
@@ -140,7 +141,9 @@ export function createPreviewRuntime(iframe: HTMLIFrameElement, {
     cancelLoads()
     const resetId = generation
     onChange({ error: undefined, status: 'loading' })
-    const pending = session.reset().then(async () => {
+    session.dispose()
+    session = createFrameSession(iframe, frameOptions)
+    const pending = session.ready.then(async () => {
       if (disposed) return
       if (!latest) onChange({ error: undefined, status: 'idle' })
       else if (generation === resetId) await load(latest.files, options)
