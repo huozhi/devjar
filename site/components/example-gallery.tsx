@@ -10,7 +10,7 @@ const examples = [
   { id: 'drums', files: drumFiles, focusFile: 'patterns/pocket.ts', label: 'Drum machine', editorAction: { label: 'Shuffle beat', generate: shuffleDrumPattern, playback: true } },
   { id: 'shader', files: shaderFiles, focusFile: 'vgpu.ts', label: 'Shader playground', editorAction: { label: 'Shuffle color', generate: shuffleShaderColor, playback: false } },
   { id: 'swr', files: swrFiles, focusFile: 'swr.ts', label: 'SWR playground', editorAction: undefined },
-  { id: 'jar', files: jarFiles, focusFile: 'jar.ts', label: 'React Three Fiber · Devjar', editorAction: undefined },
+  { id: 'jar', files: jarFiles, focusFile: 'jar.json', label: 'React Three Fiber · Devjar', editorAction: undefined },
 ]
 export function ExampleGallery() {
   return (

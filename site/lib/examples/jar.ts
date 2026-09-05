@@ -1,20 +1,20 @@
 import { source } from '../demo-files'
 
 export const jarFiles = {
-  'jar.ts': source`\
-  export const jar = {
-    title: 'devjar',
-    command: 'npx devjar dev',
-    color: '#8aa9cf',
-    speed: 0.35, // 0 to hold still.
-    glass: 0.07, // Try 0.03 or 0.15.
+  'jar.json': source`\
+  {
+    "title": "devjar",
+    "command": "npx devjar dev",
+    "color": "#8aa9cf",
+    "speed": 0.35,
+    "glass": 0.07
   }
   `,
   'pages/index.tsx': source`\
   import { useEffect, useMemo, useRef, useState } from 'react'
   import { Canvas, useFrame } from '@react-three/fiber'
   import { CanvasTexture, DoubleSide, SRGBColorSpace, SplineCurve, Vector2 } from 'three'
-  import { jar } from '../jar'
+  import jar from '../jar.json'
   import '../styles.css'
 
   function Terminal() {

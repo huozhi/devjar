@@ -1,3 +1,4 @@
+import { createJsonModule } from './json'
 import { useEffect, useCallback, useState, useId, useMemo, useRef } from 'react'
 import { createModule } from './module'
 import type { ModuleRuntime } from './module'
@@ -35,7 +36,7 @@ let esModuleLexerInit = false
 const isRelative = (specifier: string) => specifier.startsWith('./') || specifier.startsWith('../')
 const localImportPrefix = '__DEVJAR_LOCAL_IMPORT__'
 const tailwindSrc = 'https://unpkg.com/@tailwindcss/browser@4'
-const localExtensions = [...sourceExtensions, '.css']
+const localExtensions = [...sourceExtensions, '.css', '.json']
 let transformAssetManifestPromise: Promise<TransformAssetManifest> | undefined
 
 function createLocalImportPlaceholder(moduleKey: string) {
@@ -243,6 +244,12 @@ async function linkModules(
     const moduleKey = getModuleKey(filename)
     if (filename.endsWith('.css')) {
       linkedFiles[moduleKey] = source
+      dependencies[moduleKey] = []
+      continue
+    }
+
+    if (filename.endsWith('.json')) {
+      linkedFiles[moduleKey] = createJsonModule(filename, source)
       dependencies[moduleKey] = []
       continue
     }
@@ -652,7 +659,7 @@ function useLiveCode({
 
       const filesToTransform = Object.fromEntries(
         Object.entries(files).filter(([filename, source]) => {
-          return !filename.endsWith('.css') && transformCacheRef.current.get(filename)?.source !== source
+          return !filename.endsWith('.css') && !filename.endsWith('.json') && transformCacheRef.current.get(filename)?.source !== source
         })
       )
       const newTransforms = Object.keys(filesToTransform).length
@@ -669,7 +676,7 @@ function useLiveCode({
 
       const transformedSources: Record<string, string> = {}
       for (const filename of Object.keys(files)) {
-        if (filename.endsWith('.css')) {
+        if (filename.endsWith('.css') || filename.endsWith('.json')) {
           transformedSources[filename] = files[filename]
         } else {
           const cachedTransform = transformCacheRef.current.get(filename)

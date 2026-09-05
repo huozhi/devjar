@@ -177,7 +177,15 @@ The pages directory maps directly to URLs:
 | `pages/docs/start.jsx` | `/docs/start` |
 | `pages/404.jsx` | unmatched routes |
 
-Pages can import local JavaScript, TypeScript, JSX, TSX, and CSS files. Image,
+JSON files provide a default export and update live when edited:
+
+```tsx
+import settings from '../settings.json'
+```
+
+Use valid JSON (double-quoted keys, without comments or trailing commas).
+
+Pages can import local JavaScript, TypeScript, JSX, TSX, JSON, and CSS files. Image,
 font, audio, video, and PDF imports export their public URL, and relative
 `url(...)` references in CSS use the same asset pipeline:
 

@@ -1,3 +1,4 @@
+import { createJsonModule } from '../json'
 import { createHash } from 'node:crypto'
 import { readFile, realpath, stat } from 'node:fs/promises'
 import { basename, extname, relative, resolve, sep } from 'node:path'
@@ -28,7 +29,7 @@ export const staticAssetExtensions = [
   '.woff',
   '.woff2',
 ] as const
-export const localExtensions = [...sourceExtensions, '.css', ...staticAssetExtensions]
+export const localExtensions = [...sourceExtensions, '.css', '.json', ...staticAssetExtensions]
 
 type ModuleGraphEntry = {
   dependencies: Set<string>
@@ -238,6 +239,10 @@ export async function collectProjectFiles(root: string, entry: string) {
     if (isStaticAsset(canonicalPath)) continue
 
     const source = await readFile(canonicalPath, 'utf8')
+    if (extname(canonicalPath) === '.json') {
+      createJsonModule(projectPath, source)
+      continue
+    }
     if (extname(canonicalPath) === '.css') {
       for (const asset of (await resolveCssAssets(root, canonicalPath, source)).values()) {
         queue.push(asset.path)
@@ -344,6 +349,14 @@ export async function compileProjectModule(
   }
 
   let source = contents.toString('utf8')
+  if (extname(sourcePath) === '.json') {
+    return {
+      code: outputModuleCode(options, projectPath, createJsonModule(projectPath, source)),
+      dependencies: [],
+      refreshBoundary: false,
+      style: undefined,
+    }
+  }
   if (extname(sourcePath) === '.css') {
     const assets = await resolveCssAssets(options.root, sourcePath, source)
     source = rewriteCssAssets(source, assets, options.assetUrl)

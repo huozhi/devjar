@@ -271,6 +271,7 @@ export function projectComponent() { return environment }
       'components/root-actions.tsx',
       'lib/demo-files.ts',
       'lib/examples/drums.ts',
+      'lib/examples/jar.ts',
       'lib/examples/shader.ts',
       'lib/examples/swr.ts',
       'pages/index.tsx',
