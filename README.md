@@ -39,6 +39,11 @@ Pass a new `files` object to update the preview. Add your own editor or controls
 Devjar compiles the files and renders the project inside an iframe, with
 React Fast Refresh where possible.
 
+For a live code editor, pair Devjar with
+[@sugar-high/react](https://sugar-high.vercel.app/react). Its `Editor` component
+provides syntax highlighting; update `files` from its `onChange` callback to
+refresh the preview. The website demos use this combination.
+
 Use a client component (`'use client'`) in frameworks with server components.
 The preview runs in the host's origin, so only run code you trust. No cross-origin
 isolation headers or server-side compiler are needed. See

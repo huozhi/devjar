@@ -59,6 +59,11 @@ function Preview() {
 }`}</Code>
               </div>
               <p>Embedded previews run in the browser. No special hosting headers required.</p>
+              <p>
+                For a live code editor, pair Devjar with <a href="https://sugar-high.vercel.app/react">@sugar-high/react</a>.
+                {' '}Its <code>Editor</code> component provides syntax highlighting; update <code>files</code> from
+                its <code>onChange</code> callback to refresh the preview. The gallery demos use this combination.
+              </p>
               <p><a href="https://github.com/huozhi/devjar/tree/main/examples/personal">Personal website example: live playground to static export →</a></p>
               <a href="https://github.com/huozhi/devjar#devjar-component" target="_blank" rel="noopener noreferrer">
                 Read the component and iframe documentation →
