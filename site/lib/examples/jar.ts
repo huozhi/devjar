@@ -3,137 +3,145 @@ import { source } from '../demo-files'
 export const jarFiles = {
   'jar.json': source`\
   {
-    "pieces": 100,
-    "wind": 0.8,
-    "colors": ["#e87955", "#efb94f", "#d96f83", "#f5d69a", "#b28ac7"],
-    "gravity": 1.8,
-    "glass": 0.12
+    "throw": 3.2,
+    "gravity": 9,
+    "glass": 0.22
   }
   `,
-  'confetti.frag': source`\
-  uniform float uTime;
-  varying vec2 vUv;
-  varying vec3 vColor;
-
-  void main() {
-    // Try 0.45 for round pieces, or 0.05 for square corners.
-    float radius = 0.15;
-    vec2 edge = abs(vUv - 0.5) - vec2(0.5 - radius);
-    if (length(max(edge, 0.0)) > radius) discard;
-
-    // Raise this to 0.5 for a stronger shimmer.
-    float shimmer = 0.12 * sin(uTime * 3.0 + vUv.y * 12.0);
-    vec3 paper = vColor * (0.88 + shimmer);
-    gl_FragColor = vec4(paper, 1.0);
-    #include <tonemapping_fragment>
-    #include <colorspace_fragment>
-  }
+  'cards.json': source`\
+  [
+    { "design": "code", "color": "#eee2ca", "width": 0.54, "height": 0.76, "x": -0.24, "z": -0.12, "tilt": 0.18 },
+    { "design": "lines", "color": "#f3e8d4", "width": 0.58, "height": 0.84, "x": 0.32, "z": -0.08, "tilt": -0.16 },
+    { "design": "dots", "color": "#f4ead8", "width": 0.46, "height": 0.52, "x": -0.43, "z": 0.27, "tilt": 0.12 },
+    { "design": "line", "color": "#272b28", "width": 0.34, "height": 0.56, "x": 0.12, "z": 0.32, "tilt": -0.06 }
+  ]
   `,
   'pages/index.tsx': source`\
   import { useEffect, useMemo, useRef, useState } from 'react'
   import { Canvas, useFrame } from '@react-three/fiber'
-  import { CanvasTexture, Color, Object3D, DoubleSide, EquirectangularReflectionMapping, SRGBColorSpace, SplineCurve, Vector2 } from 'three'
+  import { CanvasTexture, DoubleSide, Euler, Quaternion, Vector3, EquirectangularReflectionMapping, SRGBColorSpace, SplineCurve, Vector2 } from 'three'
   import jar from '../jar.json'
-  import fragmentShader from '../confetti.frag' with { type: 'text' }
+  import cards from '../cards.json'
   import '../styles.css'
 
-  const vertexShader = \`
-  varying vec2 vUv;
-  varying vec3 vColor;
-  void main() {
-    vUv = uv;
-    vColor = instanceColor;
-    gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0);
-  }
-  \`
-
-  function Coriandoli({ moving, burst }) {
-    const mesh = useRef(null)
-    const time = useRef(0)
-    const uniforms = useMemo(() => ({ uTime: { value: 0 } }), [])
-    const count = Math.max(1, Math.min(400, Math.floor(Number(jar.pieces) || 1)))
-    const pieces = useMemo(() => Array.from({ length: count }, (_, index) => {
-      const phase = index * 2.39996
-      const radius = 0.2 + (index * 0.618 % 1) * 0.48
-      return {
-        phase, size: 0.035 + (index * 0.317 % 1) * 0.04,
-        x: Math.cos(phase) * radius, y: -0.7 + (index * 0.754 % 1) * 1.15,
-        z: Math.sin(phase) * radius, vx: 0, vy: 0, vz: 0,
-        rx: phase, ry: phase * 0.7, rz: phase * 0.3,
+  function cardTexture(card) {
+    const canvas = document.createElement('canvas')
+    canvas.width = 256
+    canvas.height = Math.round(256 * card.height / card.width)
+    const pen = canvas.getContext('2d')
+    const { width, height } = canvas
+    pen.fillStyle = card.color
+    pen.fillRect(0, 0, width, height)
+    // A little paper grain, without downloading an image.
+    for (let i = 0; i < 6000; i++) {
+      pen.fillStyle = i % 2 ? '#ffffff0b' : '#30271909'
+      pen.fillRect((i * 73.31) % width, (i * 37.17) % height, 1, 2)
+    }
+    pen.strokeStyle = '#8c7c5a44'
+    pen.lineWidth = 3
+    pen.strokeRect(2, 2, width - 4, height - 4)
+    pen.fillStyle = '#282c28'
+    if (card.design === 'code') {
+      pen.font = '76px monospace'
+      pen.textAlign = 'center'
+      pen.fillText('</>', width / 2, height * 0.4)
+    } else if (card.design === 'lines') {
+      pen.fillStyle = '#9c95866b'
+      for (let i = 0; i < 5; i++) pen.fillRect(35, 65 + i * 31, i === 4 ? 102 : 178, 7)
+    } else if (card.design === 'dots') {
+      for (let y = 45; y < height - 25; y += 28) {
+        for (let x = 39; x < width - 25; x += 28) {
+          pen.beginPath(); pen.arc(x, y, 2.4, 0, Math.PI * 2); pen.fill()
+        }
       }
-    }), [count])
-    const dummy = useMemo(() => new Object3D(), [])
-    useEffect(() => {
-      pieces.forEach((_, index) => mesh.current.setColorAt(index,
-        new Color(jar.colors[index % jar.colors.length] || '#e87955')))
-      mesh.current.instanceColor.needsUpdate = true
-    }, [pieces, jar.colors])
+    } else {
+      pen.fillStyle = '#a5d4dd'
+      pen.fillRect(width / 2 - 2, height * 0.22, 3, height * 0.57)
+    }
+    const texture = new CanvasTexture(canvas)
+    texture.colorSpace = SRGBColorSpace
+    return texture
+  }
+
+  function Cards({ moving, burst }) {
+    const group = useRef(null)
+    const lastBurst = useRef(burst.current)
+    const textures = useMemo(() => cards.map(cardTexture), [cards])
+    useEffect(() => () => textures.forEach(texture => texture.dispose()), [textures])
+    const pieces = useMemo(() => cards.map((card, index) => ({
+      ...card, base: -0.81 + index * 0.004,
+      y: -0.81 + index * 0.004 + Math.cos(card.tilt) * card.height / 2 + Math.abs(Math.sin(card.tilt)) * card.width / 2,
+      vx: 0, vy: 0, vz: 0, spin: 0,
+      rotation: new Quaternion().setFromEuler(new Euler(0, 0, card.tilt)),
+      landing: null, tossed: false, phase: index * 2.4,
+    })), [cards])
+    const vectors = useMemo(() => ({ x: new Vector3(), y: new Vector3(), normal: new Vector3(), up: new Vector3(), turn: new Quaternion(), euler: new Euler() }), [])
+    function halfHeight(piece) {
+      vectors.x.set(1, 0, 0).applyQuaternion(piece.rotation)
+      vectors.y.set(0, 1, 0).applyQuaternion(piece.rotation)
+      return Math.abs(vectors.x.y) * piece.width / 2 + Math.abs(vectors.y.y) * piece.height / 2
+    }
     useFrame((_, delta) => {
-      const dt = moving ? Math.min(delta, 0.05) : 0
-      const steps = Math.max(1, Math.ceil(dt / 0.012))
-      const step = dt / steps
-      for (let frame = 0; frame < steps; frame++) {
-        time.current += step
-        const t = time.current
-        // Uneven gusts from a wandering jet near the bottom.
-        const pulse = Math.max(0, Math.sin(t * 1.7) * 0.55 + Math.sin(t * 0.73 + 1) * 0.45)
-        const gust = Math.max(0, jar.wind) * (0.08 + Math.pow(pulse, 4) * 9) + burst.current
-        burst.current *= Math.exp(-step * 4)
-        const jetX = Math.sin(t * 0.67) * 0.25
-        const jetZ = Math.cos(t * 0.91) * 0.25
-        pieces.forEach(piece => {
-          const distance = (piece.x - jetX) ** 2 + (piece.z - jetZ) ** 2
-          const lift = gust * Math.exp(-distance * 1.1) * Math.exp(-(piece.y + 0.8) * 0.85)
-          const flutter = Math.sin(t * 7 + piece.phase)
-          piece.vx += (Math.sin(t * 2.3 + piece.phase) * lift * 0.45 - piece.vx * 1.1) * step
-          piece.vz += (Math.cos(t * 1.9 + piece.phase) * lift * 0.45 - piece.vz * 1.1) * step
-          piece.vy += (lift - Math.max(0, jar.gravity) - piece.vy * (0.35 + Math.abs(flutter) * 0.2)) * step
-          piece.x += piece.vx * step
-          piece.y += piece.vy * step
-          piece.z += piece.vz * step
-          // The floor catches falling paper; a later gust can lift it again.
-          if (piece.y < -0.79) {
-            piece.y = -0.79
-            piece.vy = Math.max(0, -piece.vy * 0.08)
-            piece.vx *= Math.exp(-step * 7)
-            piece.vz *= Math.exp(-step * 7)
-          }
-          if (piece.y > 0.7) { piece.y = 0.7; piece.vy = -Math.abs(piece.vy) * 0.3 }
-          const radius = piece.y > 0.2 ? 0.96 - (piece.y - 0.2) * 0.95 : 0.96 - Math.max(0, -piece.y - 0.45) * 0.6
-          const radial = Math.hypot(piece.x, piece.z)
-          if (radial > radius) {
-            piece.x *= radius / radial
-            piece.z *= radius / radial
-            const outward = (piece.vx * piece.x + piece.vz * piece.z) / radius
-            if (outward > 0) {
-              piece.vx -= 1.3 * outward * piece.x / radius
-              piece.vz -= 1.3 * outward * piece.z / radius
-            }
-          }
-          if (piece.y > -0.78) {
-            piece.rx += (flutter * 2 + lift) * step
-            piece.ry += Math.cos(t * 4 + piece.phase) * step * 2
-            piece.rz += piece.vy * step * 2
-          } else {
-            piece.rx += (Math.PI / 2 - piece.rx) * Math.min(1, step * 8)
-            piece.ry *= Math.exp(-step * 8)
-          }
+      const dt = moving ? Math.min(delta, 0.04) : 0
+      if (lastBurst.current !== burst.current) {
+        lastBurst.current = burst.current
+        pieces.forEach((piece, index) => {
+          piece.vy = Math.max(0, Number(jar.throw) || 0) * (0.85 + index * 0.06)
+          piece.vx = Math.cos(piece.phase + burst.current) * 0.65
+          piece.vz = Math.sin(piece.phase + burst.current) * 0.4
+          piece.spin = (index % 2 ? -1 : 1) * 1.5
+          piece.landing = null
+          piece.tossed = true
         })
       }
-      uniforms.uTime.value = time.current
       pieces.forEach((piece, index) => {
-        dummy.position.set(piece.x, piece.y, piece.z)
-        dummy.rotation.set(piece.rx, piece.ry, piece.rz)
-        dummy.scale.set(piece.size, piece.size * 1.6, 1)
-        dummy.updateMatrix()
-        mesh.current.setMatrixAt(index, dummy.matrix)
+        piece.vy -= Math.max(0.1, Number(jar.gravity) || 9) * dt
+        piece.x += piece.vx * dt
+        piece.y += piece.vy * dt
+        piece.z += piece.vz * dt
+        if (!piece.landing) {
+          vectors.euler.set(piece.spin * dt * 0.35, piece.spin * dt, piece.spin * dt * 0.45)
+          piece.rotation.multiply(vectors.turn.setFromEuler(vectors.euler))
+        }
+        // Collision height follows the card's actual orientation.
+        const extent = halfHeight(piece)
+        const ceiling = 0.64 - extent
+        if (piece.y > ceiling) { piece.y = ceiling; piece.vy = -Math.abs(piece.vy) * 0.15 }
+        const radius = 0.8 - piece.width / 2
+        const distance = Math.hypot(piece.x, piece.z)
+        if (distance > radius) {
+          piece.x *= radius / distance; piece.z *= radius / distance
+          piece.vx *= -0.3; piece.vz *= -0.3
+        }
+        const floor = piece.base + extent
+        if (piece.y <= floor) {
+          piece.y = floor
+          piece.vy = Math.abs(piece.vy) > 0.5 ? -piece.vy * 0.08 : 0
+          piece.vx *= Math.exp(-dt * 8)
+          piece.vz *= Math.exp(-dt * 8)
+          if (piece.tossed) {
+            // Tip onto the nearest face; never unwind Euler angles to the starting pose.
+            if (!piece.landing) {
+              vectors.normal.set(0, 0, 1).applyQuaternion(piece.rotation)
+              vectors.up.set(0, vectors.normal.y < 0 ? -1 : 1, 0)
+              piece.landing = new Quaternion().setFromUnitVectors(vectors.normal, vectors.up).multiply(piece.rotation)
+              piece.spin = 0
+            }
+            piece.rotation.slerp(piece.landing, 1 - Math.exp(-dt * 6))
+            piece.y = piece.base + halfHeight(piece)
+          }
+        }
+        const mesh = group.current.children[index]
+        mesh.position.set(piece.x, piece.y, piece.z)
+        mesh.quaternion.copy(piece.rotation)
       })
-      mesh.current.instanceMatrix.needsUpdate = true
     })
-    return <instancedMesh key={count} ref={mesh} args={[undefined, undefined, count]} frustumCulled={false}>
-      <planeGeometry args={[1, 1]} />
-      <shaderMaterial vertexShader={vertexShader} fragmentShader={fragmentShader} uniforms={uniforms} side={DoubleSide} vertexColors />
-    </instancedMesh>
+    return <group ref={group}>
+      {pieces.map((card, index) => <mesh key={index}>
+        <planeGeometry args={[card.width, card.height]} />
+        <meshStandardMaterial map={textures[index]} roughness={0.95} side={DoubleSide} />
+      </mesh>)}
+    </group>
   }
 
   function WoodenStopper() {
@@ -196,8 +204,8 @@ export const jarFiles = {
     const group = useRef(null)
     const points = useMemo(() => {
       const curve = new SplineCurve([
-        [0.78, -0.88], [0.97, -0.72], [1.12, -0.3],
-        [1.13, 0.15], [0.94, 0.52], [0.59, 0.76], [0.54, 0.94],
+        [0.78, -0.88], [0.96, -0.78], [0.99, -0.3],
+        [0.99, 0.22], [0.91, 0.55], [0.59, 0.76], [0.54, 0.94],
       ].map(point => new Vector2(...point)))
       return [new Vector2(0, -0.88), ...curve.getPoints(48)]
     }, [])
@@ -205,17 +213,24 @@ export const jarFiles = {
       if (moving) group.current.rotation.y = pointer.x * 0.18
     })
     return <group ref={group} rotation={[0, -0.15, 0]}>
-      <Coriandoli moving={moving} burst={burst} />
+      <Cards moving={moving} burst={burst} />
       <mesh><latheGeometry args={[points, 96]} />
-        <meshPhysicalMaterial color="#fffaf0" transmission={1} thickness={jar.glass * 2} ior={1.48} roughness={0.015} metalness={0} side={DoubleSide} clearcoat={1} envMapIntensity={1.1} />
+        <meshPhysicalMaterial color="#c5cdc8" transparent opacity={jar.glass} depthWrite={false} roughness={0.03} metalness={0.15} clearcoat={1} envMapIntensity={1} />
+      </mesh>
+      <mesh position={[0, -0.8, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.89, 0.035, 12, 96]} />
+        <meshPhysicalMaterial color="#e8e4d8" transparent opacity={0.45} roughness={0.05} metalness={0.25} />
+      </mesh>
+      <mesh position={[0, 0.86, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.55, 0.025, 12, 64]} />
+        <meshPhysicalMaterial color="#e8e4d8" transparent opacity={0.5} roughness={0.05} metalness={0.25} />
       </mesh>
       <WoodenStopper />
     </group>
   }
 
   export default function Scene() {
-    const burst = useRef(8)
-    const [paused, setPaused] = useState(false)
+    const burst = useRef(0)
     const [visible, setVisible] = useState(true)
     const [reduced, setReduced] = useState(false)
     useEffect(() => {
@@ -228,29 +243,27 @@ export const jarFiles = {
       observer.observe(target)
       return () => { observer.disconnect(); media.removeEventListener('change', update) }
     }, [])
-    function blow() {
-      burst.current = 12
-      setPaused(false)
+    function toss() {
+      burst.current += 1
     }
     return <main>
-      <div className="caption"><button onClick={() => setPaused(!paused)} aria-pressed={paused}>{paused ? 'Resume' : 'Pause'}</button></div>
-      <div className="scene" role="button" tabIndex={0} aria-label="Blow confetti upward"
-        onClick={blow} onKeyDown={event => {
-          if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); blow() }
+      <div className="scene" role="button" tabIndex={0} aria-label="Toss the cards"
+        onClick={toss} onKeyDown={event => {
+          if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toss() }
         }}>
-        <Canvas camera={{ position: [1.5, 1.1, 5.8], fov: 36 }} dpr={[1, 1.5]} frameloop={visible && !paused && !reduced ? 'always' : 'demand'} fallback={<p>WebGL is needed to view the glass jar.</p>}>
+        <Canvas camera={{ position: [0.55, 0.65, 4.6], fov: 36 }} dpr={[1, 1.5]} frameloop={visible && !reduced ? 'always' : 'demand'} fallback={<p>WebGL is needed to view the glass jar.</p>}>
           <color attach="background" args={['#f3eee6']} />
-          <ambientLight intensity={1.6} />
-          <directionalLight position={[3, 5, 4]} intensity={2.5} color="#fff4e2" />
-          <pointLight position={[-3, 1, 2]} intensity={6} color="#ffd9a8" />
+          <ambientLight intensity={0.9} />
+          <directionalLight position={[3, 5, 4]} intensity={1.8} color="#fff4e2" />
+          <pointLight position={[-3, 1, 2]} intensity={3} color="#ffd9a8" />
           <StudioLight />
-          <Jar moving={!paused && !reduced} burst={burst} />
+          <Jar moving={!reduced} burst={burst} />
           <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.96, 0]}>
             <circleGeometry args={[1.2, 64]} /><meshBasicMaterial color="#a99b88" transparent opacity={0.16} />
           </mesh>
         </Canvas>
       </div>
-      <footer><span>Click to blow confetti</span></footer>
+      <footer><span>Click to toss the cards</span></footer>
     </main>
   }
   `,
@@ -260,12 +273,8 @@ export const jarFiles = {
   main { height: 360px; position: relative; }
   .scene { height: 100%; cursor: pointer; }
   .scene:focus-visible { outline: 2px solid #a27d55; outline-offset: -4px; }
-  .caption, footer { position: absolute; left: 22px; right: 22px; display: flex; align-items: center; justify-content: space-between; gap: 12px; z-index: 1; pointer-events: none; }
-  .caption { top: 18px; justify-content: flex-end; font-size: 9px; letter-spacing: 0.14em; }
+  footer { position: absolute; left: 22px; right: 22px; display: flex; align-items: center; justify-content: space-between; gap: 12px; z-index: 1; pointer-events: none; }
   footer { bottom: 20px; justify-content: flex-end; font-size: 9px; }
-  button { pointer-events: auto; color: #78634d; background: #ffffff55; border: 1px solid #cfc3b2; border-radius: 4px; padding: 6px 10px; font: inherit; cursor: pointer; }
-  button:hover { background: #ffffffaa; }
-  button:focus-visible { outline: 2px solid #a27d55; outline-offset: 3px; }
-  @media (max-width: 480px) { main { height: 360px; } .caption, footer { left: 14px; right: 14px; } footer { font-size: 8px; } }
+  @media (max-width: 480px) { main { height: 360px; } footer { left: 14px; right: 14px; } footer { font-size: 8px; } }
   `,
 }

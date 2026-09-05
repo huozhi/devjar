@@ -18,9 +18,7 @@ export const shaderFiles = {
   export default function Shader() {
     const canvas = useRef(null)
     const settings = useRef(appearance)
-    const paused = useRef(false)
     const pointer = useRef([0.5, 0.5])
-    const [isPaused, setPaused] = useState(false)
     const [status, setStatus] = useState('Starting shader…')
     settings.current = appearance
 
@@ -48,7 +46,7 @@ export const shaderFiles = {
           if (!alive) return
           const delta = Math.min((now - previous) / 1000, 0.05)
           previous = now
-          if (!paused.current) time += delta * settings.current.speed
+          time += delta * settings.current.speed
           try {
             frame(gpu, current => {
               shader.set({ params: {
@@ -83,11 +81,7 @@ export const shaderFiles = {
           }} />
         {status && <p role="status">{status}</p>}
       </div>
-      <footer><span>Move your pointer. Bend the light.</span>
-        <button disabled={!!status} aria-pressed={isPaused} onClick={() => {
-          paused.current = !paused.current; setPaused(paused.current)
-        }}>{isPaused ? 'Resume' : 'Pause'}</button>
-      </footer>
+      <footer><span>Move your pointer. Bend the light.</span></footer>
     </main>
   }
   `,
@@ -136,8 +130,5 @@ export const shaderFiles = {
   canvas { display: block; width: 100%; height: 100%; }
   .stage p { position: absolute; inset: 0; margin: 0; display: grid; place-content: center; padding: 24px; background: #13131b; font-size: 12px; text-align: center; }
   footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 18px; font-size: 10px; border-top: 1px solid #302d3e; }
-  button { background: none; border: 0; padding: 3px 0; font: inherit; color: #e3d9fb; cursor: pointer; }
-  button:hover { color: white; }button:disabled { opacity: 0.4; cursor: default; }
-  button:focus-visible { outline: 2px solid #b5a3e8; outline-offset: 4px; }
   `,
 }

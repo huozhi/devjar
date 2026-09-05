@@ -24,7 +24,7 @@ const shaderAction = { label: 'Shuffle color', generate: shuffleShaderColor, pla
 const examples = [
   { id: 'drums', files: drumFiles, focusFile: 'patterns/pocket.ts', label: 'Drum machine', editorAction: { label: 'Shuffle beat', generate: shuffleDrumPattern, playback: true } },
   { id: 'template', files: demoFiles, focusFile: 'content.json', label: 'CMS example', editorAction: undefined },
-  { id: 'jar', files: jarFiles, focusFile: 'confetti.frag', label: 'Confetti shader · React Three Fiber', editorAction: undefined },
+  { id: 'jar', files: jarFiles, focusFile: 'cards.json', label: 'Cards in a jar · React Three Fiber', editorAction: undefined },
 ]
 export function ExampleGallery() {
   return (
