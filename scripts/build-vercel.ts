@@ -1,7 +1,6 @@
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ensureCompiler } from './compiler-cache'
-import { writeVercelOutput } from './vercel-output'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -23,5 +22,3 @@ const hit = await ensureCompiler(root, async () => {
 console.log(hit ? 'Browser compiler cache hit; skipping Rust setup and compilation' : 'Saved browser compiler cache')
 // Always rebuild the worker, library, and website from the current TypeScript.
 await run(['pnpm', 'run', 'build:website'], true)
-
-await writeVercelOutput(join(root, 'site/dist'), join(root, '.vercel/output'))

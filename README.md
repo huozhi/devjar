@@ -304,6 +304,10 @@ Builds include prerendered HTML, CSS, public files, hashed assets, and vendored
 dependencies. Only sites importing `devjar` include its runtime and compiler.
 Custom output directories must stay inside the project.
 
+On Vercel, `devjar build` also emits `.vercel/output` with immutable caching
+for content-hashed assets. Use the Other framework preset and run
+`devjar build`; no output-directory or cache-header configuration is needed.
+
 </details>
 
 <details>

@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { ensureCompiler } from '../scripts/compiler-cache'
-import { vercelOutputConfig, writeVercelOutput } from '../scripts/vercel-output'
+import { vercelOutputConfig, vercelOutputRoot, writeVercelOutput } from '../src/cli/vercel-output'
 
 describe('Vercel deployment', () => {
   test('builds the static website through the Vercel Build Output API', async () => {
@@ -26,6 +26,8 @@ describe('Vercel deployment', () => {
 
       expect(await readFile(join(output, 'static/index.html'), 'utf8')).toBe('Devjar')
       expect(JSON.parse(await readFile(join(output, 'config.json'), 'utf8'))).toEqual(vercelOutputConfig)
+      expect(vercelOutputRoot('1', root)).toBe(join(root, '.vercel/output'))
+      expect(vercelOutputRoot(undefined, root)).toBeUndefined()
     } finally {
       await rm(root, { recursive: true, force: true })
     }
