@@ -17,11 +17,11 @@ export type IframeRouteManifest = {
   routes: Record<string, string>
   notFound: string | undefined
 }
-type RenderFunction = (
+type RenderFunction = ((
   files: Record<string, string>,
   dependencies: Record<string, string[]>,
   manifest: IframeRouteManifest,
-) => Promise<void>
+) => Promise<void>) & { dispose: () => void }
 
 declare global {
   var __jar__: Record<string, { resolveModule?: ResolveModule }> | undefined
@@ -489,6 +489,11 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
     }
   })
 
+  render.dispose = () => {
+    renderRequestId++
+    reactRoot?.unmount()
+    reactRoot = undefined
+  }
   return render
 }
 
@@ -558,7 +563,12 @@ function useLiveCode({
   const tailwindReadyRef = useRef<Promise<void>>(Promise.resolve())
   const transformClientRef = useRef<{ url: string; client: TransformClient } | undefined>(undefined)
   const transformCacheRef = useRef(new Map<string, { source: string, code: string }>())
-  const loadQueue = useMemo(createLoadQueue, [])
+  const loadQueueRef = useRef(createLoadQueue())
+  const lastFilesRef = useRef<Record<string, string> | undefined>(undefined)
+  const cleanupFrameRef = useRef<(() => void) | undefined>(undefined)
+  const frameReadyRef = useRef<Promise<void>>(Promise.resolve())
+  const cancelNavigationRef = useRef<(() => void) | undefined>(undefined)
+  const pendingResetRef = useRef<Promise<void> | undefined>(undefined)
   const loadIdRef = useRef(0)
   const runtimeFailureRef = useRef<number | undefined>(undefined)
   const scriptReadyRef = useRef<Promise<void>>(Promise.resolve())
@@ -584,13 +594,13 @@ function useLiveCode({
   useEffect(() => {
     return () => {
       loadIdRef.current++
-      loadQueue.clear()
+      loadQueueRef.current.clear()
       transformClientRef.current?.client.release()
       transformClientRef.current = undefined
     }
   }, [])
 
-  useEffect(() => {
+  const initializeFrame = useCallback(() => {
     const iframe = iframeRef.current
     if (!iframe || !iframe.contentDocument) return
 
@@ -644,17 +654,28 @@ function useLiveCode({
     body.appendChild(appScript)
 
     return () => {
-      if (!iframe || !iframe.contentDocument) return
+      frameWindow.__render__?.dispose()
+      appScriptRef.current = null
+      tailwindcssScriptRef.current = null
       frameWindow.removeEventListener('error', onRuntimeError)
       frameWindow.removeEventListener('unhandledrejection', onRejection)
       doc.removeEventListener('devjar:error', onReactError)
-      body.removeChild(div)
-      body.removeChild(appScript)
-      if (tailwindScript) body.removeChild(tailwindScript)
+      div.remove()
+      appScript.remove()
+      tailwindScript?.remove()
       resolveTailwind?.()
       resolveScript?.()
     }
-  }, [])
+  }, [uid, tailwind])
+
+  useEffect(() => {
+    cleanupFrameRef.current = initializeFrame()
+    return () => {
+      cancelNavigationRef.current?.()
+      cleanupFrameRef.current?.()
+      cleanupFrameRef.current = undefined
+    }
+  }, [initializeFrame])
 
   const transformFiles = useCallback((files: Record<string, string>) => {
     const url = getCompilerWorkerUrl(compiler, transformWorkerUrl)
@@ -669,6 +690,8 @@ function useLiveCode({
     if (loadId !== loadIdRef.current) return
 
     try {
+      await frameReadyRef.current
+      if (loadId !== loadIdRef.current) return
       const resolveModuleForLoad = resolveModule
       const manifest = createIframeRouteManifest(files)
 
@@ -732,13 +755,60 @@ function useLiveCode({
   }, [resolveModule, transform, transformFiles])
 
   const load = useCallback((files: Record<string, string>) => {
+    lastFilesRef.current = files
     const loadId = ++loadIdRef.current
     setError(undefined)
     setStatus('compiling')
-    return loadQueue.enqueue(() => runLoad(files, loadId))
-  }, [loadQueue, runLoad])
+    return loadQueueRef.current.enqueue(() => runLoad(files, loadId))
+  }, [runLoad])
 
-  return { ref: iframeRef, error, status, load }
+  const reset = useCallback((): Promise<void> => {
+    if (pendingResetRef.current) return pendingResetRef.current
+    const iframe = iframeRef.current
+    if (!iframe) return Promise.resolve()
+    loadIdRef.current++
+    loadQueueRef.current.clear()
+    loadQueueRef.current = createLoadQueue()
+    transformClientRef.current?.client.release()
+    transformClientRef.current = undefined
+    transformCacheRef.current.clear()
+    cleanupFrameRef.current?.()
+    cleanupFrameRef.current = undefined
+    setError(undefined)
+    setStatus('loading')
+    frameReadyRef.current = new Promise<void>((resolve, reject) => {
+      const cleanup = () => {
+        clearTimeout(timeout)
+        iframe.removeEventListener('load', ready)
+        cancelNavigationRef.current = undefined
+      }
+      const ready = () => {
+        cleanup()
+        if (iframeRef.current === iframe) cleanupFrameRef.current = initializeFrame()
+        resolve()
+      }
+      const timeout = setTimeout(() => {
+        cleanup()
+        reject(new Error('devjar: reset timed out waiting for the iframe'))
+      }, 10000)
+      cancelNavigationRef.current = () => { cleanup(); resolve() }
+      iframe.addEventListener('load', ready)
+      iframe.srcdoc = '<!doctype html><html><head></head><body></body></html>'
+    })
+    const pending = frameReadyRef.current.then(async () => {
+      if (iframeRef.current !== iframe) return
+      if (lastFilesRef.current) await load(lastFilesRef.current)
+      else setStatus('idle')
+    }).catch(error => {
+      if (iframeRef.current !== iframe) return
+      setError(error)
+      setStatus('failed')
+    }).finally(() => { pendingResetRef.current = undefined })
+    pendingResetRef.current = pending
+    return pending
+  }, [initializeFrame, load])
+
+  return { ref: iframeRef, error, status, load, reset }
 }
 
 export {

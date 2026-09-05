@@ -6,6 +6,8 @@ const defaultOnError: (error: unknown) => void = typeof window !== 'undefined'
   ? console.error
   : () => {}
 
+export type DevJarHandle = { reset: () => Promise<void> }
+
 export function DevJar({
   files,
   resolveModule,
@@ -14,6 +16,7 @@ export function DevJar({
   tailwind,
   onError = defaultOnError,
   onStatusChange,
+  apiRef,
   transformWorkerUrl,
   compiler,
   ref: forwardedRef,
@@ -24,6 +27,7 @@ export function DevJar({
   dependencies?: Record<string, string>
   transform?: boolean
   tailwind?: boolean
+  apiRef?: React.Ref<DevJarHandle>
   onStatusChange?: (status: PreviewStatus) => void
   onError?: (error: unknown) => void
   transformWorkerUrl?: string | URL
@@ -34,8 +38,9 @@ export function DevJar({
   const onStatusRef = useRef(onStatusChange)
   onErrorRef.current = onError
   onStatusRef.current = onStatusChange
-  const { ref, error, status, load } = useLiveCode({ resolveModule, dependencies, transform, tailwind, transformWorkerUrl, compiler })
+  const { ref, error, status, load, reset } = useLiveCode({ resolveModule, dependencies, transform, tailwind, transformWorkerUrl, compiler })
 
+  useImperativeHandle(apiRef, () => ({ reset }), [reset])
   useImperativeHandle(forwardedRef, () => ref.current!, [ref])
 
   useEffect(() => {
