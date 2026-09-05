@@ -56,7 +56,6 @@ tailwind (defaults to true), transform (defaults to true), and compiler
 Prefer DevJar for managed previews. The advanced useDevJar hook returns
 { ref, load, error, status, reset }. Attach ref to an iframe and call
 load(files) when the project should run. load returns a promise.
-useLiveCode is a deprecated alias of useDevJar, retained for compatibility.
 status (or the component's onStatusChange) reports idle, compiling, loading,
 ready, or failed. ready means React committed, not that application data is loaded.
 Call reset() on the hook or pass apiRef (React.Ref<DevJarHandle>) to DevJar and
