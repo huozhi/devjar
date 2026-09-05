@@ -216,20 +216,19 @@ export default function Counter() {
   const [count, setCount] = useState<number>(0)
   return <button onClick={() => setCount(count + 1)}>Hello {content.name} {text} {count}</button>
 }`
-  await writeFile(join(projectRoot, 'pages/playground.tsx'), `import { useState } from 'react'
+  await writeFile(join(projectRoot, 'pages/playground.tsx'), `import { useMemo, useState } from 'react'
 import { DevJar } from 'devjar'
 const initial = ${JSON.stringify(source)}
 export default function Playground() {
   const [code, setCode] = useState(initial)
   const [error, setError] = useState('')
+  const [status, setStatus] = useState('idle')
+  const files = useMemo(() => ({ 'pages/index.tsx': code, 'content.json': '{"name":"Devjar"}', 'message.txt': 'works' }), [code])
   return <main>
     <textarea aria-label="Code" value={code} onChange={event => setCode(event.target.value)} />
     <pre role="status">{error}</pre>
-    <DevJar title="Live preview" tailwind={false} onError={error => setError(error ? String(error) : '')} files={{
-      'pages/index.tsx': code,
-      'content.json': '{"name":"Devjar"}',
-      'message.txt': 'works',
-    }} />
+    <output aria-label="Preview status">{status}</output>
+    <DevJar title="Live preview" tailwind={false} onStatusChange={setStatus} onError={error => setError(error ? String(error) : '')} files={files} />
   </main>
 }`)
   await run(devjar, ['build', '--base', '/preview/'], projectRoot)
@@ -253,6 +252,14 @@ export default function Playground() {
   await preview.waitForFunction(() => document.querySelector('[role="status"]')?.textContent?.includes('Unexpected token'))
   await preview.getByRole('textbox', { name: 'Code' }).fill(source.replace('Hello', 'Recovered'))
   await frame.getByRole('button', { name: 'Recovered Devjar works 1' }).waitFor()
+  await preview.getByLabel('Preview status').filter({ hasText: 'ready' }).waitFor()
+  await preview.getByRole('textbox', { name: 'Code' }).fill('export default function Broken() { throw new Error("Render failed") }')
+  await preview.getByLabel('Preview status').filter({ hasText: 'failed' }).waitFor()
+  await preview.waitForFunction(() => document.querySelector('[role="status"]')?.textContent?.includes('Render failed'))
+  await preview.getByRole('textbox', { name: 'Code' }).fill(source)
+  await frame.getByRole('button', { name: /^Hello Devjar works \d+$/ }).waitFor()
+  await preview.getByLabel('Preview status').filter({ hasText: 'ready' }).waitFor()
+  assert.equal(await preview.locator('pre[role="status"]').textContent(), '')
   assert.deepEqual(previewErrors, [])
   console.log('Packaged static export and live DevJar compilation, JSON/text imports, Refresh state preservation, and error recovery passed without isolation headers.')
 

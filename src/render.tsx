@@ -1,5 +1,5 @@
 import { useEffect, useImperativeHandle, useRef } from 'react'
-import { useLiveCode } from './core'
+import { useLiveCode, type PreviewStatus } from './core'
 import type { CompilerAssets } from './compiler'
 
 const defaultOnError: (error: unknown) => void = typeof window !== 'undefined'
@@ -13,6 +13,7 @@ export function DevJar({
   transform,
   tailwind,
   onError = defaultOnError,
+  onStatusChange,
   transformWorkerUrl,
   compiler,
   ref: forwardedRef,
@@ -23,19 +24,27 @@ export function DevJar({
   dependencies?: Record<string, string>
   transform?: boolean
   tailwind?: boolean
+  onStatusChange?: (status: PreviewStatus) => void
   onError?: (error: unknown) => void
   transformWorkerUrl?: string | URL
   compiler?: CompilerAssets
   ref?: React.Ref<HTMLIFrameElement>
 } & React.IframeHTMLAttributes<HTMLIFrameElement>) {
   const onErrorRef = useRef(onError)
-  const { ref, error, load } = useLiveCode({ resolveModule, dependencies, transform, tailwind, transformWorkerUrl, compiler })
+  const onStatusRef = useRef(onStatusChange)
+  onErrorRef.current = onError
+  onStatusRef.current = onStatusChange
+  const { ref, error, status, load } = useLiveCode({ resolveModule, dependencies, transform, tailwind, transformWorkerUrl, compiler })
 
   useImperativeHandle(forwardedRef, () => ref.current!, [ref])
 
   useEffect(() => {
     onErrorRef.current(error)
   }, [error])
+
+  useEffect(() => {
+    onStatusRef.current?.(status)
+  }, [status])
 
   // load code files and execute them as live code
   useEffect(() => {
