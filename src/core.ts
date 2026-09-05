@@ -1,4 +1,5 @@
 import { textModuleSuffix, isTextImport, createTextModule } from './text'
+import { createLoadQueue } from './load-queue'
 import { createJsonModule } from './json'
 import { useEffect, useCallback, useState, useId, useMemo, useRef } from 'react'
 import { createModule } from './module'
@@ -557,6 +558,7 @@ function useLiveCode({
   const tailwindReadyRef = useRef<Promise<void>>(Promise.resolve())
   const transformClientRef = useRef<{ url: string; client: TransformClient } | undefined>(undefined)
   const transformCacheRef = useRef(new Map<string, { source: string, code: string }>())
+  const loadQueue = useMemo(createLoadQueue, [])
   const loadIdRef = useRef(0)
   const runtimeFailureRef = useRef<number | undefined>(undefined)
   const scriptReadyRef = useRef<Promise<void>>(Promise.resolve())
@@ -582,6 +584,7 @@ function useLiveCode({
   useEffect(() => {
     return () => {
       loadIdRef.current++
+      loadQueue.clear()
       transformClientRef.current?.client.release()
       transformClientRef.current = undefined
     }
@@ -662,16 +665,15 @@ function useLiveCode({
     return transformClientRef.current.client.transform(files)
   }, [compiler, transformWorkerUrl])
 
-  const load = useCallback(async (files: Record<string, string>) => {
-    const loadId = ++loadIdRef.current
-    setError(undefined)
-    setStatus('compiling')
+  const runLoad = useCallback(async (files: Record<string, string>, loadId: number) => {
+    if (loadId !== loadIdRef.current) return
 
     try {
       const resolveModuleForLoad = resolveModule
       const manifest = createIframeRouteManifest(files)
 
       await init
+      if (loadId !== loadIdRef.current) return
       const localFiles = new Map(Object.keys(files).map(path => [normalizeProjectPath(path), getModuleKey(path)]))
       const filenames = new Map(Object.keys(files).map(path => [getModuleKey(path), path]))
       const queue = [...Object.values(manifest.routes)]
@@ -728,6 +730,13 @@ function useLiveCode({
       setStatus('failed')
     }
   }, [resolveModule, transform, transformFiles])
+
+  const load = useCallback((files: Record<string, string>) => {
+    const loadId = ++loadIdRef.current
+    setError(undefined)
+    setStatus('compiling')
+    return loadQueue.enqueue(() => runLoad(files, loadId))
+  }, [loadQueue, runLoad])
 
   return { ref: iframeRef, error, status, load }
 }
