@@ -260,9 +260,7 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
     error: unknown
   }
 
-  type ErrorBoundaryInstance = React.Component<ErrorBoundaryProps, ErrorBoundaryState> & {
-    reset(): void
-  }
+  type ErrorBoundaryInstance = React.Component<ErrorBoundaryProps, ErrorBoundaryState>
 
   type ErrorBoundaryClass = React.ComponentClass<ErrorBoundaryProps, ErrorBoundaryState> & {
     new (props: ErrorBoundaryProps): ErrorBoundaryInstance
@@ -355,9 +353,6 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
         static getDerivedStateFromError(error: unknown) {
           return { error }
         }
-        reset() {
-          if (this.state.error) this.setState({ error: null })
-        }
         componentDidCatch(error: unknown) {
           document.dispatchEvent(new CustomEvent('devjar:error', { detail: error }))
         }
@@ -396,7 +391,6 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
       if (renderedEntry !== renderedPage) {
         revision++
         renderedEntry = renderedPage
-        errorBoundary?.reset()
         reactRoot.render(_jsx(
           ErrorBoundary!,
           { revision, ref: setErrorBoundaryRef },
@@ -407,7 +401,6 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
 
       if (result?.changed) {
         const recovering = Boolean(errorBoundary?.state.error)
-        errorBoundary?.reset()
         const refreshRuntime = moduleRuntime.refreshRuntime
         if (!refreshRuntime) throw new Error('devjar: refresh runtime was not initialized')
         const refreshUpdate = refreshRuntime.performReactRefresh()
