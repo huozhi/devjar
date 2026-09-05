@@ -45,3 +45,19 @@
   .focused-editor-heading { padding: 4px 10px; }
   .floating-editor-action { padding: 8px 0; }
 }
+
+.hero-playground { width: min(1440px, 100%); padding: 0 32px; margin: 0 auto; }
+.demo-intro { display: flex; justify-content: space-between; gap: 16px; margin: 0 0 14px; color: #737373; font-size: 12px; }
+.demo-intro > span:last-child { color: #999; }
+.scroll-stage { color: #526b8a; font-size: 10px; }
+.code-line-changed { background: #dce8f3; }
+@media (min-width: 901px) {
+  .hero-playground [data-codesandbox="react"] { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+}
+@media (max-width: 900px) {
+  .hero-playground { padding: 0 16px; }
+}
+@media (max-width: 640px) {
+  .hero-playground { padding: 0; }
+  .demo-intro { font-size: 11px; }
+}

@@ -80,7 +80,7 @@ export const shaderFiles = {
           onPointerMove={event => {
             const rect = event.currentTarget.getBoundingClientRect()
             pointer.current = [(event.clientX - rect.left) / rect.width, (event.clientY - rect.top) / rect.height]
-          }} onPointerLeave={() => { pointer.current = [0.5, 0.5] }} />
+          }} />
         {status && <p role="status">{status}</p>}
       </div>
       <footer><span>Move your pointer. Bend the light.</span>

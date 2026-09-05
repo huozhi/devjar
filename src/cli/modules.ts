@@ -1,3 +1,4 @@
+import { textModuleSuffix, isTextImport, createTextModule } from '../text'
 import { createJsonModule } from '../json'
 import { createHash } from 'node:crypto'
 import { readFile, realpath, stat } from 'node:fs/promises'
@@ -120,7 +121,7 @@ async function localImports(projectPath: string, source: string) {
   const imports = new Set<string>()
   for (const imported of parsedImports) {
     if (imported.n?.startsWith('./') || imported.n?.startsWith('../')) {
-      imports.add(imported.n)
+      imports.add(imported.n + (isTextImport(output.code, imported) ? textModuleSuffix : ''))
     }
   }
   return imports
@@ -145,7 +146,7 @@ async function resolveCssAssets(
   const assets = new Map<string, { path: string, projectPath: string, contents: Buffer }>()
   for (const specifier of cssAssetSpecifiers(source)) {
     const path = specifier.split(/[?#]/, 1)[0]
-    const assetPath = await resolveProjectSource(root, relative(root, resolve(sourcePath, '..', path)))
+    const assetPath = await resolveProjectSource(root, relative(root, resolve(sourcePath, '..', path)), false)
     if (!isStaticAsset(assetPath)) {
       throw new Error(`CSS URL must reference a static asset: ${specifier}`)
     }
@@ -227,15 +228,18 @@ export async function collectProjectFiles(root: string, entry: string) {
 
   while (queue.length) {
     const path = queue.shift()!
-    const canonicalPath = await realpath(path)
+    const text = path.endsWith(textModuleSuffix)
+    const canonicalPath = await realpath(text ? path.slice(0, -textModuleSuffix.length) : path)
     if (!isInside(root, canonicalPath)) {
       throw new Error(`Local import escapes the project root: ${relative(root, path)}`)
     }
-    if (visited.has(canonicalPath)) continue
-    visited.add(canonicalPath)
+    const visitKey = canonicalPath + (text ? textModuleSuffix : '')
+    if (visited.has(visitKey)) continue
+    visited.add(visitKey)
 
     const projectPath = relative(root, canonicalPath).split(sep).join('/')
-    projectPaths.add(projectPath)
+    projectPaths.add(projectPath + (text ? textModuleSuffix : ''))
+    if (text) continue
     if (isStaticAsset(canonicalPath)) continue
 
     const source = await readFile(canonicalPath, 'utf8')
@@ -250,11 +254,13 @@ export async function collectProjectFiles(root: string, entry: string) {
       continue
     }
     for (const specifier of await localImports(projectPath, source)) {
-      const imported = await findSourceFile(resolve(canonicalPath, '..', specifier))
+      const text = specifier.endsWith(textModuleSuffix)
+      const target = resolve(canonicalPath, '..', text ? specifier.slice(0, -textModuleSuffix.length) : specifier)
+      const imported = text ? (await fileExists(target) ? target : undefined) : await findSourceFile(target)
       if (!imported) {
         throw new Error(`Cannot resolve "${specifier}" imported by ${projectPath}.\nCheck that the file exists and the import path matches its capitalization.`)
       }
-      queue.push(imported)
+      queue.push(imported + (text ? textModuleSuffix : ''))
     }
   }
   return projectPaths
@@ -315,12 +321,12 @@ function outputModuleCode(
   return output.code
 }
 
-async function resolveProjectSource(root: string, projectPath: string) {
+async function resolveProjectSource(root: string, projectPath: string, text: boolean) {
   const requestedPath = resolve(root, projectPath)
   if (!isInside(root, requestedPath)) {
     throw new Error(`Local module escapes the project root: ${projectPath}`)
   }
-  const sourcePath = await findSourceFile(requestedPath)
+  const sourcePath = text ? (await fileExists(requestedPath) ? requestedPath : undefined) : await findSourceFile(requestedPath)
   if (!sourcePath) throw new Error(`Module not found: ${projectPath}`)
   const canonicalPath = await realpath(sourcePath)
   if (!isInside(root, canonicalPath)) {
@@ -332,9 +338,19 @@ async function resolveProjectSource(root: string, projectPath: string) {
 export async function compileProjectModule(
   options: CompileProjectModuleOptions,
 ): Promise<CompiledProjectModule> {
-  const sourcePath = await resolveProjectSource(options.root, options.projectPath)
+  const text = options.projectPath.endsWith(textModuleSuffix)
+  const requestedPath = text ? options.projectPath.slice(0, -textModuleSuffix.length) : options.projectPath
+  const sourcePath = await resolveProjectSource(options.root, requestedPath, text)
   const projectPath = relative(options.root, sourcePath).split(sep).join('/')
   const contents = await readFile(sourcePath)
+  if (text) {
+    return {
+      code: outputModuleCode(options, options.projectPath, createTextModule(contents.toString('utf8'))),
+      dependencies: [projectPath],
+      refreshBoundary: false,
+      style: undefined,
+    }
+  }
   if (isStaticAsset(sourcePath)) {
     return {
       code: outputModuleCode(
@@ -389,18 +405,33 @@ export async function compileProjectModule(
   for (const imported of imports) {
     if (!imported.n) continue
     let value: string
+    const text = isTextImport(output.code, imported)
+    if (text && !imported.n.startsWith('./') && !imported.n.startsWith('../')) {
+      throw new Error('Text imports must reference a local file: ' + imported.n)
+    }
     if (imported.n === 'devjar') {
       value = options.runtimeModuleUrl
     } else if (imported.n.startsWith('./') || imported.n.startsWith('../')) {
       const importedPath = await resolveProjectSource(
         options.root,
         relative(options.root, resolve(sourcePath, '..', imported.n)),
+        text,
       )
-      const importedProjectPath = relative(options.root, importedPath).split(sep).join('/')
+      const importedProjectPath = relative(options.root, importedPath).split(sep).join('/') + (text ? textModuleSuffix : '')
       value = options.moduleUrl(importedProjectPath)
       localDependencies.push(importedProjectPath)
     } else {
       value = options.resolveModule(imported.n)
+    }
+    if (text) {
+      replacements.push({
+        start: imported.ss,
+        end: imported.se,
+        value: imported.d < 0
+          ? output.code.slice(imported.ss, imported.s) + value + output.code.slice(imported.e, imported.e + 1)
+          : output.code.slice(imported.ss, imported.s) + JSON.stringify(value) + ')',
+      })
+      continue
     }
     replacements.push({
       start: imported.s,
@@ -479,12 +510,12 @@ export class DevModuleGraph {
     let reload = false
 
     for (const projectPath of changedFiles) {
-      if (!localExtensions.includes(extname(projectPath).toLowerCase())
-        || (!this.modules.has(projectPath) && !this.importers.has(projectPath))) continue
+      if (!this.modules.has(projectPath) && !this.importers.has(projectPath)) continue
       invalidated.add(projectPath)
+      if (this.modules.has(projectPath + textModuleSuffix)) invalidated.add(projectPath + textModuleSuffix)
       if (extname(projectPath).toLowerCase() === '.css') {
-        cssUpdates.add(projectPath)
-        continue
+        if (this.modules.has(projectPath)) cssUpdates.add(projectPath)
+        if (!this.importers.has(projectPath + textModuleSuffix)) continue
       }
       if (isStaticAsset(projectPath)) {
         for (const importer of this.importers.get(projectPath) || []) {

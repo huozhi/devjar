@@ -149,7 +149,7 @@ export const demoFiles = {
   .page { max-width: 1000px; margin: 0 auto; padding: 0 24px 24px; }
   a { color: inherit; text-underline-offset: 4px; }
   a:focus-visible, button:focus-visible { outline: 2px solid #737373; outline-offset: 4px; }
-  .theme-toolbar { height: 56px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid #dedede; }
+  .theme-toolbar { height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid #dedede; }
   .theme-toolbar > span { font-size: 9px; letter-spacing: 0.1em; color: #737373; }
   .toolbar-detail { letter-spacing: 0; text-transform: none; color: #999; }
   button { flex-shrink: 0; display: inline-flex; align-items: center; gap: 7px; padding: 8px 11px; border: 0; border-radius: 5px; background: #eaeaea; color: #404040; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 160ms ease, color 160ms ease; }
@@ -157,13 +157,13 @@ export const demoFiles = {
   button:hover { background: #dedede; color: #171717; }
   button:hover svg { transform: rotate(-12deg); }
   button:active { background: #dedede; }
-  header { height: 112px; display: flex; align-items: center; justify-content: space-between; gap: 24px; border-bottom: 1px solid #bdbdbd; }
+  header { height: 88px; display: flex; align-items: center; justify-content: space-between; gap: 24px; border-bottom: 1px solid #bdbdbd; }
   .publication { font-family: Georgia, serif; font-size: clamp(25px, 4vw, 38px); letter-spacing: -0.055em; text-decoration: none; }
   .masthead p { margin: 8px 0 0; color: #858585; font-size: 10px; }
   nav { display: flex; gap: 18px; font-size: 11px; }
   nav a { padding: 5px 0; text-decoration: none; color: #737373; }
   nav a[aria-current] { border-bottom: 1px solid #737373; color: #404040; }
-  main { height: 290px; overflow: auto; }
+  main { height: 260px; overflow: auto; }
   .stories { display: grid; align-content: start; grid-template-columns: 1.15fr 1fr; gap: 30px; padding-top: 26px; }
   .eyebrow { margin: 0 0 16px; font-size: 9px; letter-spacing: 0.09em; text-transform: uppercase; color: #737373; }
   .eyebrow span { color: #999; }
@@ -185,10 +185,10 @@ export const demoFiles = {
   @media (max-width: 560px) {
     .page { padding: 0 16px 20px; }
     .toolbar-detail { display: none; }
-    header { height: 108px; gap: 12px; }
+    header { height: 88px; gap: 12px; }
     .masthead p { max-width: 190px; line-height: 1.5; min-height: 30px; }
     nav { gap: 12px; }
-    main { height: 540px; }
+    main { height: 300px; }
     .stories { grid-template-columns: 1fr; gap: 24px; padding-top: 22px; }
     .featured h1 { max-width: 300px; }
     .description { min-height: 0; }

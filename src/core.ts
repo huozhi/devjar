@@ -1,3 +1,4 @@
+import { textModuleSuffix, isTextImport, createTextModule } from './text'
 import { createJsonModule } from './json'
 import { useEffect, useCallback, useState, useId, useMemo, useRef } from 'react'
 import { createModule } from './module'
@@ -136,9 +137,10 @@ function resolveRelativeModule(
   importer: string,
   imported: string,
   localFiles: ReadonlyMap<string, string>,
+  text: boolean,
 ) {
   const requestedPath = resolveRelativePath(importer, imported)
-  const candidates = /\.[^/]+$/.test(requestedPath)
+  const candidates = text || /\.[^/]+$/.test(requestedPath)
     ? [requestedPath]
     : [
         ...localExtensions.map(extension => requestedPath + extension),
@@ -166,18 +168,26 @@ function replaceImports(
   const dependencies: string[] = []
 
   // start, end, statementStart, statementEnd, assertion, name
-  imports.forEach(({ s, e, ss, se, n }) => {
+  imports.forEach(imported => {
+    const { s, e, ss, se, n, d } = imported
     if (!n) return
     code += source.slice(lastIndex, ss) // content from last import to beginning of this line
 
-    const localModuleKey = isRelative(n)
-      ? resolveRelativeModule(filename, n, localFiles)
+    const text = isTextImport(source, imported)
+    if (text && !isRelative(n)) throw new Error('Text imports must reference a local file: ' + n)
+    const resolvedKey = isRelative(n)
+      ? resolveRelativeModule(filename, n, localFiles, text)
       : undefined
+
+    const localModuleKey = resolvedKey ? resolvedKey + (text ? textModuleSuffix : '') : undefined
 
     // handle imports
     if (localModuleKey && localModuleKey.endsWith('.css')) {
       // Map './styles.css' -> '@styles.css', and collect it
       cssImports.push(localModuleKey)
+    } else if (text && localModuleKey) {
+      const placeholder = createLocalImportPlaceholder(localModuleKey)
+      code += source.substring(ss, s) + (d < 0 ? placeholder + source.substring(e, e + 1) : JSON.stringify(placeholder) + ')')
     } else {
       code += source.substring(ss, s)
       code += localModuleKey
@@ -228,6 +238,7 @@ function replaceImports(
 async function linkModules(
   files: Record<string, string>,
   resolveModule: ResolveModule,
+  rawFiles: Record<string, string>,
 ) {
   if (!esModuleLexerInit) {
     await init
@@ -235,7 +246,7 @@ async function linkModules(
   }
 
   const localFiles = new Map(
-    Object.keys(files).map(filename => [normalizeProjectPath(filename), getModuleKey(filename)]),
+    Object.keys(rawFiles).map(filename => [normalizeProjectPath(filename), getModuleKey(filename)]),
   )
   const dependencies: Record<string, string[]> = {}
   const linkedFiles: Record<string, string> = {}
@@ -263,6 +274,13 @@ async function linkModules(
     )
     linkedFiles[moduleKey] = linked.code
     dependencies[moduleKey] = linked.dependencies
+    for (const dependency of linked.dependencies) {
+      if (!dependency.endsWith(textModuleSuffix)) continue
+      const originalKey = dependency.slice(0, -textModuleSuffix.length)
+      const originalFile = Object.keys(rawFiles).find(path => getModuleKey(path) === originalKey)!
+      linkedFiles[dependency] = createTextModule(rawFiles[originalFile])
+      dependencies[dependency] = []
+    }
   }
 
   return { files: linkedFiles, dependencies }
@@ -657,36 +675,42 @@ function useLiveCode({
       const resolveModuleForLoad = resolveModule
       const manifest = createIframeRouteManifest(files)
 
-      const filesToTransform = Object.fromEntries(
-        Object.entries(files).filter(([filename, source]) => {
-          return !filename.endsWith('.css') && !filename.endsWith('.json') && transformCacheRef.current.get(filename)?.source !== source
-        })
-      )
-      const newTransforms = Object.keys(filesToTransform).length
-        ? transform ? await transformFiles(filesToTransform) : filesToTransform
-        : {}
-
-      if (loadId !== loadIdRef.current) return
-      for (const [filename, code] of Object.entries(newTransforms)) {
-        transformCacheRef.current.set(filename, { source: files[filename], code })
+      await init
+      const localFiles = new Map(Object.keys(files).map(path => [normalizeProjectPath(path), getModuleKey(path)]))
+      const filenames = new Map(Object.keys(files).map(path => [getModuleKey(path), path]))
+      const queue = [...Object.values(manifest.routes)]
+      const transformedSources: Record<string, string> = {}
+      const visited = new Set<string>()
+      while (queue.length) {
+        const moduleKey = queue.shift()!
+        if (visited.has(moduleKey)) continue
+        visited.add(moduleKey)
+        const filename = filenames.get(moduleKey)!
+        const source = files[filename]
+        if (filename.endsWith('.css') || filename.endsWith('.json')) {
+          transformedSources[filename] = source
+          continue
+        }
+        if (!sourceExtensions.some(extension => filename.endsWith(extension))) {
+          throw new Error(`Cannot import ${filename} as JavaScript. Use with { type: "text" } to import its contents.`)
+        }
+        let cached = transformCacheRef.current.get(filename)
+        if (cached?.source !== source) {
+          const output = transform ? await transformFiles({ [filename]: source }) : { [filename]: source }
+          if (loadId !== loadIdRef.current) return
+          cached = { source, code: output[filename] }
+          transformCacheRef.current.set(filename, cached)
+        }
+        transformedSources[filename] = cached.code
+        for (const imported of parse(cached.code)[0]) {
+          if (!imported.n || !isRelative(imported.n) || isTextImport(cached.code, imported)) continue
+          queue.push(resolveRelativeModule(filename, imported.n, localFiles, false))
+        }
       }
       for (const filename of transformCacheRef.current.keys()) {
         if (!(filename in files)) transformCacheRef.current.delete(filename)
       }
-
-      const transformedSources: Record<string, string> = {}
-      for (const filename of Object.keys(files)) {
-        if (filename.endsWith('.css') || filename.endsWith('.json')) {
-          transformedSources[filename] = files[filename]
-        } else {
-          const cachedTransform = transformCacheRef.current.get(filename)
-          if (!cachedTransform) {
-            throw new Error(`devjar: Missing transform for ${filename}`)
-          }
-          transformedSources[filename] = cachedTransform.code
-        }
-      }
-      const linked = await linkModules(transformedSources, resolveModuleForLoad)
+      const linked = await linkModules(transformedSources, resolveModuleForLoad, files)
       if (loadId !== loadIdRef.current) return
 
       const iframe = iframeRef.current

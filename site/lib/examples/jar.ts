@@ -10,9 +10,7 @@ export const jarFiles = {
     "glass": 0.12
   }
   `,
-  'confetti.ts': source`\
-  // GLSL fragment shader: edit the paper's appearance live.
-  export default \`
+  'confetti.frag': source`\
   uniform float uTime;
   varying vec2 vUv;
   varying vec3 vColor;
@@ -30,14 +28,13 @@ export const jarFiles = {
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
   }
-  \`
   `,
   'pages/index.tsx': source`\
   import { useEffect, useMemo, useRef, useState } from 'react'
   import { Canvas, useFrame } from '@react-three/fiber'
   import { CanvasTexture, Color, Object3D, DoubleSide, EquirectangularReflectionMapping, SRGBColorSpace, SplineCurve, Vector2 } from 'three'
   import jar from '../jar.json'
-  import fragmentShader from '../confetti'
+  import fragmentShader from '../confetti.frag' with { type: 'text' }
   import '../styles.css'
 
   const vertexShader = \`

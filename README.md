@@ -109,7 +109,13 @@ renders. To edit a file, replace its string in a new `files` object.
 
 The runtime supports JavaScript, TypeScript, JSX, TSX, CSS, and default JSON
 imports. JSON must use double quotes and cannot contain comments or trailing
-commas. Use relative imports between virtual files. Bare package imports resolve
+commas. Import any local file as a string with an explicit text attribute:
+
+```js
+import text from './notes.md' with { type: 'text' }
+```
+
+This also works in the CLI. Use relative imports between virtual files. Bare package imports resolve
 to CDN modules; React dependencies must use compatible versions.
 
 The iframe uses the same `pages/` route convention as the CLI. Links such as

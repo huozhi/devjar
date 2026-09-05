@@ -1,5 +1,6 @@
 import { Code } from '@sugar-high/react'
 import { taffy } from '@sugar-high/react/themes'
+import { Banner } from '../components/banner'
 import { ExampleGallery } from '../components/example-gallery'
 import '../styles.css'
 
@@ -19,19 +20,7 @@ export default function Page() {
       <meta name="twitter:image" content={socialImage} />
       <link rel="icon" href="/icon.svg" type="image/svg+xml" />
       <main>
-        <section className="intro-section">
-          <nav className="intro-links" aria-label="Project links">
-            <a href="https://github.com/huozhi/devjar" target="_blank" rel="noopener noreferrer">
-              GitHub
-            </a>
-            <a href="https://x.com/huozhi" target="_blank" rel="noopener noreferrer">
-              X
-            </a>
-          </nav>
-          <h1>devjar</h1>
-          <p className="intro-copy">Make an idea real. Change it live.</p>
-          <a className="intro-try-live" href="#live-demo"><span className="intro-try-pointer" aria-hidden="true">→</span><span className="intro-try-label">Try it live</span></a>
-        </section>
+        <Banner />
 
         <div className="playground-container" id="live-demo">
           <div className="playground-wrapper">

@@ -55,14 +55,12 @@ async function readChangeEvent(
 describe('project loading', () => {
   test('keeps parent-directory imports in the local module graph', async () => {
     await init
-    const linked = await linkModules(
-      {
-        'pages/index.tsx': `import { Card } from '../components/card'; import '../styles.css'`,
-        'components/card.tsx': 'export function Card() {}',
-        'styles.css': 'body {}',
-      },
-      specifier => `https://esm.sh/${specifier}`,
-    )
+    const files = {
+      'pages/index.tsx': `import { Card } from '../components/card'; import '../styles.css'`,
+      'components/card.tsx': 'export function Card() {}',
+      'styles.css': 'body {}',
+    }
+    const linked = await linkModules(files, specifier => `https://esm.sh/${specifier}`, files)
     expect(linked.dependencies['@pages/index.tsx']).toEqual([
       '@components/card.tsx',
       '@styles.css',
@@ -263,6 +261,7 @@ export function projectComponent() { return environment }
     )
     expect([...files].sort()).toEqual([
       'assets/fonts/IoskeleyMono-Regular.woff2',
+      'components/banner.tsx',
       'components/codesandbox.css',
       'components/codesandbox.tsx',
       'components/example-gallery.css',
@@ -273,7 +272,6 @@ export function projectComponent() { return environment }
       'lib/examples/drums.ts',
       'lib/examples/jar.ts',
       'lib/examples/shader.ts',
-      'lib/examples/swr.ts',
       'pages/index.tsx',
       'styles.css',
     ])
@@ -728,12 +726,13 @@ describe('static export', () => {
         join(projectRoot, 'pages/index.tsx'),
         `import '../styles.css'
 import logo from '../assets/logo.svg'
+import note from '../notes.md' with { type: 'text' }
 import { DevJar } from 'devjar'
 export default function Page() {
   return <>
     <title>Static title</title>
     <meta name="description" content="Static description" />
-    <main className="page"><h1>Static now</h1><img src={logo} alt="Logo" /><DevJar files={{ 'pages/index.jsx': 'export default function Page() {}' }} /></main>
+    <main className="page"><h1>Static now</h1><p>{note}</p><img src={logo} alt="Logo" /><DevJar files={{ 'pages/index.jsx': 'export default function Page() {}' }} /></main>
   </>
 }`,
       )
@@ -750,6 +749,7 @@ export default function Page() {
         `.page { color: black; background-image: url('./assets/background.png'); }
 @font-face { font-family: Body; src: url("./assets/body.woff2?#iefix") format("woff2"); }`,
       )
+      await writeFile(join(projectRoot, 'notes.md'), 'Text imported at build time')
       await writeFile(join(projectRoot, 'assets/logo.svg'), '<svg><circle r="4" /></svg>')
       await writeFile(join(projectRoot, 'assets/background.png'), Buffer.from('background'))
       await writeFile(join(projectRoot, 'assets/body.woff2'), Buffer.from('font'))
@@ -763,6 +763,7 @@ export default function Page() {
       })
       expect(result.devjarRuntime).toBe(true)
       const document = await readFile(join(result.outDir, 'index.html'), 'utf8')
+      expect(document).toContain('<p>Text imported at build time</p>')
       expect(document).not.toContain('__jarError')
       expect(document).not.toContain('devjar-error')
       expect(document).toContain('<head><meta charset="utf-8"')

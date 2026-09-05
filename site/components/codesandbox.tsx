@@ -29,7 +29,7 @@ import { taffy } from '@sugar-high/react/themes'
 import { DevJar } from 'devjar'
 import FileIcon from './file-icon'
 import RootActions from './root-actions'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 const kebabCase = (str: string) => str.replace(/([a-z0-9]|(?=[A-Z]))([A-Z])/g, '$1-$2').toLowerCase()
 const removeExtension = (str: string) => str.replace(/\.[^/.]+$/, '')
@@ -64,10 +64,12 @@ export function Codesandbox({
   files: initialFiles,
   focusFile,
   editorAction,
+  scrollDemo,
 }: {
   files: Record<string, string>
   focusFile: string | undefined
   editorAction: { label: string; generate: (code: string) => string; playback: boolean } | undefined
+  scrollDemo: { file: string; values: string[]; labels: string[]; intervalMs: number | undefined } | undefined
 }) {
   // Initialize activeFile with the root page when available.
   const getInitialActiveFile = (files: Record<string, string>) => {
@@ -94,6 +96,104 @@ export function Codesandbox({
   const [previewEnabled, setPreviewEnabled] = useState(!focusFile)
   const [previewReady, setPreviewReady] = useState(false)
   const [previewPlaying, setPreviewPlaying] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const manuallyEdited = useRef(false)
+  const previousCode = useRef<Record<string, string>>(initialFiles)
+  const [scrollStage, setScrollStage] = useState(0)
+
+  useEffect(() => {
+    if (!scrollDemo || !previewReady) return
+    const track = containerRef.current?.closest('.scroll-demo')
+    if (!track) return
+    let timeout: ReturnType<typeof setTimeout>
+    let previousStage = 0
+    const update = () => {
+      if (manuallyEdited.current) return
+      const rect = track.getBoundingClientRect()
+      // Let scrolling finish before compiling a new preview. Never pin the page.
+      if (rect.bottom < 120 || rect.top > window.innerHeight * 0.8) return
+      const progress = (window.innerHeight * 0.8 - rect.top) / (window.innerHeight * 0.8)
+      const stage = Math.min(scrollDemo.values.length - 1, Math.max(0, Math.floor(progress * scrollDemo.values.length)))
+      if (stage === previousStage) return
+      previousStage = stage
+      setScrollStage(stage)
+      setFiles(current => current[scrollDemo.file] === scrollDemo.values[stage] ? current : { ...current, [scrollDemo.file]: scrollDemo.values[stage] })
+      setActiveFile(scrollDemo.file)
+    }
+    const schedule = () => {
+      clearTimeout(timeout)
+      timeout = setTimeout(update, 180)
+    }
+    window.addEventListener('scroll', schedule, { passive: true })
+    window.addEventListener('resize', schedule)
+    schedule()
+    return () => {
+      window.removeEventListener('scroll', schedule)
+      window.removeEventListener('resize', schedule)
+      clearTimeout(timeout)
+    }
+  }, [scrollDemo, previewReady])
+
+  useEffect(() => {
+    if (!scrollDemo?.intervalMs || !previewReady) return
+    const preview = previewRef.current
+    if (!preview) return
+    let visible = false
+    let timer: ReturnType<typeof setInterval> | undefined
+    const stop = () => clearInterval(timer)
+    const sync = () => {
+      stop()
+      if (!visible || document.hidden) return
+      timer = setInterval(() => {
+        if (manuallyEdited.current) return
+        setFiles(current => {
+          const stage = (scrollDemo.values.indexOf(current[scrollDemo.file]) + 1) % scrollDemo.values.length
+          return { ...current, [scrollDemo.file]: scrollDemo.values[stage] }
+        })
+      }, scrollDemo.intervalMs)
+    }
+    const observer = new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting && entry.intersectionRatio >= 0.35
+      sync()
+    }, { threshold: [0, 0.35] })
+    observer.observe(preview)
+    document.addEventListener('visibilitychange', sync)
+    const iframeDocument = iframeRef.current?.contentDocument
+    const pause = () => { manuallyEdited.current = true }
+    iframeDocument?.addEventListener('pointerdown', pause)
+    iframeDocument?.addEventListener('keydown', pause)
+    return () => {
+      stop()
+      observer.disconnect()
+      document.removeEventListener('visibilitychange', sync)
+      iframeDocument?.removeEventListener('pointerdown', pause)
+      iframeDocument?.removeEventListener('keydown', pause)
+    }
+  }, [scrollDemo, previewReady])
+
+  useLayoutEffect(() => {
+    const filename = scrollDemo?.file
+    if (!filename) return
+    const before = previousCode.current[filename]
+    const after = files[filename]
+    previousCode.current = files
+    if (before === after || !after) return
+    const oldLines = (before || '').split('\n')
+    const indices = after.split('\n').flatMap((line, index) => line === oldLines[index] ? [] : [index])
+    const editor = editorLayoutRef.current?.querySelector('.editor')
+    const lines = editor?.querySelectorAll('.sh__line')
+    const clearHighlights = () => lines?.forEach(line => line.classList.remove('code-line-changed'))
+    lines?.forEach((line, index) => line.classList.toggle('code-line-changed', indices.includes(index)))
+    // Reveal changed source inside the editor without moving the page.
+    if (editor && !manuallyEdited.current) editor.scrollTop = 0
+    const timeout = setTimeout(clearHighlights, 2800)
+    return () => {
+      clearTimeout(timeout)
+      clearHighlights()
+    }
+  }, [files, scrollDemo])
+
+  const scrollLabel = scrollDemo ? scrollDemo.labels[scrollDemo.values.indexOf(files[scrollDemo.file])] || 'Your edit' : ''
   const activeExtension = activeFile?.split('.').pop() || ''
   const projectFolders = [...new Set([
     ...folders,
@@ -142,6 +242,7 @@ export function Codesandbox({
         return
       }
       if (event.data !== 'devjar:change-content') return
+      manuallyEdited.current = true
       setFiles(current => {
         if (!current['content.json']) return current
         const index = demoContentPresets.findIndex(content => demoContentJson(content) === current['content.json'])
@@ -307,7 +408,7 @@ export function Codesandbox({
   }, [activeFile, activeFolder, files, folders, editingNewItem, focusFile])
 
   return (
-    <div data-codesandbox="react" data-focused={focusFile ? "true" : undefined}>
+    <div ref={containerRef} data-codesandbox="react" data-focused={focusFile ? "true" : undefined} data-scroll-stage={scrollStage}>
       <div className="preview" ref={previewRef} style={{ height: previewHeight }}>
         <div className={previewReady ? 'preview--loading is-hidden' : 'preview--loading'} aria-hidden="true">
           <div className="preview--loading-ascii">
@@ -554,11 +655,13 @@ export function Codesandbox({
         </div>}
         {focusFile && <div className="focused-editor-heading">
           <span>{focusFile}</span>
-          <button onClick={() => setFiles(initialFiles)}>Reset code ↺</button>
+          {scrollDemo && <span className="scroll-stage" aria-live="polite">{scrollLabel}</span>}
+          <button onClick={() => { manuallyEdited.current = false; setFiles(initialFiles) }}>Reset code ↺</button>
         </div>}
           <Editor
             theme={taffy.light}
             className="editor"
+            onFocus={() => { manuallyEdited.current = true }}
             controls={false}
             title={null}
             lineNumbers={true}
@@ -566,10 +669,13 @@ export function Codesandbox({
             fontFamily="var(--font-ioskeley-mono)"
             textareaProps={editorTextareaProps}
             extension={activeExtension}
+            lang={activeExtension === 'frag' ? 'c' : undefined}
             data-active-extension={activeExtension}
+            lang={activeExtension === 'frag' ? 'c' : undefined}
             value={activeFile ? files[activeFile] || '' : ''}
             onChange={(code) => {
               if (activeFile) {
+                manuallyEdited.current = true
                 setFiles((currentFiles) => ({
                   ...currentFiles,
                   [activeFile]: code,
@@ -578,10 +684,13 @@ export function Codesandbox({
             }}
           />
         {editorAction && focusFile && <div className="floating-editor-action">
-          <button onClick={() => setFiles(current => ({
-            ...current,
-            [focusFile]: editorAction.generate(current[focusFile]),
-          }))}>
+          <button onClick={() => {
+            manuallyEdited.current = true
+            setFiles(current => ({
+              ...current,
+              [focusFile]: editorAction.generate(current[focusFile]),
+            }))
+          }}>
             <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
               <path d="M2 5h3c4 0 6 10 10 10h3m-4-4 4 4-4 4M2 15h3c1.5 0 3-1.5 4-3m2-4c1-1.5 2.5-3 4-3h3m-4-4 4 4-4 4" />
             </svg>

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1100" viewBox="0 0 1440 1100" preserveAspectRatio="xMinYMin slice">
+  <filter id="paper" x="0" y="0" width="100%" height="100%">
+    <feTurbulence type="fractalNoise" baseFrequency=".012" numOctaves="4" seed="12" result="folds"/>
+    <feDiffuseLighting in="folds" surfaceScale="9" diffuseConstant="1" lighting-color="#fff">
+      <feDistantLight azimuth="225" elevation="48"/>
+    </feDiffuseLighting>
+  </filter>
+  <filter id="uneven-edge" x="-50%" y="-50%" width="200%" height="200%">
+    <feTurbulence type="fractalNoise" baseFrequency=".006" numOctaves="2" seed="7" result="noise"/>
+    <feDisplacementMap in="SourceGraphic" in2="noise" scale="180" xChannelSelector="R" yChannelSelector="G"/>
+    <feGaussianBlur stdDeviation="115"/>
+    <feComponentTransfer>
+      <feFuncA type="linear" slope="1.08" intercept="-.08"/>
+    </feComponentTransfer>
+  </filter>
+  <mask id="worn-paper" maskUnits="userSpaceOnUse" x="0" y="0" width="1440" height="1100">
+    <path fill="white" filter="url(#uneven-edge)" d="M-260 370C-100 280 180 240 400 280S760 240 1020 340 1360 460 1170 570 910 620 760 700 410 810 150 740-180 750-270 610-350 460-260 370Z"/>
+  </mask>
+  <path fill="#fff" filter="url(#paper)" mask="url(#worn-paper)" opacity=".32" d="M0 0h1440v1100H0z"/>
+</svg>

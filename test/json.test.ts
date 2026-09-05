@@ -11,10 +11,11 @@ const resolveModule = () => 'data:text/javascript,export default {injectIntoGlob
 
 test('JSON imports link into the live module graph', async () => {
   for (const value of [1, 2]) {
-    const linked = await linkModules({
+    const files = {
       'pages/index.js': "import data from '../data.json'; export default data.value",
       'data.json': JSON.stringify({ value }),
-    }, resolveModule)
+    }
+    const linked = await linkModules(files, resolveModule, files)
     expect(linked.dependencies['@pages/index.js']).toEqual(['@data.json'])
     expect(Function(linked.files['@data.json'].replace('export default', 'return'))()).toEqual({ value })
   }
