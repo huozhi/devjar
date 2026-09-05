@@ -4,19 +4,22 @@ import { Banner } from '../components/banner'
 import { ExampleGallery } from '../components/example-gallery'
 import '../styles.css'
 
-const description = 'Turn a folder of React pages into a self-contained static site.'
-const socialImage = '/og-image.png'
+const title = 'Devjar — Live Playground & Static Site Export'
+const description = 'Live React playgrounds and a zero-config CLI for exporting React pages as static websites.'
+const socialImage = '/og-image.jpg'
 
 export default function Page() {
   return (
     <>
-      <title>devjar</title>
+      <title>{title}</title>
       <meta name="description" content={description} />
       <meta name="author" content="@huozhi" />
-      <meta property="og:title" content="devjar" />
+      <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
       <meta property="og:image" content={socialImage} />
       <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content={title} />
+      <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={socialImage} />
       <link rel="alternate" type="text/plain" title="Devjar agent reference" href="/llms.txt" />
       <link rel="icon" href="/icon.svg" type="image/svg+xml" />
