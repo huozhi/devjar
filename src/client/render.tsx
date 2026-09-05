@@ -34,7 +34,7 @@ export function DevJar({
   transformWorkerUrl?: string | URL
   compiler?: CompilerAssets
   ref?: React.Ref<HTMLIFrameElement>
-} & React.IframeHTMLAttributes<HTMLIFrameElement>) {
+} & Omit<React.IframeHTMLAttributes<HTMLIFrameElement>, 'src' | 'srcDoc' | 'children' | 'dangerouslySetInnerHTML' | 'onError'>) {
   const onErrorRef = useRef(onError)
   const onStatusRef = useRef(onStatusChange)
   const { ref, error, status, load, reset } = useDevJar({ resolveModule, dependencies, transform, tailwind, transformWorkerUrl, compiler })

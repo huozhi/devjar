@@ -102,7 +102,11 @@ export default function LiveExample() {
 | `transformWorkerUrl` | `string` or `URL` | Legacy worker-only override; uses default binding and WASM assets |
 | `apiRef` | `React.Ref<DevJarHandle>` | Access `reset()` to restart the current project |
 | `ref` | `React.Ref<HTMLIFrameElement>` | Access the rendered iframe |
-| Other iframe props | `React.IframeHTMLAttributes` | Forwarded to the iframe, including `title`, `style`, and `className` |
+| Other iframe props | Iframe attributes | Forwarded to the iframe, including `title`, `style`, and `className` |
+
+DevJar owns the iframe document, so `src`, `srcDoc`, `children`, and
+`dangerouslySetInnerHTML` are not component props. `onError` reports preview
+errors; it is not the native iframe error event.
 
 Keep `files` and custom resolver functions stable between unrelated parent
 renders. To edit a file, replace its string in a new `files` object.
