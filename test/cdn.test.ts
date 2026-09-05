@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { createEsmShResolver, createPreviewResolver } from '../src/cdn'
+import { CDN_HOST, createEsmShResolver, createPreviewResolver } from '../src/cdn'
 
 test('iframe dependencies resolve React without relying on a host import map', () => {
   const resolve = createPreviewResolver({ react: '19.2.8', 'react-dom': '19.2.8', swr: '2.3.0' })
@@ -12,7 +12,13 @@ test('iframe dependencies resolve React without relying on a host import map', (
   expect(new URL(createPreviewResolver({})('react-dom/client')).searchParams.get('deps')).toBe('react@19.2.0')
 })
 
-test('CLI resolution keeps external React for its import map and vendoring', () => {
-  const resolve = createEsmShResolver({}, 'https://esm.sh', true)
-  expect(new URL(resolve('react-dom/client')).searchParams.get('external')).toBe('react')
+test('CLI resolver pins versions and externalizes React for the import map', () => {
+  const resolveModule = createEsmShResolver(
+    { react: '19.1.0', '@scope/pkg': '^2.0.0' },
+    CDN_HOST,
+    true,
+  )
+  expect(resolveModule('react/jsx-runtime')).toBe('https://esm.sh/react@19.1.0/jsx-runtime?dev')
+  expect(resolveModule('react-dom/client')).toBe('https://esm.sh/react-dom@19.2.0/client?dev&external=react')
+  expect(resolveModule('@scope/pkg/subpath')).toBe('https://esm.sh/@scope/pkg@%5E2.0.0/subpath?external=react')
 })

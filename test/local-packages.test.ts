@@ -111,7 +111,7 @@ test('vendors local packages and prerenders them without leaking local paths', a
     const build = await buildProject(buildOptions)
     expect(await readFile(join(build.outDir, 'index.html'), 'utf8')).toContain('<span>Local spinner</span>')
     const vendorRoot = join(build.outDir, '_jar/vendor')
-    const files = await readdir(vendorRoot, { recursive: true })
+    const files = (await readdir(vendorRoot, { recursive: true })).sort()
     const sources = await Promise.all(files.filter(file => file.endsWith('.js')).map(file => readFile(join(vendorRoot, file), 'utf8')))
     expect(sources.join('\n')).toContain('Local spinner')
     expect(sources.join('\n')).not.toContain('http://127.0.0.1')
@@ -119,7 +119,8 @@ test('vendors local packages and prerenders them without leaking local paths', a
     expect(sources.join('\n')).not.toContain('local.devjar.invalid')
     expect(sources.join('\n')).toContain('data:image/svg+xml;base64,')
     await buildProject({ ...buildOptions, prerender: false })
-    expect(await readdir(vendorRoot, { recursive: true })).toEqual(files)
+    // Filesystem enumeration order is not part of the build output contract.
+    expect((await readdir(vendorRoot, { recursive: true })).sort()).toEqual(files)
   } finally {
     await new Promise<void>(resolve => cdn.close(() => resolve()))
   }

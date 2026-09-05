@@ -93,17 +93,6 @@ describe('project loading', () => {
     })
   })
 
-  test('shares the runtime CDN resolver', () => {
-    const resolveModule = createEsmShResolver(
-      { react: '19.1.0', '@scope/pkg': '^2.0.0' },
-      CDN_HOST,
-      true,
-    )
-    expect(resolveModule('react/jsx-runtime')).toBe('https://esm.sh/react@19.1.0/jsx-runtime?dev')
-    expect(resolveModule('react-dom/client')).toBe('https://esm.sh/react-dom@19.2.0/client?dev&external=react')
-    expect(resolveModule('@scope/pkg/subpath')).toBe('https://esm.sh/@scope/pkg@%5E2.0.0/subpath?external=react')
-  })
-
   test('loads a route manifest with module entries', async () => {
     const manifest = await loadTestRouteManifest(root)
     expect(manifest.version).toBe(3)
