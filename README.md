@@ -113,7 +113,7 @@ The component reloads the current files when compilation options change. Changin
 React state and iframe globals are reset. Equal dependency versions and compiler
 URLs do not trigger a reload just because their options objects are recreated.
 
-With `useLiveCode`, call `load` again to apply changed options. For automatic
+With `useDevJar`, call `load` again to apply changed options. For automatic
 updates, include both `files` and `load` in your effect dependencies.
 
 </details>
@@ -148,7 +148,7 @@ in the host's origin; it is not a security boundary for untrusted code.
 
 ### Resetting the runtime
 
-Use `apiRef.current.reset()` on the component, or `reset()` from `useLiveCode`,
+Use `apiRef.current.reset()` on the component, or `reset()` from `useDevJar`,
 to restart the current project without restoring the editor's initial source:
 
 ```tsx
@@ -200,7 +200,7 @@ not an error. Unmounting discards pending edits and releases the compiler client
 
 ### Preview lifecycle
 
-Use `onStatusChange` on `<DevJar>` or `status` from `useLiveCode` for a loading
+Use `onStatusChange` on `<DevJar>` or `status` from `useDevJar` for a loading
 indicator. `idle` means no load has started, `compiling` covers source compilation
 and linking, and `loading` covers iframe initialization and module loading.
 `ready` means React committed the preview; it does not wait for application data,
@@ -212,21 +212,23 @@ promise rejections. A new load clears the previous error (`undefined`); syntax
 errors leave the previous preview visible. Handle both status and error to explain
 a loading or failed preview. The iframe's native `onLoad` is not preview readiness.
 
-### useLiveCode hook
+### Advanced API: useDevJar
 
-Use `useLiveCode` when you want to own the iframe and decide when a project runs.
+Prefer `<DevJar>` for managed previews. Use `useDevJar` when you need to own the
+iframe markup and control when files load.
+
+`useLiveCode` remains available as a deprecated alias; existing calls continue to work.
 
 <details>
 <summary>Hook example and return values</summary>
 
-Use `useLiveCode` when you want to own the iframe and decide when to load files.
-It accepts the same `dependencies`, `resolveModule`, `transform`, `tailwind`,
+The hook accepts the same `dependencies`, `resolveModule`, `transform`, `tailwind`,
 `compiler`, and `transformWorkerUrl` options as the component.
 
 ```tsx
 'use client'
 
-import { useLiveCode } from 'devjar'
+import { useDevJar } from 'devjar'
 
 const files = {
   'pages/index.tsx': `export default function Page() {
@@ -235,7 +237,7 @@ const files = {
 }
 
 export default function ManualPreview() {
-  const { ref, error, load } = useLiveCode({ tailwind: false })
+  const { ref, error, load } = useDevJar({ tailwind: false })
 
   return (
     <>
@@ -299,7 +301,7 @@ Use matching worker, binding, and WASM files from the same Devjar build.
 This override bypasses default discovery entirely. It takes precedence over
 `transformWorkerUrl`, which remains available for worker-only overrides.
 Keep the worker on the host's origin; remotely hosted binding/WASM assets
-must permit cross-origin requests. `useLiveCode` accepts the same option.
+must permit cross-origin requests. `useDevJar` accepts the same option.
 
 </details>
 

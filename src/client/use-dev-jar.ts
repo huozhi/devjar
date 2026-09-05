@@ -4,7 +4,8 @@ import type { CompilerAssets } from './compiler'
 import type { PreviewStatus } from './core'
 import { createPreviewRuntime, type CompilationOptions, type PreviewRuntime } from './runtime'
 
-export function useLiveCode({
+/** Advanced API for owning the iframe and scheduling loads. Prefer DevJar for managed previews. */
+export function useDevJar({
   resolveModule: customResolveModule,
   dependencies,
   transform = true,
@@ -62,3 +63,6 @@ export function useLiveCode({
 
   return { ref: iframeRef, error, status, load, reset }
 }
+
+/** @deprecated Use useDevJar. */
+export const useLiveCode = useDevJar

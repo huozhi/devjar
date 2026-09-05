@@ -1,5 +1,5 @@
 import { useEffect, useImperativeHandle, useRef } from 'react'
-import { useLiveCode } from './use-live-code'
+import { useDevJar } from './use-dev-jar'
 import type { PreviewStatus } from './core'
 import type { CompilerAssets } from './compiler'
 
@@ -37,7 +37,7 @@ export function DevJar({
 } & React.IframeHTMLAttributes<HTMLIFrameElement>) {
   const onErrorRef = useRef(onError)
   const onStatusRef = useRef(onStatusChange)
-  const { ref, error, status, load, reset } = useLiveCode({ resolveModule, dependencies, transform, tailwind, transformWorkerUrl, compiler })
+  const { ref, error, status, load, reset } = useDevJar({ resolveModule, dependencies, transform, tailwind, transformWorkerUrl, compiler })
 
   useImperativeHandle(apiRef, () => ({ reset }), [reset])
   useImperativeHandle(forwardedRef, () => ref.current!, [ref])

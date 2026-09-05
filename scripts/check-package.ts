@@ -61,6 +61,11 @@ if (missing.length || !hasRuntimeChunk) {
   throw new Error(`Package is missing required files: ${missing.join(', ')}`)
 }
 
+const runtime = await import(join(root, 'dist/index.js'))
+if (typeof runtime.useDevJar !== 'function' || runtime.useLiveCode !== runtime.useDevJar) {
+  throw new Error('Package must export useDevJar and its deprecated useLiveCode alias')
+}
+
 const cli = Bun.spawnSync(['node', 'dist/bin.js', '--version'], { cwd: root })
 if (cli.exitCode !== 0 || cli.stdout.toString().trim() !== packageJson.version) {
   throw new Error('The packaged CLI did not report the package version')
