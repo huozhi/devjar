@@ -306,6 +306,10 @@ function outputModuleCode(
 ) {
   if (options.development || options.platform !== 'browser') return code
 
+  return minifyModule(projectPath, code)
+}
+
+export function minifyModule(projectPath: string, code: string) {
   const output = minifySync(projectPath, code, {
     module: true,
     compress: { target: 'es2022' },
