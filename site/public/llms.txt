@@ -13,7 +13,7 @@
 ## Choose an entry point
 
 - Embed editable code in an app or documentation: install devjar, import DevJar, and pass files as strings.
-- Control an existing iframe: import useLiveCode and use its ref, load(files), and error.
+- Advanced API for owning an iframe: import useDevJar and use its ref, load(files), and error.
 - Build a website: create pages/index.tsx and run npx devjar dev. No configuration file is required.
 
 ## Live code APIs
@@ -40,7 +40,7 @@ DevJar reloads current files when options change. Changing transform/compiler UR
 invalidates compiled-source caches; changing dependencies, resolveModule, or
 tailwind recreates the iframe runtime and resets its state. Equal dependency and
 compiler values do not reload just because their options objects are recreated.
-With useLiveCode, call load again after options change, or include files and load
+With useDevJar, call load again after options change, or include files and load
 in the dependencies of the effect that performs automatic loading.
 Updates start immediately, with one active load and only the newest pending edit.
 Superseded queued edits are skipped; running compilation/imports finish and stale
@@ -53,8 +53,10 @@ onError, onStatusChange, dependencies (package versions), resolveModule (an ESM 
 tailwind (defaults to true), transform (defaults to true), and compiler
 ({ workerUrl, bindingUrl, wasmUrl }) for a complete asset URL override.
 
-useLiveCode returns { ref, load, error, status, reset }. Attach ref to an iframe and call
+Prefer DevJar for managed previews. The advanced useDevJar hook returns
+{ ref, load, error, status, reset }. Attach ref to an iframe and call
 load(files) when the project should run. load returns a promise.
+useLiveCode is a deprecated alias of useDevJar, retained for compatibility.
 status (or the component's onStatusChange) reports idle, compiling, loading,
 ready, or failed. ready means React committed, not that application data is loaded.
 Call reset() on the hook or pass apiRef (React.Ref<DevJarHandle>) to DevJar and

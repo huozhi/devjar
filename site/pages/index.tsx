@@ -41,7 +41,7 @@ export default function Page() {
               <p>
                 All four gallery demos use the <code>DevJar</code> component.
                 Pass project files as strings, connect your editor to the <code>files</code> prop,
-                and watch changes run inside an iframe. Use <code>useLiveCode</code> to control your own iframe.
+                and watch changes run inside an iframe. Use <code>useDevJar</code> to control your own iframe.
               </p>
               <div className="code-block" aria-label="DevJar component example">
                 <Code theme={taffy.light} lang="typescript" controls={false} fontSize={13}>{`import { DevJar } from 'devjar'
@@ -66,13 +66,13 @@ function Preview() {
             </div>
 
             <div className="section">
-              <h3>Control your own iframe</h3>
-              <p>Use <code>useLiveCode</code> when you want to decide when a project runs.</p>
-              <div className="code-block" aria-label="useLiveCode hook example">
-                <Code theme={taffy.light} lang="typescript" controls={false} fontSize={13}>{`import { useLiveCode } from 'devjar'
+              <h3>Advanced API: control your own iframe</h3>
+              <p>Use <code>DevJar</code> for managed previews. The advanced <code>useDevJar</code> hook lets you own the iframe and decide when a project runs.</p>
+              <div className="code-block" aria-label="useDevJar hook example">
+                <Code theme={taffy.light} lang="typescript" controls={false} fontSize={13}>{`import { useDevJar } from 'devjar'
 
 function Preview({ files }) {
-  const { ref, load, error } = useLiveCode({ tailwind: false })
+  const { ref, load, error } = useDevJar({ tailwind: false })
 
   return (
     <>
