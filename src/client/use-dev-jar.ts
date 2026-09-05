@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { createPreviewResolver } from '../cdn'
+import { createPreviewResolver } from '../shared/cdn'
 import type { CompilerAssets } from './compiler'
 import type { PreviewStatus } from './core'
 import { createPreviewRuntime, type CompilationOptions, type PreviewRuntime } from './runtime'

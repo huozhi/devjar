@@ -10,13 +10,13 @@ import {
   startBuiltServer,
   startDevServer,
 } from '../src/cli/index'
-import { CDN_HOST, createEsmShResolver } from '../src/cdn'
+import { CDN_HOST, createEsmShResolver } from '../src/shared/cdn'
 import { createIframeRouteManifest, linkModules } from '../src/client/core'
 import { collectProjectFiles, compileProjectModule } from '../src/cli/modules'
-import { getTailwindBrowserUrl, getTailwindBuildUrls } from '../src/tailwind'
+import { getTailwindBrowserUrl, getTailwindBuildUrls } from '../src/cli/tailwind'
 import { extractTailwindCandidates } from '../src/cli/tailwind-build'
 import { testCdnModule } from '../scripts/test-cdn'
-import { normalizeBase, withBase, withoutBase } from '../src/project'
+import { normalizeBase, withBase, withoutBase } from '../src/shared/project'
 
 const root = resolve(import.meta.dir, '../examples/basic')
 const dashboardRoot = resolve(import.meta.dir, '../examples/dashboard')

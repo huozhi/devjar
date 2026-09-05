@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test'
 import { mkdtemp, mkdir, writeFile, rm, realpath } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { createJsonModule } from '../src/json'
+import { createJsonModule } from '../src/shared/json'
 import { linkModules } from '../src/client/core'
 
 import { collectProjectFiles, compileProjectModule } from '../src/cli/modules'

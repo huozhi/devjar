@@ -1,4 +1,4 @@
-import { createEsmShResolver } from './cdn'
+import { createEsmShResolver } from '../shared/cdn'
 
 function tailwindBrowserVersion(dependencies: Record<string, string>) {
   return dependencies['@tailwindcss/browser'] || dependencies.tailwindcss

@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { extname, join } from 'node:path'
 import { init, parse } from 'es-module-lexer'
-import { withBase } from '../project'
+import { withBase } from '../shared/project'
 
 type Replacement = {
   start: number

@@ -44,7 +44,7 @@ still needs Rust; this cache is separate from GitHub Actions' cache.
 
 Keep the Oxc crate versions aligned with `oxc-transform` and the wasm-bindgen
 crate aligned with the CLI version in `scripts/setup-compiler.sh`. The wrapper
-matches `src/transform.ts` with development and Refresh enabled. Update the
+matches `src/cli/transform.ts` with development and Refresh enabled. Update the
 browser/native contract test when changing compiler behavior.
 
 `test/browser-compiler.test.ts` verifies compiler behavior against native Oxc.

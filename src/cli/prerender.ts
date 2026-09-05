@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { extname, join, relative, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { promisify } from 'node:util'
-import { createEsmShResolver } from '../cdn'
+import { createEsmShResolver } from '../shared/cdn'
 import {
   builtAssetUrl,
   collectProjectFiles,

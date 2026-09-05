@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { extname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
-import { sourceExtensions } from '../project'
+import { sourceExtensions } from '../shared/project'
 
 type CompileTailwindOptions = {
   root: string

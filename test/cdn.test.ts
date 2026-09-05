@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { CDN_HOST, createEsmShResolver, createPreviewResolver } from '../src/cdn'
+import { CDN_HOST, createEsmShResolver, createPreviewResolver } from '../src/shared/cdn'
 
 test('iframe dependencies resolve React without relying on a host import map', () => {
   const resolve = createPreviewResolver({ react: '19.2.8', 'react-dom': '19.2.8', swr: '2.3.0' })

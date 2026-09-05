@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { init, parse } from 'es-module-lexer'
 import { linkModules } from '../src/client/core'
 import { collectProjectFiles, compileProjectModule, DevModuleGraph } from '../src/cli/modules'
-import { textModuleSuffix, isTextImport } from '../src/text'
+import { textModuleSuffix, isTextImport } from '../src/shared/text'
 
 const resolveModule = () => 'data:text/javascript,export default {}'
 const text = 'uniform float time;\n// ` ${literal} "quoted"\nnot JavaScript < & > 🫙'

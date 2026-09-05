@@ -1,6 +1,6 @@
 import { init, parse } from 'es-module-lexer'
-import { isTextImport } from '../text'
-import { sourceExtensions } from '../project'
+import { isTextImport } from '../shared/text'
+import { sourceExtensions } from '../shared/project'
 import {
   createIframeRouteManifest, createMainScript, getModuleKey, isRelative,
   linkModules, normalizeProjectPath, resolveRelativeModule, type PreviewStatus,

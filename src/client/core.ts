@@ -1,9 +1,9 @@
-import { textModuleSuffix, isTextImport, createTextModule } from '../text'
-import { createJsonModule } from '../json'
+import { textModuleSuffix, isTextImport, createTextModule } from '../shared/text'
+import { createJsonModule } from '../shared/json'
 import { createModule } from './module'
 import type { ModuleRuntime } from './module'
 import { init, parse } from 'es-module-lexer'
-import { routeFromPagePath, sourceExtensions } from '../project'
+import { routeFromPagePath, sourceExtensions } from '../shared/project'
 
 export type PreviewStatus = 'idle' | 'compiling' | 'loading' | 'ready' | 'failed'
 

@@ -3,7 +3,7 @@ import { cp, mkdir, readdir, readFile, realpath, rm, stat, writeFile } from 'nod
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { dirname, extname, join, normalize, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { CDN_HOST, createEsmShResolver, normalizeCdnHost } from '../cdn'
+import { CDN_HOST, createEsmShResolver, normalizeCdnHost } from '../shared/cdn'
 import {
   builtAssetUrl,
   builtModuleUrl,
@@ -27,8 +27,8 @@ import {
   sourceExtensions,
   withBase,
   withoutBase,
-} from '../project'
-import { getTailwindBrowserUrl, getTailwindBuildUrls } from '../tailwind'
+} from '../shared/project'
+import { getTailwindBrowserUrl, getTailwindBuildUrls } from './tailwind'
 import { prerender, type PrerenderedRoute } from './prerender'
 import { compileTailwind } from './tailwind-build'
 import { vendorModules } from './vendor'

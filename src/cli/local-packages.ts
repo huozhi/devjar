@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { readFileSync, realpathSync, watch, type FSWatcher } from 'node:fs'
 import { extname, isAbsolute, join, posix, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { createEsmShResolver } from '../cdn'
+import { createEsmShResolver } from '../shared/cdn'
 import { compileProjectModule } from './modules'
 
 type Package = {

@@ -4,7 +4,7 @@ import { selectBaseline, summarizeChanges } from '../scripts/release-notes.mjs'
 test('release notes include core outcomes and omit polish and maintenance', () => {
   const commit = (subject: string, files: string[], body: string) => ({ sha: 'abc1234567', subject, files, body })
   const result = summarizeChanges([
-    commit('feat(runtime): import JSON', ['src/json.ts'], ''),
+    commit('feat(runtime): import JSON', ['src/shared/json.ts'], ''),
     commit('fix(cli): improve errors (#42)', ['src/bin/devjar.ts'], ''),
     commit('perf(runtime): reduce compiler work', ['src/client/core.ts'], ''),
     commit('feat: reshape shader demo', ['site/lib/examples/shader.ts'], ''),
@@ -13,8 +13,8 @@ test('release notes include core outcomes and omit polish and maintenance', () =
     commit('test: fix filesystem order', ['test/local-packages.test.ts'], ''),
     commit('ci: improve publishing', ['.github/workflows/publish.yml'], ''),
     commit('chore: bump version', ['package.json'], ''),
-    commit('feat(runtime): import JSON', ['src/json.ts'], ''),
-    commit('fix(runtime): change resolver implementation', ['src/cdn.ts'], 'Release-note: Resolve React inside standalone previews.'),
+    commit('feat(runtime): import JSON', ['src/shared/json.ts'], ''),
+    commit('fix(runtime): change resolver implementation', ['src/shared/cdn.ts'], 'Release-note: Resolve React inside standalone previews.'),
     commit('refactor(runtime)!: remove deprecated API', ['src/index.ts'], ''),
   ], 'huozhi/devjar')
   expect(result).toBe(`## Features

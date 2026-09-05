@@ -1,13 +1,13 @@
-import { textModuleSuffix, isTextImport, createTextModule } from '../text'
-import { createJsonModule } from '../json'
+import { textModuleSuffix, isTextImport, createTextModule } from '../shared/text'
+import { createJsonModule } from '../shared/json'
 import { createHash } from 'node:crypto'
 import { readFile, realpath, stat } from 'node:fs/promises'
 import { basename, extname, relative, resolve, sep } from 'node:path'
 import { init, parse } from 'es-module-lexer'
 import { minifySync } from 'oxc-minify'
 import { transformSync } from 'oxc-transform'
-import { sourceExtensions, withBase } from '../project'
-import { getTransformErrorMessage, getTransformOptions } from '../transform'
+import { sourceExtensions, withBase } from '../shared/project'
+import { getTransformErrorMessage, getTransformOptions } from './transform'
 import type { HmrUpdate } from './protocol'
 
 export const staticAssetExtensions = [

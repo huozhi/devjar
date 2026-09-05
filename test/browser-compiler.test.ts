@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import { transformSync } from 'oxc-transform'
-import { getTransformOptions } from '../src/transform'
+import { getTransformOptions } from '../src/cli/transform'
 import init, { transform } from '../compiler/pkg/devjar_browser_compiler.js'
 
 const wasm = await init({ module_or_path: readFileSync(new URL('../compiler/pkg/devjar_browser_compiler_bg.wasm', import.meta.url)) })
