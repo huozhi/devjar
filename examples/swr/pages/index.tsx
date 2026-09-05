@@ -1,6 +1,6 @@
 import { useMemo, useState, useSyncExternalStore } from 'react'
 import { SWRConfig } from 'swr'
-import { useTasks, useTaskUpdate, useActivity } from '../swr'
+import { useTasks, useTaskUpdate, useActivity } from '../hooks'
 import { demo, observe, snapshot } from '../demo'
 import '../styles.css'
 

@@ -371,8 +371,7 @@ footer {
     gap: 0;
     -webkit-overflow-scrolling: touch;
     height: auto;
-    flex: 0 0 auto;
-    flex-grow: 0;
+    flex: 1 1 auto;
     min-height: 0;
     max-height: 140px;
   }
@@ -384,7 +383,7 @@ footer {
     border-radius: 0;
   }
   .filetree-item--nested {
-    padding-left: 10px;
+    padding-left: 28px;
   }
   .filetree-item-name {
     max-width: none;

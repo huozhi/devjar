@@ -14,6 +14,8 @@ const REACT_DEV_MODULES = new Set([
 const editorTextareaProps = { style: { caretColor: '#171717' } }
 
 function resolveModule(specifier: string) {
+  if (specifier === '@react-three/fiber') return `${CDN_HOST}/@react-three/fiber@9.3.0?deps=react@19.2.8,react-dom@19.2.8,three@0.180.0&dev&bundle`
+  if (specifier === 'three') return `${CDN_HOST}/three@0.180.0?dev`
   if (specifier === 'swr' || specifier.startsWith('swr/')) {
     return `${CDN_HOST}/${specifier.replace(/^swr/, 'swr@2.5.1')}?deps=react@19.2.8&dev`
   }

@@ -371,3 +371,9 @@ textarea:focus-visible {
     opacity: 1;
   }
 }
+
+@media (max-width: 640px) {
+  [data-codesandbox="react"]:not([data-focused]) .codesandbox-layout {
+    width: 100%;
+  }
+}
