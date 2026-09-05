@@ -508,6 +508,12 @@ Publish runs the checks, publishes prereleases to `next` (stable versions to
 `latest`), and generates GitHub release notes. Follow the Publish run for the
 final result. The version commit and tag remain available if publishing fails.
 
+To retry an existing tag, run **Actions → Publish → Run workflow** from `main`
+and enter its tag, such as `v1.0.0-next.1`. Enable **force** to skip unit and
+browser tests; build, typecheck, and package checks still run. This publishes
+the existing tagged source without changing commits or tags. It cannot
+overwrite a version already published to npm.
+
 </details>
 
 ## License

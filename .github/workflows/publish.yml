@@ -2,6 +2,15 @@ name: Publish
 
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag to publish (leave blank when running directly on a tag)'
+        type: string
+        required: false
+      force:
+        description: 'Skip unit and browser tests; still build, typecheck, and check package contents'
+        type: boolean
+        default: false
   push:
     tags:
       - "v*"
@@ -11,18 +20,22 @@ permissions:
   id-token: write
 
 concurrency:
-  group: publish-${{ github.ref }}
+  group: publish-${{ inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
   publish:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.tag != '')
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag && format('refs/tags/{0}', inputs.tag) || github.ref }}
 
       - uses: pnpm/action-setup@v6
 
@@ -41,8 +54,8 @@ jobs:
         shell: bash
         run: |
           version=$(node -p "require('./package.json').version")
-          if [[ "$GITHUB_REF_NAME" != "v$version" ]]; then
-            echo "Git tag $GITHUB_REF_NAME must match package.json version v$version" >&2
+          if [[ "$RELEASE_TAG" != "v$version" ]]; then
+            echo "Git tag $RELEASE_TAG must match package.json version v$version" >&2
             exit 1
           fi
           if [[ "${version%%+*}" == *-* ]]; then
@@ -58,13 +71,23 @@ jobs:
         run: pnpm run build
 
       - name: Install Chromium
+        if: ${{ !inputs.force }}
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Test Package
-        run: pnpm typecheck && pnpm test && pnpm test:package
+      - name: Check Package
+        run: pnpm typecheck && pnpm test:package
+
+      - name: Test
+        if: ${{ !inputs.force }}
+        run: pnpm test
 
       - name: Test Packaged Browser
+        if: ${{ !inputs.force }}
         run: bun scripts/test-package-browser.ts
+
+      - name: Record forced publish
+        if: github.event_name == 'workflow_dispatch' && inputs.force
+        run: echo "Force publishing $RELEASE_TAG with unit and browser tests skipped. Build, typecheck, and package checks passed." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Publish to npm
         run: npm publish --tag ${{ steps.npm-tag.outputs.tag }}
@@ -79,7 +102,8 @@ jobs:
             release_flags+=(--prerelease)
           fi
 
-          gh release create "$GITHUB_REF_NAME" \
+          gh release create "$RELEASE_TAG" \
+            --verify-tag \
             --generate-notes \
-            --title "$GITHUB_REF_NAME" \
+            --title "$RELEASE_TAG" \
             "${release_flags[@]}"
