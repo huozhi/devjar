@@ -96,6 +96,7 @@ export default function LiveExample() {
 | `resolveModule` | `(specifier: string) => string` | Optional resolver override returning browser-loadable ESM URLs |
 | `transform` | `boolean` | Default `true`; compile JSX and TypeScript in a worker |
 | `tailwind` | `boolean` | Default `true`; enable the iframe's Tailwind browser runtime |
+| `onStatusChange` | `(status: PreviewStatus) => void` | Reports lifecycle state changes |
 | `onError` | `(error: unknown) => void` | Called when error state changes; defaults to `console.error` in the browser |
 | `compiler` | `CompilerAssets` | Complete worker, binding, and WASM URL override; bypasses default asset discovery |
 | `transformWorkerUrl` | `string` or `URL` | Legacy worker-only override; uses default binding and WASM assets |
@@ -135,6 +136,20 @@ in the host's origin; it is not a security boundary for untrusted code.
 
 </details>
 
+### Preview lifecycle
+
+Use `onStatusChange` on `<DevJar>` or `status` from `useLiveCode` for a loading
+indicator. `idle` means no load has started, `compiling` covers source compilation
+and linking, and `loading` covers iframe initialization and module loading.
+`ready` means React committed the preview; it does not wait for application data,
+images, or every asynchronous effect. `failed` accompanies an error. React can
+batch rapid transitions, so callbacks are state notifications, not a phase log.
+
+`onError` also receives React render errors, uncaught iframe errors, and unhandled
+promise rejections. A new load clears the previous error (`undefined`); syntax
+errors leave the previous preview visible. Handle both status and error to explain
+a loading or failed preview. The iframe's native `onLoad` is not preview readiness.
+
 ### useLiveCode hook
 
 Use `useLiveCode` when you want to own the iframe and decide when a project runs.
@@ -173,7 +188,8 @@ export default function ManualPreview() {
 | Return value | Meaning |
 | --- | --- |
 | `ref` | Attach to the iframe that will run the project |
-| `error` | Current runtime error, if any |
+| `error` | Current compilation, loading, or runtime error, if any |
+| `status` | `idle`, `compiling`, `loading`, `ready`, or `failed` |
 | `load(files)` | Load or update the virtual project; returns `Promise<void>` |
 
 </details>
