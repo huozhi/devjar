@@ -44,14 +44,7 @@ static host.
 
 Omit `--exclude` from the build command to also export `/playground`.
 
-The embedded playground needs HTTPS (or localhost) and these response headers:
-
-```text
-Cross-Origin-Opener-Policy: same-origin
-Cross-Origin-Embedder-Policy: require-corp
-```
-
-Devjar's dev and preview servers set them automatically. Configure them on your
-static host if you keep `/playground`.
+The embedded playground runs its compiler in a browser worker. No special
+response headers are required on your static host.
 
 </details>

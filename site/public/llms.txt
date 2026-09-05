@@ -43,10 +43,10 @@ tailwind (defaults to true), and transform (defaults to true).
 useLiveCode returns { ref, load, error }. Attach ref to an iframe and call
 load(files) when the project should run. load returns a promise.
 
-Embedded previews require a secure context and cross-origin isolation:
-Cross-Origin-Opener-Policy: same-origin
-Cross-Origin-Embedder-Policy: require-corp
-Localhost works; Devjar's CLI servers supply these headers.
+Embedded previews compile in a browser worker using non-shared WebAssembly.
+No cross-origin isolation headers or server-side compiler are required.
+Serve the packaged worker, binding, and WASM assets alongside the runtime;
+Devjar's CLI includes them automatically for sites using the component.
 
 ## CLI
 
@@ -91,7 +91,7 @@ shared imports needed by retained pages, public files, and API files remain.
 The build prerenders route HTML, bundles the project modules, and vendors
 runtime dependencies into dist/. Deploy dist/ to a static host. It needs no
 Node.js server after export. A site that embeds DevJar still needs the browser
-compiler and the isolation headers listed above.
+compiler assets listed above.
 
 For the personal-site example, run npx devjar dev from its directory. /playground reads the same source files as the real website. Copy the
 edited content.json back to disk, build, and preview the exported result.
