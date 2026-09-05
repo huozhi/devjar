@@ -31,19 +31,23 @@ edits do not write to disk or survive a reload.
 From the repository root:
 
 ```sh
-node dist/bin.js build examples/personal
+node dist/bin.js build examples/personal --exclude pages/playground.tsx
 node dist/bin.js start examples/personal/dist
 ```
 
 The build writes `examples/personal/dist/`, including prerendered page HTML,
-CSS, and vendored dependencies. Publish the contents to a static host.
+CSS, and vendored dependencies. The playground and its browser compiler are
+excluded; the editor link is hidden in production. Publish the contents to a
+static host.
 
-Once the text-import feature is published, you can also run `npx devjar dev`,
-`npx devjar build`, and `npx devjar start` from this example directory. Until then,
+Once text imports and build exclusions are published, you can also run `npx devjar dev`,
+`npx devjar build --exclude pages/playground.tsx`, and `npx devjar start` from this example directory. Until then,
 use the repository CLI above.
 
 <details>
-<summary>Hosting the playground or publishing just the personal site</summary>
+<summary>Include the playground in the export</summary>
+
+Omit `--exclude` from the build command to also export `/playground`.
 
 The embedded playground needs HTTPS (or localhost) and these response headers:
 
@@ -54,9 +58,5 @@ Cross-Origin-Embedder-Policy: require-corp
 
 Devjar's dev and preview servers set them automatically. Configure them on your
 static host if you keep `/playground`.
-
-To publish only the personal site, remove `pages/playground.tsx` and change the
-“Edit this site” footer link in `components/layout.tsx`, then rebuild. The other
-pages do not need Devjar's browser compiler or cross-origin isolation headers.
 
 </details>

@@ -8,7 +8,7 @@ export function Layout({ page, children }: { page: string; children: ReactNode }
       <title>{page === 'Home' ? content.name : `${page} — ${content.name}`}</title>
       <meta name="description" content={content.intro} />
       {children}
-      <footer className="site-footer"><span>{content.name}</span><a href="/playground">Edit this résumé</a></footer>
+      <footer className="site-footer"><span>{content.name}</span>{process.env.NODE_ENV === 'development' && <a href="/playground">Edit this résumé</a>}</footer>
     </div>
   )
 }

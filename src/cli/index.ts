@@ -54,6 +54,7 @@ export type BuildOptions = {
   outDir: string
   cdn: string | undefined
   prerender: boolean
+  exclude: string[]
   base: string
 }
 
@@ -139,7 +140,14 @@ export async function loadRouteManifest(
   options: LoadRouteManifestOptions,
 ): Promise<RouteManifest> {
   root = await realpath(root)
-  const discovered = await discoverRoutes(root)
+  return createRouteManifest(root, await discoverRoutes(root, []), options)
+}
+
+function createRouteManifest(
+  root: string,
+  discovered: Awaited<ReturnType<typeof discoverRoutes>>,
+  options: LoadRouteManifestOptions,
+): RouteManifest {
   const routes: Record<string, RouteEntry> = {}
   for (const [route, page] of discovered.routes) {
     const projectPath = relative(root, page).split(sep).join('/')
@@ -538,7 +546,7 @@ export async function startDevServer(options: DevServerOptions) {
       pendingTimestamp = 0
       let reload = changedFiles.includes('package.json')
       const routes = changedFiles.some(filename => (
-        filename.startsWith('pages/') && sourceExtensions.includes(extname(filename))
+        filename.startsWith('pages/') && routeFromPagePath(filename.slice('pages/'.length)) !== undefined
       ))
       const invalidation = modules.invalidate(changedFiles)
       reload ||= invalidation.reload
@@ -600,28 +608,46 @@ export async function startDevServer(options: DevServerOptions) {
   }
 }
 
-async function discoverRoutes(root: string) {
+async function discoverRoutes(root: string, exclude: string[]) {
   const pagesRoot = join(root, 'pages')
   if (!await directoryExists(pagesRoot)) {
     throw new Error(`No pages directory found in ${root}.\nCreate pages/index.tsx, or pass your project directory to devjar build.`)
   }
 
+  const excludedPaths = exclude.map(path => {
+    const excluded = resolve(root, path)
+    if (!isInside(pagesRoot, excluded)) {
+      throw new Error(`Excluded paths must be page files or directories inside pages/: ${path}`)
+    }
+    return excluded
+  })
+  for (const path of excludedPaths) {
+    try {
+      await stat(path)
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+      throw new Error(`Exclude path not found: ${relative(root, path)}. Use a project-relative page file or directory.`)
+    }
+  }
+  const isExcluded = (path: string) => excludedPaths.some(excluded => isInside(excluded, path))
   const files: string[] = []
   const visit = async (directory: string) => {
     for (const entry of await readdir(directory, { withFileTypes: true })) {
       const path = join(directory, entry.name)
+      if (entry.name.startsWith('_') || isExcluded(path)) continue
       if (entry.isDirectory()) await visit(path)
       else if (entry.isFile() && sourceExtensions.includes(extname(entry.name))) files.push(path)
     }
   }
-  await visit(pagesRoot)
+  if (!isExcluded(pagesRoot)) await visit(pagesRoot)
 
   const routes = new Map<string, string>()
   let notFound: string | undefined
   for (const path of files.sort()) {
     const pagePath = relative(pagesRoot, path).split(sep).join('/')
     if (pagePath.slice(0, -extname(pagePath).length) === '404') notFound = path
-    const route = routeFromPagePath(pagePath)!
+    const route = routeFromPagePath(pagePath)
+    if (!route) continue
     if (routes.has(route)) {
       throw new Error(`Multiple pages resolve to ${route}: ${relative(root, routes.get(route)!)} and ${relative(root, path)}`)
     }
@@ -827,7 +853,7 @@ async function buildProjectWithLocalPackages(options: BuildOptions, localPackage
   const dependencies = packageDependencies(packageJson)
   const runtime = await runtimeRoot()
   const cdn = resolveCdn(options.cdn)
-  const discovered = await discoverRoutes(root)
+  const discovered = await discoverRoutes(root, options.exclude)
   const projectPaths = new Set<string>()
   for (const page of discovered.routes.values()) {
     const files = await collectProjectFiles(root, page)
@@ -867,7 +893,7 @@ async function buildProjectWithLocalPackages(options: BuildOptions, localPackage
   const resolveBuiltRuntimeModule = (specifier: string) => (
     vendored.moduleUrl(resolveSourceRuntimeModule(specifier), base)
   )
-  const manifest = await loadRouteManifest(root, {
+  const manifest = createRouteManifest(root, discovered, {
     liveReload: false,
     revision: 0,
     base,

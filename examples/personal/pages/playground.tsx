@@ -56,7 +56,7 @@ export default function Playground() {
       </div>
       <section className="export-guide">
         <div><p className="label">02 / Take it with you</p><h2>Same files. Your own website.</h2><p>Copy your edits into <code>content.json</code> in this example. Build it, preview the export, then publish <code>dist/</code> on a static host.</p><a href="https://github.com/huozhi/devjar/tree/main/examples/personal">Get the theme source ↗</a></div>
-        <pre><code>{`# From examples/personal, using the repository CLI\nnode ../../dist/bin.js build\nnode ../../dist/bin.js start`}</code></pre>
+        <pre><code>{`# From examples/personal, using the repository CLI\nnode ../../dist/bin.js build --exclude pages/playground.tsx\nnode ../../dist/bin.js start`}</code></pre>
       </section>
       <p className="playground-footnote">Edits here stay in this browser tab. Copy the content before leaving. The example README covers running the published CLI and hosting headers for this playground.</p>
     </main>

@@ -29,6 +29,7 @@ export function withoutBase(base: string, pathname: string) {
 }
 
 export function routeFromPagePath(pagePath: string) {
+  if (pagePath.split('/').some(segment => segment.startsWith('_'))) return
   const extension = sourceExtensions.find(extension => pagePath.endsWith(extension))
   if (!extension) return
   const pathWithoutExtension = pagePath.slice(0, -extension.length)

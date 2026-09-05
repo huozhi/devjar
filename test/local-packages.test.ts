@@ -107,7 +107,7 @@ test('vendors local packages and prerenders them without leaking local paths', a
     await writeFile(join(library, 'src/icon.svg'), '<svg xmlns="http://www.w3.org/2000/svg"/>')
     await writeFile(join(library, 'src/style.css'), 'span { background: url(./icon.svg); }')
     await writeFile(join(library, 'src/index.tsx'), "import './style.css'; import { label } from './label'; export const lazy = () => import('./label'); export default function Spinner() { return <span>{label}</span> }")
-    const buildOptions = { root, outDir: 'dist', cdn: `http://127.0.0.1:${port}`, prerender: true, base: '/preview/' }
+    const buildOptions = { root, outDir: 'dist', cdn: `http://127.0.0.1:${port}`, prerender: true, exclude: [], base: '/preview/' }
     const build = await buildProject(buildOptions)
     expect(await readFile(join(build.outDir, 'index.html'), 'utf8')).toContain('<span>Local spinner</span>')
     const vendorRoot = join(build.outDir, '_jar/vendor')

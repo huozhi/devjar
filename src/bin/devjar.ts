@@ -25,6 +25,7 @@ Commands:
 Options:
   --cdn <url>      ESM-compatible module CDN (dev and build)
   --base <path>    Public base path (dev and build; default: /)
+  --exclude <path> Exclude a page file or directory from the build (repeatable)
   --host <host>    Host to listen on (dev and start; default: localhost)
   --port <port>    Port to listen on (dev and start; default: 3000)
   -o, --out-dir   Build output relative to the project root (build and start; default: dist)
@@ -104,6 +105,7 @@ async function run() {
   let cdn: string | undefined
   let base: string | undefined
   let outDir: string | undefined
+  const exclude: string[] = []
 
   for (let index = 0; index < args.length; index++) {
     const arg = args[index]
@@ -111,6 +113,7 @@ async function run() {
     else if (arg === '--port' || arg === '-p') port = Number(valueAfter(args, index++))
     else if (arg === '--cdn') cdn = valueAfter(args, index++)
     else if (arg === '--base') base = valueAfter(args, index++)
+    else if (arg === '--exclude') exclude.push(valueAfter(args, index++))
     else if (arg === '--out-dir' || arg === '-o') outDir = valueAfter(args, index++)
     else if (arg.startsWith('-')) throw new Error(`Unknown option: ${arg}`)
     else if (!root) root = arg
@@ -126,6 +129,7 @@ async function run() {
   if (command === 'start' && (cdn || base)) {
     throw new Error('start does not accept --cdn or --base; configure these when building')
   }
+  if (command !== 'build' && exclude.length) throw new Error('--exclude is only available for build')
   if (command === 'dev' && outDir) throw new Error('dev does not accept --out-dir')
 
   if (command === 'build') {
@@ -134,6 +138,7 @@ async function run() {
       outDir: outDir || 'dist',
       cdn,
       prerender: true,
+      exclude,
       base: base || '/',
     })
     console.log(style(1, 'Devjar build complete'))

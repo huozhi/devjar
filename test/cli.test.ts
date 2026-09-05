@@ -214,6 +214,7 @@ export function projectComponent() { return environment }
         outDir: 'dist',
         cdn: `http://127.0.0.1:${address.port}`,
         prerender: false,
+        exclude: [],
         base: '/',
       })
       const manifest = JSON.parse(await readFile(join(result.outDir, 'manifest.json'), 'utf8'))
@@ -590,6 +591,7 @@ describe('production build', () => {
       outDir: 'dist',
       cdn: `http://127.0.0.1:${address.port}`,
       prerender: false,
+      exclude: [],
       base: '/preview/',
     })
     buildRoot = result.outDir
@@ -657,6 +659,7 @@ describe('production build', () => {
       outDir: '../outside',
       cdn: undefined,
       prerender: false,
+      exclude: [],
       base: '/',
     })).rejects.toThrow(
       'The build output must be a directory inside the project root',
@@ -759,6 +762,7 @@ export default function Page() {
         outDir: 'dist',
         cdn: `http://127.0.0.1:${address.port}`,
         prerender: true,
+        exclude: [],
         base: '/',
       })
       expect(result.devjarRuntime).toBe(true)

@@ -248,6 +248,9 @@ pages/
 
 Each page default-exports a React component. Import shared components explicitly;
 packages load from the CDN. Configure the CLI with flags.
+Underscore-prefixed files and folders (such as `pages/_helpers.tsx` or
+`pages/_drafts/`) are not routes in dev, builds, or embedded previews.
+They remain importable; `_layout.tsx` has no automatic layout behavior.
 
 <details>
 <summary>Pin dependency versions</summary>
@@ -271,7 +274,7 @@ from the project manifest. Builds vendor CDN packages into the output.
 ```sh
 # From this repository, after pnpm run build
 node dist/bin.js dev examples/personal
-node dist/bin.js build examples/personal
+node dist/bin.js build examples/personal --exclude pages/playground.tsx
 node dist/bin.js start examples/personal/dist
 ```
 
@@ -299,6 +302,7 @@ npx devjar [command] [root] [options]
 | `--host <host>` | `dev`, `start` | `localhost`; `0.0.0.0` enables network access |
 | `--port <port>` | `dev`, `start` | `3000` |
 | `--cdn <url>` | `dev`, `build` | `https://esm.sh` |
+| `--exclude <path>` | `build` | Page file or directory to omit; repeatable |
 | `--base <path>` | `dev`, `build` | `/`; deployment subdirectory |
 | `-o, --out-dir <directory>` | `build`, `start` | `dist`; must stay inside the project |
 | `-h, --help` | All | Show help |
@@ -394,6 +398,20 @@ npx devjar start
 ```
 
 Pages and assets use `/preview/`. The preview server reads the base from the build.
+
+</details>
+
+<details>
+<summary>Exclude development pages from export</summary>
+
+```sh
+npx devjar build --exclude pages/playground.tsx
+npx devjar build --exclude pages/playground.tsx --exclude pages/drafts
+```
+
+Paths are relative to the project root. Excluded pages remain available in dev;
+only their routes and unused dependencies are omitted from the build. Imports
+needed by retained pages, plus public and API files, are still included.
 
 </details>
 

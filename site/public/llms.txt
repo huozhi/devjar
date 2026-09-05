@@ -54,6 +54,7 @@ Localhost works; Devjar's CLI servers supply these headers.
 npx devjar                 # Show help
 npx devjar dev             # Develop the current folder
 npx devjar build           # Export to dist/
+npx devjar build --exclude pages/playground.tsx  # Omit a development-only page
 npx devjar start           # Serve the export
 npx devjar dev my-site     # Use another project folder
 npx devjar dev --host 0.0.0.0  # Preview on another device
@@ -68,6 +69,7 @@ configuration file or a devjar field in package.json. User settings are CLI flag
 - pages/about.tsx -> /about
 - pages/blog/index.tsx -> /blog
 - pages/404.tsx -> custom not-found page
+- Underscore-prefixed files and folders inside pages/ are private: they are not routes in dev, builds, or embedded previews, but remain importable.
 - Every page default-exports a React component. Shared components are explicitly imported; there is no automatic layout convention.
 - JavaScript, TypeScript, JSX, and TSX are supported. Use relative imports for local modules and CSS.
 - JSON imports provide a default export. JSON must be valid (double quotes; no comments or trailing commas).
@@ -81,6 +83,10 @@ configuration file or a devjar field in package.json. User settings are CLI flag
 - The virtual files map holds source strings; it does not provide the CLI's public directory or binary-asset pipeline.
 
 ## Static export
+
+Use build --exclude <path> to omit a page file or directory from export. Paths
+are project-relative and the flag can be repeated. Dev routes are unaffected;
+shared imports needed by retained pages, public files, and API files remain.
 
 The build prerenders route HTML, bundles the project modules, and vendors
 runtime dependencies into dist/. Deploy dist/ to a static host. It needs no
