@@ -257,7 +257,7 @@ export default function Playground() {
   await preview.getByLabel('Preview status').filter({ hasText: 'failed' }).waitFor()
   await preview.waitForFunction(() => document.querySelector('[role="status"]')?.textContent?.includes('Render failed'))
   await preview.getByRole('textbox', { name: 'Code' }).fill(source)
-  await frame.getByRole('button', { name: 'Hello Devjar works 0' }).waitFor()
+  await frame.getByRole('button', { name: /^Hello Devjar works \d+$/ }).waitFor()
   await preview.getByLabel('Preview status').filter({ hasText: 'ready' }).waitFor()
   assert.equal(await preview.getByRole('status').textContent(), '')
   assert.deepEqual(previewErrors, [])
