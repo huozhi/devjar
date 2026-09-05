@@ -100,6 +100,7 @@ export default function LiveExample() {
 | `onError` | `(error: unknown) => void` | Called when error state changes; defaults to `console.error` in the browser |
 | `compiler` | `CompilerAssets` | Complete worker, binding, and WASM URL override; bypasses default asset discovery |
 | `transformWorkerUrl` | `string` or `URL` | Legacy worker-only override; uses default binding and WASM assets |
+| `apiRef` | `React.Ref<DevJarHandle>` | Access `reset()` to restart the current project |
 | `ref` | `React.Ref<HTMLIFrameElement>` | Access the rendered iframe |
 | Other iframe props | `React.IframeHTMLAttributes` | Forwarded to the iframe, including `title`, `style`, and `className` |
 
@@ -135,6 +136,38 @@ The iframe separates the preview's DOM and styles from the host page. It runs
 in the host's origin; it is not a security boundary for untrusted code.
 
 </details>
+
+### Resetting the runtime
+
+Use `apiRef.current.reset()` on the component, or `reset()` from `useLiveCode`,
+to restart the current project without restoring the editor's initial source:
+
+```tsx
+import { useRef } from 'react'
+import { DevJar, type DevJarHandle } from 'devjar'
+
+function Playground({ files }: { files: Record<string, string> }) {
+  const api = useRef<DevJarHandle>(null)
+  return <>
+    <button onClick={() => void api.current?.reset()}>Restart preview</button>
+    <DevJar files={files} apiRef={api} title="Live preview" />
+  </>
+}
+```
+
+Reset unmounts React (running effect cleanups), replaces the iframe document with
+an empty `srcdoc` document, and reruns the latest files in a fresh JavaScript realm.
+React state, module instances, iframe globals, timers, and subscriptions belonging
+to that document start over; navigation returns to `/`. The iframe element and its
+`ref` stay the same. Browser HTTP caches, origin storage, and side effects outside
+the iframe are not cleared. Code must still clean up resources it creates outside
+the frame.
+
+Pending edits are discarded and old work cannot publish its result into the new
+preview. Edits submitted during reset become the current source. Concurrent reset
+calls share one promise. Awaiting reset waits for the reload, with failures exposed
+through `error`/`onError` and `status`. To restore initial source as well, update the
+editor's `files` separately. `apiRef` leaves the existing iframe `ref` API intact.
 
 ### Scheduling edits
 
@@ -210,6 +243,7 @@ export default function ManualPreview() {
 | `ref` | Attach to the iframe that will run the project |
 | `error` | Current compilation, loading, or runtime error, if any |
 | `status` | `idle`, `compiling`, `loading`, `ready`, or `failed` |
+| `reset()` | Recreate the iframe runtime and rerun the current files; returns `Promise<void>` |
 | `load(files)` | Load or update the virtual project; returns `Promise<void>` |
 
 </details>
