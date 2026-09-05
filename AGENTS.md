@@ -3,6 +3,10 @@
 ## Commits
 
 - Use Conventional Commits for commit messages.
+- Use `feat(cli): ...` or `feat(runtime): ...` for core capabilities; use `fix(cli): ...` or `fix(runtime): ...` for user-visible corrections. Use `perf` for measured runtime/build improvements.
+- Scope website and demo work as `site` or `examples` (for example, `fix(site): align mobile cards`). Keep it separate from core changes so it stays out of package release notes.
+- Use `docs`, `test`, `ci`, `chore`, and `style` for maintenance. Do not label visual polish as a core feature. Release notes include core `feat`, `fix`, and `perf` changes; breaking changes must use `!` or a `BREAKING CHANGE:` footer.
+- Write subjects as concise user-facing outcomes. If the subject needs implementation detail, add a one-line `Release-note: ...` footer with the public summary. Do not rewrite published history to retrofit these conventions.
 
 ## TypeScript and API design
 

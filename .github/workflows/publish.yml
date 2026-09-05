@@ -3,12 +3,8 @@ name: Publish
 on:
   workflow_dispatch:
     inputs:
-      tag:
-        description: 'Existing release tag to publish (leave blank when running directly on a tag)'
-        type: string
-        required: false
       force:
-        description: 'Skip unit and browser tests; still build, typecheck, and check package contents'
+        description: 'Publish the current version without bumping it; skip unit and browser tests'
         type: boolean
         default: false
   push:
@@ -20,24 +16,20 @@ permissions:
   id-token: write
 
 concurrency:
-  group: publish-${{ inputs.tag || github.ref_name }}
+  group: publish
   cancel-in-progress: false
 
 jobs:
   publish:
-    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.tag != '')
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.force)
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    env:
-      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.tag && format('refs/tags/{0}', inputs.tag) || github.ref }}
-
-      - uses: pnpm/action-setup@v6
+          fetch-depth: 0
 
       - name: Use Node 24
         uses: actions/setup-node@v6
@@ -46,23 +38,46 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
           package-manager-cache: false
 
-      - name: Use Bun
-        uses: oven-sh/setup-bun@v2
+      # Preserve the current notes generator when force switches to an older tag.
+      - name: Prepare release notes generator
+        run: cp scripts/release-notes.mjs "$RUNNER_TEMP/devjar-release-notes.mjs"
 
       - name: Determine npm tag
         id: npm-tag
+        env:
+          FORCE: ${{ inputs.force || false }}
         shell: bash
         run: |
+          version=$(node -p "require('./package.json').version")
+          RELEASE_TAG="$GITHUB_REF_NAME"
+          if [[ "$FORCE" == true && "$GITHUB_REF" == refs/heads/main ]]; then
+            RELEASE_TAG="v$version"
+            git check-ref-format "refs/tags/$RELEASE_TAG"
+            if git show-ref --verify --quiet "refs/tags/$RELEASE_TAG"; then
+              git checkout --detach "refs/tags/$RELEASE_TAG"
+            else
+              git config user.name 'github-actions[bot]'
+              git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+              git tag -a "$RELEASE_TAG" -m "$RELEASE_TAG"
+              git push origin "refs/tags/$RELEASE_TAG"
+            fi
+          fi
           version=$(node -p "require('./package.json').version")
           if [[ "$RELEASE_TAG" != "v$version" ]]; then
             echo "Git tag $RELEASE_TAG must match package.json version v$version" >&2
             exit 1
           fi
+          echo "release-tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
           if [[ "${version%%+*}" == *-* ]]; then
             echo "tag=next" >> "$GITHUB_OUTPUT"
           else
             echo "tag=latest" >> "$GITHUB_OUTPUT"
           fi
+
+      - uses: pnpm/action-setup@v6
+
+      - name: Use Bun
+        uses: oven-sh/setup-bun@v2
 
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
@@ -87,23 +102,45 @@ jobs:
 
       - name: Record forced publish
         if: github.event_name == 'workflow_dispatch' && inputs.force
+        env:
+          RELEASE_TAG: ${{ steps.npm-tag.outputs.release-tag }}
         run: echo "Force publishing $RELEASE_TAG with unit and browser tests skipped. Build, typecheck, and package checks passed." >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Check whether the version is already published
+        id: published
+        run: |
+          node --input-type=module <<'JS'
+          import { readFileSync, appendFileSync } from 'node:fs'
+          const { name, version } = JSON.parse(readFileSync('package.json', 'utf8'))
+          const response = await fetch(`https://registry.npmjs.org/${encodeURIComponent(name)}/${encodeURIComponent(version)}`, { signal: AbortSignal.timeout(10000) })
+          if (response.status !== 200 && response.status !== 404) throw new Error(`npm registry returned ${response.status}`)
+          if (response.status === 200 && (await response.json()).version !== version) throw new Error('Unexpected npm registry response')
+          appendFileSync(process.env.GITHUB_OUTPUT, `exists=${response.status === 200}\n`)
+          JS
+
       - name: Publish to npm
+        if: steps.published.outputs.exists != 'true'
         run: npm publish --tag ${{ steps.npm-tag.outputs.tag }}
 
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.npm-tag.outputs.release-tag }}
         shell: bash
         run: |
+          if gh release view "$RELEASE_TAG" --json tagName > /dev/null 2>&1; then
+            echo "GitHub release $RELEASE_TAG already exists."
+            exit 0
+          fi
           release_flags=()
           if [[ "${{ steps.npm-tag.outputs.tag }}" != "latest" ]]; then
             release_flags+=(--prerelease)
           fi
 
+          node "$RUNNER_TEMP/devjar-release-notes.mjs" "$RELEASE_TAG" > "$RUNNER_TEMP/devjar-release-notes.md"
+
           gh release create "$RELEASE_TAG" \
             --verify-tag \
-            --generate-notes \
+            --notes-file "$RUNNER_TEMP/devjar-release-notes.md" \
             --title "$RELEASE_TAG" \
             "${release_flags[@]}"

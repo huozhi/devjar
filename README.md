@@ -505,14 +505,17 @@ produces `1.0.0-next.1`. During a prerelease cycle, next increments its suffix
 and stable promotes the existing target to `1.0.0`; the bump choice is ignored. Actions commits the version as
 `github-actions[bot]`, pushes its tag, and starts the **Publish** workflow.
 Publish runs the checks, publishes prereleases to `next` (stable versions to
-`latest`), and generates GitHub release notes. Follow the Publish run for the
+`latest`), and groups core Conventional Commits into Features and Fixes.
+Website/example polish and maintenance commits are omitted. Stable notes
+compare against the previous published stable release; prereleases compare
+against the nearest published ancestor. Follow the Publish run for the
 final result. The version commit and tag remain available if publishing fails.
 
-To retry an existing tag, run **Actions → Publish → Run workflow** from `main`
-and enter its tag, such as `v1.0.0-next.1`. Enable **force** to skip unit and
-browser tests; build, typecheck, and package checks still run. This publishes
-the existing tagged source without changing commits or tags. It cannot
-overwrite a version already published to npm.
+To retry, run **Release** on `main` with **force** enabled. It ignores bump and
+channel and uses the current `package.json` version. Publish reuses its tag
+without moving it, or creates the tag if missing. It skips unit/browser tests
+but still builds, typechecks, and checks the package. An existing npm version
+is left untouched; GitHub release notes are created only if the release is missing.
 
 </details>
 

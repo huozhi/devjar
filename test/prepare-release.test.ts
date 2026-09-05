@@ -79,3 +79,42 @@ test('release choices calculate bumps, preview increments, and stable promotion'
     expect(() => releaseVersion(invalid, 'patch', 'next')).toThrow()
   }
 })
+
+test('force publishing reuses the current version and preserves existing tags', async () => {
+  const workflow = Bun.YAML.parse(await Bun.file(join(import.meta.dir, '../.github/workflows/publish.yml')).text()) as {
+    jobs: { publish: { steps: Array<{ id: string; run: string }> } }
+  }
+  const script = workflow.jobs.publish.steps.find(step => step.id === 'npm-tag')!.run
+  for (const existingTag of [false, true]) {
+    const project = await fixture()
+    try {
+      project.git(['config', 'commit.gpgsign', 'false'])
+      project.git(['config', 'tag.gpgsign', 'false'])
+      project.git(['branch', '-M', 'main'])
+      const origin = join(project.directory, 'origin.git')
+      execFileSync('git', ['init', '--bare', '--quiet', origin])
+      project.git(['remote', 'add', 'origin', origin])
+      const taggedCommit = project.git(['rev-parse', 'HEAD'])
+      if (existingTag) {
+        project.git(['tag', 'v0.11.0'])
+        await writeFile(join(project.root, 'notes.txt'), 'Later unrelated work')
+        project.git(['add', 'notes.txt'])
+        project.git(['commit', '--quiet', '-m', 'docs: later work'])
+      }
+      project.git(['push', '--quiet', '--tags', 'origin', 'main'])
+      const main = project.git(['rev-parse', 'main'])
+      const result = Bun.spawnSync(['bash', '-e', '-c', script], {
+        cwd: project.root,
+        env: { ...process.env, FORCE: 'true', GITHUB_REF: 'refs/heads/main', GITHUB_REF_NAME: 'main', GITHUB_OUTPUT: project.output },
+        stdout: 'pipe', stderr: 'pipe',
+      })
+      expect(result.exitCode, result.stderr.toString()).toBe(0)
+      expect(await readFile(project.output, 'utf8')).toBe('release-tag=v0.11.0\ntag=latest\n')
+      expect(project.git(['rev-parse', 'main'])).toBe(main)
+      expect(project.git(['rev-parse', 'v0.11.0^{}'])).toBe(taggedCommit)
+      expect(JSON.parse(await readFile(join(project.root, 'package.json'), 'utf8')).version).toBe('0.11.0')
+      expect(project.git(['status', '--porcelain'])).toBe('')
+      expect(project.git(['ls-remote', '--tags', 'origin', 'refs/tags/v0.11.0'])).toContain('refs/tags/v0.11.0')
+    } finally { await rm(project.directory, { recursive: true, force: true }) }
+  }
+})

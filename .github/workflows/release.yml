@@ -20,6 +20,10 @@ on:
         options:
           - next
           - stable
+      force:
+        description: 'Retry the current version without bumping it; skip unit and browser tests'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -45,6 +49,7 @@ jobs:
           package-manager-cache: false
 
       - name: Prepare version
+        if: ${{ !inputs.force }}
         id: release
         env:
           RELEASE_BUMP: ${{ inputs.bump }}
@@ -52,6 +57,7 @@ jobs:
         run: node scripts/prepare-release.ts
 
       - name: Commit and tag as GitHub Actions
+        if: ${{ !inputs.force }}
         env:
           RELEASE_TAG: ${{ steps.release.outputs.tag }}
         run: |
@@ -65,9 +71,18 @@ jobs:
       # GITHUB_TOKEN pushes do not trigger tag workflows. Run publishing on
       # the new tag explicitly so provenance identifies the release commit.
       - name: Start publishing from release tag
+        if: ${{ !inputs.force }}
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ steps.release.outputs.tag }}
         run: |
           gh workflow run publish.yml --ref "$RELEASE_TAG"
           echo "Publishing $RELEASE_TAG. Follow the Publish workflow for npm and release notes." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Retry publishing the current version
+        if: inputs.force
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run publish.yml --ref main -f force=true
+          echo "Retrying the current version. Follow the Publish workflow for npm and release notes." >> "$GITHUB_STEP_SUMMARY"
