@@ -8,6 +8,10 @@
 - Use `docs`, `test`, `ci`, `chore`, and `style` for maintenance. Do not label visual polish as a core feature. Release notes include core `feat`, `fix`, and `perf` changes; breaking changes must use `!` or a `BREAKING CHANGE:` footer.
 - Write subjects as concise user-facing outcomes. If the subject needs implementation detail, add a one-line `Release-note: ...` footer with the public summary. Do not rewrite published history to retrofit these conventions.
 
+## Pull requests
+
+- When changing a public API, include a short code snippet in the PR description showing how to use the new feature or a before/after code diff showing the change for callers.
+
 ## TypeScript and API design
 
 - Avoid optional parameters and default arguments when callers can pass values explicitly.
