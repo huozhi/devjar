@@ -25,6 +25,14 @@ Keep the library build unminified: Bunchee's minifier strips the import-ignore
 comments needed by host bundlers. Hosts can minify after processing those hints.
 The standalone worker and binding assets remain minified.
 
+CI and publishing share `.github/actions/setup-compiler`. An exact cache hit
+for the Rust sources, manifests, toolchain, and build/setup scripts restores
+`compiler/pkg` and sets `DEVJAR_COMPILER_CACHE_HIT=true`, skipping Rust setup
+and compilation. Worker JavaScript and hashed asset references are still built
+each time. Cache misses build from source, reusing Cargo dependencies, target
+files, and the wasm-bindgen executable when available. Local builds continue
+to use Cargo's normal build cache.
+
 Keep the Oxc crate versions aligned with `oxc-transform` and the wasm-bindgen
 crate aligned with the CLI version in `scripts/setup-compiler.sh`. The wrapper
 matches `src/transform.ts` with development and Refresh enabled. Update the

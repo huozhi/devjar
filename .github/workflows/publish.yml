@@ -80,7 +80,11 @@ jobs:
         uses: oven-sh/setup-bun@v2
 
       - name: Set up browser compiler
-        if: hashFiles('compiler/Cargo.toml') != ''
+        if: hashFiles('compiler/Cargo.toml') != '' && hashFiles('.github/actions/setup-compiler/action.yml') != ''
+        uses: ./.github/actions/setup-compiler
+
+      - name: Set up compiler for older release tags
+        if: hashFiles('compiler/Cargo.toml') != '' && hashFiles('.github/actions/setup-compiler/action.yml') == ''
         run: pnpm run setup:compiler
 
       - name: Install Dependencies

@@ -29,7 +29,7 @@ jobs:
 
       - name: Set up browser compiler
         if: hashFiles('compiler/Cargo.toml') != ''
-        run: pnpm run setup:compiler
+        uses: ./.github/actions/setup-compiler
 
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
@@ -68,7 +68,7 @@ jobs:
 
       - name: Set up browser compiler
         if: hashFiles('compiler/Cargo.toml') != ''
-        run: pnpm run setup:compiler
+        uses: ./.github/actions/setup-compiler
 
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
