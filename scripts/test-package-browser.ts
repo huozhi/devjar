@@ -338,9 +338,9 @@ export default function Playground() {
     'es-module-lexer': '/lexer.js',
     'react-dom/client': 'https://esm.sh/react-dom@19.2.0/client?dev&deps=react@19.2.0',
   } })}</script><script type="module">
-import { createElement, StrictMode, useEffect } from 'react'
+import { createElement, StrictMode, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { DevJar } from '/index.js'
+import { DevJar, useDevJar } from '/index.js'
 const files = ${JSON.stringify(strictFiles)}
 window.effectSetups = 0
 window.effectCleanups = 0
@@ -352,9 +352,27 @@ function Probe() {
   return createElement(DevJar, { files, transform: false, tailwind: false,
     onStatusChange: status => { document.body.dataset.status = status } })
 }
+const hookFiles = { 'pages/index.js': \`import { useEffect } from 'react'
+export default function Page() {
+  useEffect(() => () => { window.parent.hookCleanups++ }, [])
+  return 'Hook preview'
+}\` }
+window.hookCleanups = 0
+function HookProbe() {
+  const [visible, setVisible] = useState(false)
+  const [version, setVersion] = useState(0)
+  const { ref, load, status } = useDevJar({ transform: false, tailwind: false })
+  useEffect(() => { void load(hookFiles) }, [load])
+  useEffect(() => { document.body.dataset.hookStatus = status }, [status])
+  return createElement('div', null,
+    createElement('button', { onClick: () => setVisible(value => !value) }, 'Toggle iframe'),
+    createElement('button', { onClick: () => setVersion(value => value + 1) }, 'Replace iframe'),
+    visible && createElement('iframe', { key: version, ref, title: 'Hook iframe' }))
+}
 const root = createRoot(document.getElementById('root'))
 root.render(createElement(StrictMode, null, createElement(Probe)))
 window.unmount = () => root.unmount()
+window.showHook = () => root.render(createElement(StrictMode, null, createElement(HookProbe)))
 </script>`
   strictServer = Bun.serve({ hostname: '127.0.0.1', port: 0, fetch(request) {
     const path = new URL(request.url).pathname
@@ -370,6 +388,25 @@ window.unmount = () => root.unmount()
   await strictPage.waitForFunction(() => document.body.dataset.status === 'ready')
   assert.equal(await strictPage.evaluate(() => (window as any).effectSetups), 2)
   assert.equal(await strictPage.evaluate(() => (window as any).effectCleanups), 1)
+  await strictPage.evaluate(() => (window as any).showHook())
+  await strictPage.getByRole('button', { name: 'Toggle iframe' }).waitFor()
+  const hookFrame = strictPage.frameLocator('iframe')
+  for (const action of ['Toggle iframe', 'Replace iframe']) {
+    const cleanups = await strictPage.evaluate(() => (window as any).hookCleanups)
+    await strictPage.getByRole('button', { name: action }).click()
+    await hookFrame.getByText('Hook preview', { exact: true }).waitFor()
+    await strictPage.waitForFunction(() => document.body.dataset.hookStatus === 'ready')
+    if (action === 'Replace iframe') {
+      assert.equal(await strictPage.evaluate(() => (window as any).hookCleanups), cleanups + 1)
+    }
+  }
+  const cleanups = await strictPage.evaluate(() => (window as any).hookCleanups)
+  await strictPage.getByRole('button', { name: 'Toggle iframe' }).click()
+  await strictPage.waitForFunction(() => document.body.dataset.hookStatus === 'idle')
+  assert.equal(await strictPage.locator('iframe').count(), 0)
+  assert.equal(await strictPage.evaluate(() => (window as any).hookCleanups), cleanups + 1)
+  await strictPage.getByRole('button', { name: 'Toggle iframe' }).click()
+  await hookFrame.getByText('Hook preview', { exact: true }).waitFor()
   await strictPage.evaluate(() => (window as any).unmount())
   assert.equal(await strictPage.evaluate(() => (window as any).effectCleanups), 2)
   assert.deepEqual(strictErrors, [])

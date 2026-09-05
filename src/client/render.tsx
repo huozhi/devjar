@@ -1,4 +1,4 @@
-import { useEffect, useImperativeHandle, useRef } from 'react'
+import { useCallback, useEffect, useImperativeHandle, useRef } from 'react'
 import { useDevJar } from './use-dev-jar'
 import type { PreviewStatus } from './core'
 import type { CompilerAssets } from './compiler'
@@ -39,8 +39,14 @@ export function DevJar({
   const onStatusRef = useRef(onStatusChange)
   const { ref, error, status, load, reset } = useDevJar({ resolveModule, dependencies, transform, tailwind, transformWorkerUrl, compiler })
 
+  const iframeRef = useRef<HTMLIFrameElement | null>(null)
+  const attachIframe = useCallback((iframe: HTMLIFrameElement | null) => {
+    iframeRef.current = iframe
+    ref(iframe)
+  }, [ref])
+
   useImperativeHandle(apiRef, () => ({ reset }), [reset])
-  useImperativeHandle(forwardedRef, () => ref.current!, [ref])
+  useImperativeHandle(forwardedRef, () => iframeRef.current!, [iframeRef])
 
   useEffect(() => {
     onErrorRef.current = onError
@@ -61,5 +67,5 @@ export function DevJar({
   }, [files, load])
 
   // Attach the ref to an iframe element for runtime of code execution
-  return <iframe {...props} ref={ref} />
+  return <iframe {...props} ref={attachIframe} />
 }

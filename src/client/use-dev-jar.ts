@@ -36,30 +36,38 @@ export function useDevJar({
     compiler: workerUrl === undefined ? undefined : { workerUrl, bindingUrl: bindingUrl!, wasmUrl: wasmUrl! },
     workerUrl: legacyUrl,
   }), [transform, workerUrl, bindingUrl, wasmUrl, legacyUrl])
-  const iframeRef = useRef<HTMLIFrameElement | null>(null)
+  const [iframe, setIframe] = useState<HTMLIFrameElement | null>(null)
   const runtimeRef = useRef<PreviewRuntime | undefined>(undefined)
   const [{ error, status }, setPreview] = useState<{ error: unknown; status: PreviewStatus }>({ error: undefined, status: 'idle' })
 
   useEffect(() => {
-    const iframe = iframeRef.current
+    setPreview({ error: undefined, status: 'idle' })
     if (!iframe) return
     const runtime = createPreviewRuntime(iframe, { resolveModule, tailwind, onChange: setPreview })
     runtimeRef.current = runtime
-    setPreview({ error: undefined, status: 'idle' })
     return () => {
       runtimeRef.current = undefined
       runtime.dispose()
     }
-  }, [resolveModule, tailwind])
+  }, [iframe, resolveModule, tailwind])
 
-  // Session options also change load's identity so consumers reload their files.
+  // Attachment and session options change load's identity so effects reload files.
   const load = useCallback((files: Record<string, string>) => {
     return runtimeRef.current?.load(files, compilation) ?? Promise.resolve()
-  }, [compilation, resolveModule, tailwind])
+  }, [compilation, iframe, resolveModule, tailwind])
 
   const reset = useCallback((): Promise<void> => {
     return runtimeRef.current?.reset(compilation) ?? Promise.resolve()
   }, [compilation])
 
-  return { ref: iframeRef, error, status, load, reset }
+  const ref = useCallback((node: HTMLIFrameElement | null) => {
+    // Ref detachment precedes DOM removal; passive cleanup would be too late
+    // to run the preview's effects in its original document.
+    if (!node) {
+      runtimeRef.current?.dispose()
+      runtimeRef.current = undefined
+    }
+    setIframe(node)
+  }, [])
+  return { ref, error, status, load, reset }
 }

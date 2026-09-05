@@ -224,6 +224,12 @@ iframe markup and control when files load.
 <details>
 <summary>Hook example and return values</summary>
 
+The returned `ref` is a callback, not an object with `.current`. Attaching or
+replacing the iframe initializes a fresh runtime; removing it disposes the runtime.
+For automatic loading, use an effect with `[files, load]` dependencies so it also
+runs when the iframe appears or is replaced. Calls to `load` while no iframe is
+attached do nothing.
+
 The hook accepts the same `dependencies`, `resolveModule`, `transform`, `tailwind`,
 `compiler`, and `transformWorkerUrl` options as the component.
 
@@ -253,7 +259,7 @@ export default function ManualPreview() {
 
 | Return value | Meaning |
 | --- | --- |
-| `ref` | Attach to the iframe that will run the project |
+| `ref` | Callback ref; attach to the iframe that will run the project |
 | `error` | Current compilation, loading, or runtime error, if any |
 | `status` | `idle`, `compiling`, `loading`, `ready`, or `failed` |
 | `reset()` | Recreate the iframe runtime and rerun the current files; returns `Promise<void>` |
