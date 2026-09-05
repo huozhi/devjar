@@ -1,4 +1,5 @@
-import { networkInterfaces } from 'node:os'
+import { homedir, networkInterfaces } from 'node:os'
+import { createUpdateHint } from '../cli/update'
 import { networkUrls } from '../cli/network'
 import { readFile } from 'node:fs/promises'
 import { join, relative } from 'node:path'
@@ -88,8 +89,22 @@ async function startRoot(root: string, outDir: string | undefined) {
 
 async function run() {
   const args = process.argv.slice(2)
+  let takeUpdateHint: (() => string | undefined) | undefined
+  if (process.stderr.isTTY && !process.env.CI && !process.env.NO_UPDATE_NOTIFIER
+    && !args.includes('--version') && !args.includes('-v')) {
+    takeUpdateHint = createUpdateHint({
+      version: await version(),
+      cacheFile: join(process.env.XDG_CACHE_HOME || join(homedir(), '.cache'), 'devjar', 'update.json'),
+      registry: 'https://registry.npmjs.org/',
+    })
+  }
+  function showUpdateHint() {
+    const hint = takeUpdateHint?.()
+    if (hint) process.stderr.write(hint)
+  }
   if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
     help()
+    showUpdateHint()
     return
   }
   if (args.includes('--version') || args.includes('-v')) {
@@ -147,6 +162,7 @@ async function run() {
     console.log('')
     console.log('Routes')
     console.log(routeTree(result.routes))
+    showUpdateHint()
     return
   }
 
@@ -173,6 +189,7 @@ async function run() {
   const urls = networkUrls(server.host, server.port, server.base, networkInterfaces())
   for (const url of urls) console.log(`Network  ${style(36, url)}`)
   if (urls.length) console.log('Open a Network URL on your phone while connected to the same Wi-Fi.')
+  showUpdateHint()
 
   let shuttingDown = false
   async function close(signal: string) {

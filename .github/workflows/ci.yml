@@ -11,17 +11,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
-    name: Node 24
+    name: Node 22
     steps:
       - name: Checkout Code
         uses: actions/checkout@v7
 
       - uses: pnpm/action-setup@v6
 
-      - name: Use Node 24 and pnpm
+      - name: Use Node 22 and pnpm
         uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version: 22
           cache: 'pnpm'
 
       - name: Use Bun
@@ -53,10 +53,10 @@ jobs:
 
       - uses: pnpm/action-setup@v6
 
-      - name: Use Node 24 and pnpm
+      - name: Use Node 22 and pnpm
         uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version: 22
           cache: 'pnpm'
 
       - name: Use Bun

@@ -308,6 +308,13 @@ npx devjar [command] [root] [options]
 | `-h, --help` | All | Show help |
 | `-v, --version` | All | Show installed version |
 
+Interactive terminals show a hint when a newer version is available. Checks
+run in the background and are cached for a day: stable versions check `latest`,
+prereleases check `next`. Hints appear only after help, the server-ready message,
+or the build summary; late results are cached for the next run.
+Set `NO_UPDATE_NOTIFIER=1` to disable them.
+CI, redirected stderr, and `--version` skip the check.
+
 </details>
 
 <details>
