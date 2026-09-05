@@ -14,6 +14,7 @@ const packageDirectory = join(temporaryRoot, 'package')
 const projectRoot = join(temporaryRoot, 'project')
 let browser: Browser | undefined
 let server: ChildProcess | undefined
+let strictServer: ReturnType<typeof Bun.serve> | undefined
 
 function executable(name: string) {
   return process.platform === 'win32' ? `${name}.cmd` : name
@@ -220,7 +221,7 @@ export default function Counter() {
   }, [])
   return <button onClick={() => setCount(count + 1)}>Hello {content.name} {text} {count}</button>
 }`
-  await writeFile(join(projectRoot, 'pages/playground.tsx'), `import { useMemo, useRef, useState } from 'react'
+  await writeFile(join(projectRoot, 'pages/playground.tsx'), `import { StrictMode, useMemo, useRef, useState } from 'react'
 import { DevJar } from 'devjar'
 const initial = ${JSON.stringify(source)}
 export default function Playground() {
@@ -228,13 +229,27 @@ export default function Playground() {
   const [code, setCode] = useState(initial)
   const [error, setError] = useState('')
   const [status, setStatus] = useState('idle')
+  const [readyCount, setReadyCount] = useState(0)
+  const [resetDone, setResetDone] = useState(false)
+  const [tailwind, setTailwind] = useState(false)
+  const [transform, setTransform] = useState(true)
   const files = useMemo(() => ({ 'pages/index.tsx': code, 'content.json': '{"name":"Devjar"}', 'message.txt': 'works' }), [code])
   return <main>
     <button onClick={() => void apiRef.current?.reset()}>Reset runtime</button>
+    <button onClick={() => {
+      const first = apiRef.current.reset()
+      const second = apiRef.current.reset()
+      if (first !== second) throw new Error('Concurrent resets must share a promise')
+      setCode(current => current.replace('Latest', 'Reset edit'))
+      void first.then(() => setResetDone(true))
+    }}>Reset and edit</button>
+    <span aria-label="Reset completed">{String(resetDone)}</span>
+    <button onClick={() => setTailwind(value => !value)}>Toggle Tailwind</button>
+    <button onClick={() => setTransform(value => !value)}>Toggle transform</button>
     <textarea aria-label="Code" value={code} onChange={event => setCode(event.target.value)} />
     <pre role="status">{error}</pre>
-    <output aria-label="Preview status">{status}</output>
-    <DevJar title="Live preview" apiRef={apiRef} tailwind={false} onStatusChange={setStatus} onError={error => setError(error ? String(error) : '')} files={files} />
+    <output aria-label="Preview status" data-ready-count={readyCount}>{status}</output>
+    <StrictMode><DevJar title="Live preview" apiRef={apiRef} tailwind={tailwind} transform={transform} dependencies={{ react: '19.2.0', 'react-dom': '19.2.0' }} onStatusChange={status => { setStatus(status); if (status === 'ready') setReadyCount(count => count + 1) }} onError={error => setError(error ? String(error) : '')} files={files} /></StrictMode>
   </main>
 }`)
   await run(devjar, ['build', '--base', '/preview/'], projectRoot)
@@ -272,11 +287,98 @@ export default function Playground() {
   await frame.getByRole('button', { name: /^Hello Devjar works \d+$/ }).waitFor()
   await preview.getByLabel('Preview status').filter({ hasText: 'ready' }).waitFor()
   assert.equal(await preview.locator('pre[role="status"]').textContent(), '')
+  // Source stays identical while compiler options change: cached raw JSX must
+  // not prevent recovery when transformation is re-enabled.
+  await preview.getByRole('button', { name: 'Toggle transform' }).click()
+  await preview.getByLabel('Preview status').filter({ hasText: 'failed' }).waitFor()
+  await preview.getByRole('button', { name: 'Toggle transform' }).click()
+  await preview.getByLabel('Preview status').filter({ hasText: 'ready' }).waitFor()
+
+  // Both directions must keep the project usable without editing its files.
+  await preview.route('https://unpkg.com/@tailwindcss/browser@4', route => route.fulfill({ contentType: 'text/javascript', body: '' }))
+  for (let toggle = 0; toggle < 2; toggle++) {
+    const previousReady = await preview.getByLabel('Preview status').getAttribute('data-ready-count')
+    await preview.getByRole('button', { name: 'Toggle Tailwind' }).click()
+    await preview.waitForFunction(previous => Number(document.querySelector('[aria-label="Preview status"]')?.getAttribute('data-ready-count')) > Number(previous), previousReady)
+    await frame.getByRole('button', { name: /^Hello Devjar works \d+$/ }).waitFor()
+    await preview.getByLabel('Preview status').filter({ hasText: 'ready' }).waitFor()
+  }
+
+  // Hold a real worker request so an error from the visible old preview arrives
+  // during compilation. It must not poison readiness of the replacement.
+  await preview.evaluate(() => {
+    const postMessage = Worker.prototype.postMessage
+    Worker.prototype.postMessage = function (...args) {
+      Worker.prototype.postMessage = postMessage
+      ;(window as any).__releaseCompilation = () => postMessage.apply(this, args as [any])
+    }
+  })
+  await preview.getByRole('textbox', { name: 'Code' }).fill(source.replace('Hello', 'Latest'))
+  await preview.waitForFunction(() => typeof (window as any).__releaseCompilation === 'function')
+  await preview.evaluate(() => {
+    const frameWindow = document.querySelector('iframe')!.contentWindow! as any
+    frameWindow.dispatchEvent(new frameWindow.ErrorEvent('error', { message: 'Old preview failed', error: new frameWindow.Error('Old preview failed') }))
+    ;(window as any).__releaseCompilation()
+    delete (window as any).__releaseCompilation
+  })
+  await frame.getByRole('button', { name: /^Latest Devjar works \d+$/ }).waitFor()
+  await preview.getByLabel('Preview status').filter({ hasText: 'ready' }).waitFor()
+  assert.equal(await preview.locator('pre[role="status"]').textContent(), '')
+  await preview.getByRole('button', { name: 'Reset and edit' }).click()
+  await preview.getByLabel('Reset completed').filter({ hasText: 'true' }).waitFor()
+  await frame.getByRole('button', { name: 'Reset edit Devjar works 0' }).waitFor()
+  await preview.getByLabel('Preview status').filter({ hasText: 'ready' }).waitFor()
   assert.deepEqual(previewErrors, [])
+  // A separate development React root makes Strict Mode's effect replay real;
+  // production React in the exported website intentionally does not replay it.
+  const strictFiles = { 'pages/index.js': 'export default function Page() { return "Strict preview" }' }
+  const strictHtml = `<div id="root"></div><script type="importmap">${JSON.stringify({ imports: {
+    react: 'https://esm.sh/react@19.2.0?dev',
+    'react/jsx-runtime': 'https://esm.sh/react@19.2.0/jsx-runtime?dev',
+    'es-module-lexer': '/lexer.js',
+    'react-dom/client': 'https://esm.sh/react-dom@19.2.0/client?dev&deps=react@19.2.0',
+  } })}</script><script type="module">
+import { createElement, StrictMode, useEffect } from 'react'
+import { createRoot } from 'react-dom/client'
+import { DevJar } from '/index.js'
+const files = ${JSON.stringify(strictFiles)}
+window.effectSetups = 0
+window.effectCleanups = 0
+function Probe() {
+  useEffect(() => {
+    window.effectSetups++
+    return () => { window.effectCleanups++ }
+  }, [])
+  return createElement(DevJar, { files, transform: false, tailwind: false,
+    onStatusChange: status => { document.body.dataset.status = status } })
+}
+const root = createRoot(document.getElementById('root'))
+root.render(createElement(StrictMode, null, createElement(Probe)))
+window.unmount = () => root.unmount()
+</script>`
+  strictServer = Bun.serve({ hostname: '127.0.0.1', port: 0, fetch(request) {
+    const path = new URL(request.url).pathname
+    if (path === '/') return new Response(strictHtml, { headers: { 'content-type': 'text/html' } })
+    if (path === '/lexer.js') return new Response(Bun.file(join(projectRoot, 'node_modules/es-module-lexer/dist/lexer.js')))
+    return new Response(Bun.file(join(projectRoot, 'node_modules/devjar/dist', path)))
+  } })
+  const strictPage = await browser.newPage()
+  const strictErrors: string[] = []
+  strictPage.on('pageerror', error => strictErrors.push(error.message))
+  await strictPage.goto(strictServer.url.href)
+  await strictPage.frameLocator('iframe').getByText('Strict preview', { exact: true }).waitFor()
+  await strictPage.waitForFunction(() => document.body.dataset.status === 'ready')
+  assert.equal(await strictPage.evaluate(() => (window as any).effectSetups), 2)
+  assert.equal(await strictPage.evaluate(() => (window as any).effectCleanups), 1)
+  await strictPage.evaluate(() => (window as any).unmount())
+  assert.equal(await strictPage.evaluate(() => (window as any).effectCleanups), 2)
+  assert.deepEqual(strictErrors, [])
+  await strictPage.close()
   console.log('Packaged static export and live DevJar compilation, JSON/text imports, Refresh state preservation, and error recovery passed without isolation headers.')
 
 } finally {
   await browser?.close()
   if (server) await stopServer(server)
+  strictServer?.stop(true)
   await rm(temporaryRoot, { recursive: true, force: true })
 }

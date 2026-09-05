@@ -107,6 +107,15 @@ export default function LiveExample() {
 Keep `files` and custom resolver functions stable between unrelated parent
 renders. To edit a file, replace its string in a new `files` object.
 
+The component reloads the current files when compilation options change. Changing
+`transform` or compiler asset URLs invalidates compiled-source caches. Changing
+`dependencies`, `resolveModule`, or `tailwind` starts a fresh iframe runtime;
+React state and iframe globals are reset. Equal dependency versions and compiler
+URLs do not trigger a reload just because their options objects are recreated.
+
+With `useLiveCode`, call `load` again to apply changed options. For automatic
+updates, include both `files` and `load` in your effect dependencies.
+
 </details>
 
 <details>

@@ -36,6 +36,12 @@ export default function Preview() {
 
 To update a preview, replace the edited file's string in a new files object.
 Keep files and custom resolver functions stable between unrelated renders.
+DevJar reloads current files when options change. Changing transform/compiler URLs
+invalidates compiled-source caches; changing dependencies, resolveModule, or
+tailwind recreates the iframe runtime and resets its state. Equal dependency and
+compiler values do not reload just because their options objects are recreated.
+With useLiveCode, call load again after options change, or include files and load
+in the dependencies of the effect that performs automatic loading.
 Updates start immediately, with one active load and only the newest pending edit.
 Superseded queued edits are skipped; running compilation/imports finish and stale
 results are discarded. This cannot undo module side effects. Incomplete source
