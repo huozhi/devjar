@@ -1,0 +1,2848 @@
+{
+  "date": "2026-09-05T21:42:57.868Z",
+  "commit": "c34f41998534314a60678111156e09f94e7d7e43",
+  "environment": {
+    "os": "darwin 25.6.0 arm64",
+    "cpu": "Apple M4 Pro",
+    "chromium": "151.0.7922.34",
+    "bun": "1.4.2",
+    "previewReact": "19.2.0",
+    "sandpack": "2.19.8",
+    "headless": true,
+    "tailwind": false,
+    "throttling": "none"
+  },
+  "methodology": "Preview-only adapters; same TSX projects, layout-effect postMessage commit marker, 5 warmups, alternating runtime order. Cold uses fresh browser contexts after host load, with default remote dependency/bundler services. Network conditions are uncontrolled. Payload includes host plus preview requests completed through 1s after initial commit; worker/service-worker visibility and missing sizes limit accounting. No editor UI, no paint timing. Sandpack requires an additional entrypoint and HTML file. Not comparable to the local-only browser.json baseline.",
+  "results": [
+    {
+      "name": "devjar",
+      "components": 1,
+      "projectFiles": 2,
+      "coldMs": [
+        1263.800000011921,
+        261.90000000596046,
+        179.40000000596046,
+        182,
+        174.40000000596046
+      ],
+      "warmMs": [
+        1.199999988079071,
+        1.199999988079071,
+        1.5,
+        1.2999999821186066,
+        1.300000011920929,
+        1.2000000178813934,
+        1.5,
+        1.199999988079071,
+        1.300000011920929,
+        1.199999988079071,
+        1.600000023841858,
+        1.4000000059604645,
+        1.199999988079071,
+        1.0999999940395355,
+        1.4000000059604645,
+        1.100000023841858,
+        0.9000000059604645,
+        0.9000000059604645,
+        1.4000000059604645,
+        1.0999999940395355,
+        1,
+        1.0999999940395355,
+        1.2999999821186066,
+        1.2000000178813934,
+        1,
+        1.0999999940395355,
+        1.2999999821186066,
+        1.0999999940395355,
+        0.9000000059604645,
+        1
+      ],
+      "statePreserved": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "traffic": [
+        {
+          "totalKnownBytes": 981797,
+          "missingSizes": 0,
+          "requests": [
+            {
+              "url": "http://127.0.0.1:54543/devjar",
+              "bytes": 249
+            },
+            {
+              "url": "http://127.0.0.1:54543/devjar.js",
+              "bytes": 71946
+            },
+            {
+              "url": "http://127.0.0.1:54543/assets/transform-worker-54516wqj.js?binding=http%3A%2F%2F127.0.0.1%3A54543%2Fassets%2Fdevjar_browser_compiler-ayjcyb49.js&wasm=http%3A%2F%2F127.0.0.1%3A54543%2Fassets%2Ftransform-abb126ad.wasm",
+              "bytes": 173
+            },
+            {
+              "url": "http://127.0.0.1:54543/assets/devjar_browser_compiler-ayjcyb49.js",
+              "bytes": 1737
+            },
+            {
+              "url": "http://127.0.0.1:54543/assets/transform-abb126ad.wasm",
+              "bytes": 637973
+            },
+            {
+              "url": "https://esm.sh/react-refresh@0.17.0/runtime?dev=&deps=react%4019.2.0",
+              "bytes": 515
+            },
+            {
+              "url": "https://esm.sh/react-refresh@0.17.0/X-ZHJlYWN0QDE5LjIuMA/es2022/react-refresh.development.mjs",
+              "bytes": 4480
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0?dev",
+              "bytes": 262
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0/jsx-dev-runtime?dev",
+              "bytes": 249
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0/es2022/react.development.mjs",
+              "bytes": 14783
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0/es2022/jsx-dev-runtime.development.mjs",
+              "bytes": 5040
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0?dev=&deps=react%4019.2.0",
+              "bytes": 302
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0/client?dev=&deps=react%4019.2.0",
+              "bytes": 329
+            },
+            {
+              "url": "https://esm.sh/scheduler@%5E0.27.0?target=es2022&dev",
+              "bytes": 239
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0/X-ZHJlYWN0QDE5LjIuMA/es2022/react-dom.development.mjs",
+              "bytes": 5702
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0/X-ZHJlYWN0QDE5LjIuMA/es2022/client.development.mjs",
+              "bytes": 233461
+            },
+            {
+              "url": "https://esm.sh/scheduler@0.27.0/es2022/scheduler.development.mjs",
+              "bytes": 4357
+            }
+          ]
+        },
+        {
+          "totalKnownBytes": 981678,
+          "missingSizes": 0,
+          "requests": [
+            {
+              "url": "http://127.0.0.1:54543/devjar",
+              "bytes": 249
+            },
+            {
+              "url": "http://127.0.0.1:54543/devjar.js",
+              "bytes": 71946
+            },
+            {
+              "url": "http://127.0.0.1:54543/assets/transform-worker-54516wqj.js?binding=http%3A%2F%2F127.0.0.1%3A54543%2Fassets%2Fdevjar_browser_compiler-ayjcyb49.js&wasm=http%3A%2F%2F127.0.0.1%3A54543%2Fassets%2Ftransform-abb126ad.wasm",
+              "bytes": 173
+            },
+            {
+              "url": "http://127.0.0.1:54543/assets/devjar_browser_compiler-ayjcyb49.js",
+              "bytes": 1737
+            },
+            {
+              "url": "http://127.0.0.1:54543/assets/transform-abb126ad.wasm",
+              "bytes": 637973
+            },
+            {
+              "url": "https://esm.sh/react-refresh@0.17.0/runtime?dev=&deps=react%4019.2.0",
+              "bytes": 516
+            },
+            {
+              "url": "https://esm.sh/react-refresh@0.17.0/X-ZHJlYWN0QDE5LjIuMA/es2022/react-refresh.development.mjs",
+              "bytes": 4481
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0?dev",
+              "bytes": 240
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0/jsx-dev-runtime?dev",
+              "bytes": 250
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0/es2022/jsx-dev-runtime.development.mjs",
+              "bytes": 5041
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0/es2022/react.development.mjs",
+              "bytes": 14784
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0/client?dev=&deps=react%4019.2.0",
+              "bytes": 330
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0?dev=&deps=react%4019.2.0",
+              "bytes": 303
+            },
+            {
+              "url": "https://esm.sh/scheduler@%5E0.27.0?target=es2022&dev",
+              "bytes": 240
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0/X-ZHJlYWN0QDE5LjIuMA/es2022/react-dom.development.mjs",
+              "bytes": 5703
+            },
+            {
+              "url": "https://esm.sh/scheduler@0.27.0/es2022/scheduler.development.mjs",
+              "bytes": 4358
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0/X-ZHJlYWN0QDE5LjIuMA/es2022/client.development.mjs",
+              "bytes": 233354
+            }
+          ]
+        },
+        {
+          "totalKnownBytes": 981680,
+          "missingSizes": 0,
+          "requests": [
+            {
+              "url": "http://127.0.0.1:54543/devjar",
+              "bytes": 249
+            },
+            {
+              "url": "http://127.0.0.1:54543/devjar.js",
+              "bytes": 71946
+            },
+            {
+              "url": "http://127.0.0.1:54543/assets/transform-worker-54516wqj.js?binding=http%3A%2F%2F127.0.0.1%3A54543%2Fassets%2Fdevjar_browser_compiler-ayjcyb49.js&wasm=http%3A%2F%2F127.0.0.1%3A54543%2Fassets%2Ftransform-abb126ad.wasm",
+              "bytes": 173
+            },
+            {
+              "url": "http://127.0.0.1:54543/assets/devjar_browser_compiler-ayjcyb49.js",
+              "bytes": 1737
+            },
+            {
+              "url": "http://127.0.0.1:54543/assets/transform-abb126ad.wasm",
+              "bytes": 637973
+            },
+            {
+              "url": "https://esm.sh/react-refresh@0.17.0/runtime?dev=&deps=react%4019.2.0",
+              "bytes": 516
+            },
+            {
+              "url": "https://esm.sh/react-refresh@0.17.0/X-ZHJlYWN0QDE5LjIuMA/es2022/react-refresh.development.mjs",
+              "bytes": 4481
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0/jsx-dev-runtime?dev",
+              "bytes": 275
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0?dev",
+              "bytes": 217
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0/es2022/jsx-dev-runtime.development.mjs",
+              "bytes": 5041
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0/es2022/react.development.mjs",
+              "bytes": 14784
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0/client?dev=&deps=react%4019.2.0",
+              "bytes": 330
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0?dev=&deps=react%4019.2.0",
+              "bytes": 303
+            },
+            {
+              "url": "https://esm.sh/scheduler@%5E0.27.0?target=es2022&dev",
+              "bytes": 240
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0/X-ZHJlYWN0QDE5LjIuMA/es2022/react-dom.development.mjs",
+              "bytes": 5703
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0/X-ZHJlYWN0QDE5LjIuMA/es2022/client.development.mjs",
+              "bytes": 233354
+            },
+            {
+              "url": "https://esm.sh/scheduler@0.27.0/es2022/scheduler.development.mjs",
+              "bytes": 4358
+            }
+          ]
+        },
+        {
+          "totalKnownBytes": 981682,
+          "missingSizes": 0,
+          "requests": [
+            {
+              "url": "http://127.0.0.1:54543/devjar",
+              "bytes": 249
+            },
+            {
+              "url": "http://127.0.0.1:54543/devjar.js",
+              "bytes": 71946
+            },
+            {
+              "url": "http://127.0.0.1:54543/assets/transform-worker-54516wqj.js?binding=http%3A%2F%2F127.0.0.1%3A54543%2Fassets%2Fdevjar_browser_compiler-ayjcyb49.js&wasm=http%3A%2F%2F127.0.0.1%3A54543%2Fassets%2Ftransform-abb126ad.wasm",
+              "bytes": 173
+            },
+            {
+              "url": "http://127.0.0.1:54543/assets/devjar_browser_compiler-ayjcyb49.js",
+              "bytes": 1737
+            },
+            {
+              "url": "http://127.0.0.1:54543/assets/transform-abb126ad.wasm",
+              "bytes": 637973
+            },
+            {
+              "url": "https://esm.sh/react-refresh@0.17.0/runtime?dev=&deps=react%4019.2.0",
+              "bytes": 517
+            },
+            {
+              "url": "https://esm.sh/react-refresh@0.17.0/X-ZHJlYWN0QDE5LjIuMA/es2022/react-refresh.development.mjs",
+              "bytes": 4481
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0?dev",
+              "bytes": 240
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0/jsx-dev-runtime?dev",
+              "bytes": 250
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0/es2022/jsx-dev-runtime.development.mjs",
+              "bytes": 5041
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0/es2022/react.development.mjs",
+              "bytes": 14784
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0?dev=&deps=react%4019.2.0",
+              "bytes": 303
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0/client?dev=&deps=react%4019.2.0",
+              "bytes": 330
+            },
+            {
+              "url": "https://esm.sh/scheduler@%5E0.27.0?target=es2022&dev",
+              "bytes": 241
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0/X-ZHJlYWN0QDE5LjIuMA/es2022/react-dom.development.mjs",
+              "bytes": 5704
+            },
+            {
+              "url": "https://esm.sh/scheduler@0.27.0/es2022/scheduler.development.mjs",
+              "bytes": 4358
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0/X-ZHJlYWN0QDE5LjIuMA/es2022/client.development.mjs",
+              "bytes": 233355
+            }
+          ]
+        },
+        {
+          "totalKnownBytes": 981693,
+          "missingSizes": 0,
+          "requests": [
+            {
+              "url": "http://127.0.0.1:54543/devjar",
+              "bytes": 249
+            },
+            {
+              "url": "http://127.0.0.1:54543/devjar.js",
+              "bytes": 71946
+            },
+            {
+              "url": "http://127.0.0.1:54543/assets/transform-worker-54516wqj.js?binding=http%3A%2F%2F127.0.0.1%3A54543%2Fassets%2Fdevjar_browser_compiler-ayjcyb49.js&wasm=http%3A%2F%2F127.0.0.1%3A54543%2Fassets%2Ftransform-abb126ad.wasm",
+              "bytes": 173
+            },
+            {
+              "url": "http://127.0.0.1:54543/assets/devjar_browser_compiler-ayjcyb49.js",
+              "bytes": 1737
+            },
+            {
+              "url": "http://127.0.0.1:54543/assets/transform-abb126ad.wasm",
+              "bytes": 637973
+            },
+            {
+              "url": "https://esm.sh/react-refresh@0.17.0/runtime?dev=&deps=react%4019.2.0",
+              "bytes": 517
+            },
+            {
+              "url": "https://esm.sh/react-refresh@0.17.0/X-ZHJlYWN0QDE5LjIuMA/es2022/react-refresh.development.mjs",
+              "bytes": 4485
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0/jsx-dev-runtime?dev",
+              "bytes": 274
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0?dev",
+              "bytes": 218
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0/es2022/jsx-dev-runtime.development.mjs",
+              "bytes": 5042
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0/es2022/react.development.mjs",
+              "bytes": 14785
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0/client?dev=&deps=react%4019.2.0",
+              "bytes": 331
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0?dev=&deps=react%4019.2.0",
+              "bytes": 304
+            },
+            {
+              "url": "https://esm.sh/scheduler@%5E0.27.0?target=es2022&dev",
+              "bytes": 241
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0/X-ZHJlYWN0QDE5LjIuMA/es2022/react-dom.development.mjs",
+              "bytes": 5704
+            },
+            {
+              "url": "https://esm.sh/scheduler@0.27.0/es2022/scheduler.development.mjs",
+              "bytes": 4359
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0/X-ZHJlYWN0QDE5LjIuMA/es2022/client.development.mjs",
+              "bytes": 233355
+            }
+          ]
+        }
+      ],
+      "cold": {
+        "median": 182,
+        "p95": 1263.800000011921,
+        "samples": [
+          1263.800000011921,
+          261.90000000596046,
+          179.40000000596046,
+          182,
+          174.40000000596046
+        ]
+      },
+      "warm": {
+        "median": 1.199999988079071,
+        "p95": 1.5,
+        "samples": [
+          1.199999988079071,
+          1.199999988079071,
+          1.5,
+          1.2999999821186066,
+          1.300000011920929,
+          1.2000000178813934,
+          1.5,
+          1.199999988079071,
+          1.300000011920929,
+          1.199999988079071,
+          1.600000023841858,
+          1.4000000059604645,
+          1.199999988079071,
+          1.0999999940395355,
+          1.4000000059604645,
+          1.100000023841858,
+          0.9000000059604645,
+          0.9000000059604645,
+          1.4000000059604645,
+          1.0999999940395355,
+          1,
+          1.0999999940395355,
+          1.2999999821186066,
+          1.2000000178813934,
+          1,
+          1.0999999940395355,
+          1.2999999821186066,
+          1.0999999940395355,
+          0.9000000059604645,
+          1
+        ]
+      }
+    },
+    {
+      "name": "sandpack",
+      "components": 1,
+      "projectFiles": 2,
+      "coldMs": [
+        1106.2000000178814,
+        578.0999999940395,
+        556.5,
+        624.2000000178814,
+        521.4000000059605
+      ],
+      "warmMs": [
+        38.099999994039536,
+        38.60000002384186,
+        38.19999998807907,
+        38.19999998807907,
+        37.400000005960464,
+        37.5,
+        37.80000001192093,
+        37,
+        36.80000001192093,
+        36.80000001192093,
+        38.5,
+        38.39999997615814,
+        38.20000001788139,
+        37.29999998211861,
+        37.89999997615814,
+        37.69999998807907,
+        37.400000005960464,
+        38,
+        37.69999998807907,
+        37.69999998807907,
+        37.5,
+        37.79999998211861,
+        36.69999998807907,
+        37.29999998211861,
+        37.599999994039536,
+        37.30000001192093,
+        37.400000005960464,
+        36.400000005960464,
+        38.30000001192093,
+        38.30000001192093
+      ],
+      "statePreserved": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "traffic": [
+        {
+          "totalKnownBytes": 2974091,
+          "missingSizes": 1,
+          "requests": [
+            {
+              "url": "http://127.0.0.1:54543/sandpack",
+              "bytes": 251
+            },
+            {
+              "url": "http://127.0.0.1:54543/sandpack.js",
+              "bytes": 30639
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/",
+              "bytes": null,
+              "failure": "net::ERR_ABORTED"
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/",
+              "bytes": 2193
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/default~sandbox~sandbox-startup.a81a9aa5d.chunk.js",
+              "bytes": 7329
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/sandbox-startup.a0ea8d1cb.js",
+              "bytes": 4162
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/vendors~sandbox-startup.ca8a95b40.chunk.js",
+              "bytes": 6236
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/browserfs12/browserfs.min.js",
+              "bytes": 65949
+            },
+            {
+              "url": "https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495",
+              "bytes": 10338
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/sandbox.8a7d01a44.js",
+              "bytes": 92880
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/vendors~sandbox.ecbcf4e6a.chunk.js",
+              "bytes": 188514
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/challenge-platform/scripts/jsd/main.js",
+              "bytes": 0
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/rum?",
+              "bytes": 206
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/challenge-platform/h/g/scripts/jsd/330e41bb475c/main.js?",
+              "bytes": 10092
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/babel.7.21.8.min.js",
+              "bytes": 556757
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/react-refresh/0.9.0.json",
+              "bytes": 7382
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/node-libs-browser/2.2.1.json",
+              "bytes": 15755
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/react/19.2.0.json",
+              "bytes": 18410
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/babel-runtime/6.26.0.json",
+              "bytes": 1800
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/react-dom/19.2.0.json",
+              "bytes": 1306633
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/challenge-platform/h/g/jsd/oneshot/330e41bb475c/0.6218168080440248:1788642313:zlyVkDoogZiBeoido6d83pI59iLrSIoW_MO12rK1PQc/a36867545eb0321c",
+              "bytes": 2103
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/@babel/core",
+              "bytes": 1335
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/@babel/runtime",
+              "bytes": 788
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/browserfs12/browserfs.min.js",
+              "bytes": 0
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/@babel/runtime/7.29.7.json",
+              "bytes": 4369
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/@babel/core/7.29.7.json",
+              "bytes": 449023
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/react@19.2.0/flat",
+              "bytes": 1696
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/react@19.2.0/jsx-runtime.js",
+              "bytes": 889
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/babel.7.21.8.min.js",
+              "bytes": 0
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/babel-transpiler.dc3397b1.worker.js",
+              "bytes": 710
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/@babel/runtime@7.29.7/flat",
+              "bytes": 11770
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/@babel/runtime@7.29.7/helpers/interopRequireDefault.js",
+              "bytes": 459
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/@babel/runtime@7.29.7/helpers/interopRequireWildcard.js",
+              "bytes": 748
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/@babel/runtime@7.29.7/helpers/typeof.js",
+              "bytes": 935
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/0.483b0f0f9.chunk.js",
+              "bytes": 12675
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/7.33c8239f0.chunk.js",
+              "bytes": 4934
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/1.390d5cd6d.chunk.js",
+              "bytes": 10593
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/2.f916e8469.chunk.js",
+              "bytes": 145538
+            }
+          ]
+        },
+        {
+          "totalKnownBytes": 2974001,
+          "missingSizes": 1,
+          "requests": [
+            {
+              "url": "http://127.0.0.1:54543/sandpack",
+              "bytes": 251
+            },
+            {
+              "url": "http://127.0.0.1:54543/sandpack.js",
+              "bytes": 30639
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/",
+              "bytes": null,
+              "failure": "net::ERR_ABORTED"
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/",
+              "bytes": 2195
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/default~sandbox~sandbox-startup.a81a9aa5d.chunk.js",
+              "bytes": 7386
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/sandbox-startup.a0ea8d1cb.js",
+              "bytes": 3836
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/vendors~sandbox-startup.ca8a95b40.chunk.js",
+              "bytes": 6515
+            },
+            {
+              "url": "https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495",
+              "bytes": 10338
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/browserfs12/browserfs.min.js",
+              "bytes": 65764
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/sandbox.8a7d01a44.js",
+              "bytes": 93058
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/vendors~sandbox.ecbcf4e6a.chunk.js",
+              "bytes": 188764
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/rum?",
+              "bytes": 242
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/challenge-platform/scripts/jsd/main.js",
+              "bytes": 0
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/challenge-platform/h/g/scripts/jsd/330e41bb475c/main.js?",
+              "bytes": 9691
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/node-libs-browser/2.2.1.json",
+              "bytes": 16003
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/react-refresh/0.9.0.json",
+              "bytes": 7136
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/react/19.2.0.json",
+              "bytes": 18437
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/challenge-platform/h/g/jsd/oneshot/330e41bb475c/0.6218168080440248:1788642313:zlyVkDoogZiBeoido6d83pI59iLrSIoW_MO12rK1PQc/a3686761f9486ac9",
+              "bytes": 2101
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/@babel/core",
+              "bytes": 1334
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/@babel/runtime",
+              "bytes": 787
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/babel-runtime/6.26.0.json",
+              "bytes": 1797
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/@babel/runtime/7.29.7.json",
+              "bytes": 4372
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/@babel/core/7.29.7.json",
+              "bytes": 449006
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/browserfs12/browserfs.min.js",
+              "bytes": 0
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/react-dom/19.2.0.json",
+              "bytes": 1306608
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/babel.7.21.8.min.js",
+              "bytes": 556718
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/react@19.2.0/flat",
+              "bytes": 1696
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/react@19.2.0/jsx-runtime.js",
+              "bytes": 888
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/babel.7.21.8.min.js",
+              "bytes": 0
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/babel-transpiler.dc3397b1.worker.js",
+              "bytes": 707
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/@babel/runtime@7.29.7/flat",
+              "bytes": 11770
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/@babel/runtime@7.29.7/helpers/interopRequireWildcard.js",
+              "bytes": 758
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/@babel/runtime@7.29.7/helpers/interopRequireDefault.js",
+              "bytes": 452
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/@babel/runtime@7.29.7/helpers/typeof.js",
+              "bytes": 937
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/1.390d5cd6d.chunk.js",
+              "bytes": 10617
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/7.33c8239f0.chunk.js",
+              "bytes": 5011
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/0.483b0f0f9.chunk.js",
+              "bytes": 12725
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/2.f916e8469.chunk.js",
+              "bytes": 145462
+            }
+          ]
+        },
+        {
+          "totalKnownBytes": 2973708,
+          "missingSizes": 1,
+          "requests": [
+            {
+              "url": "http://127.0.0.1:54543/sandpack",
+              "bytes": 251
+            },
+            {
+              "url": "http://127.0.0.1:54543/sandpack.js",
+              "bytes": 30639
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/",
+              "bytes": null,
+              "failure": "net::ERR_ABORTED"
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/",
+              "bytes": 2198
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/sandbox-startup.a0ea8d1cb.js",
+              "bytes": 3932
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/vendors~sandbox-startup.ca8a95b40.chunk.js",
+              "bytes": 6168
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/default~sandbox~sandbox-startup.a81a9aa5d.chunk.js",
+              "bytes": 7599
+            },
+            {
+              "url": "https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495",
+              "bytes": 10339
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/browserfs12/browserfs.min.js",
+              "bytes": 65879
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/sandbox.8a7d01a44.js",
+              "bytes": 92957
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/vendors~sandbox.ecbcf4e6a.chunk.js",
+              "bytes": 188773
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/challenge-platform/scripts/jsd/main.js",
+              "bytes": 0
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/rum?",
+              "bytes": 206
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/challenge-platform/h/g/scripts/jsd/330e41bb475c/main.js?",
+              "bytes": 9973
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/react-refresh/0.9.0.json",
+              "bytes": 7382
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/node-libs-browser/2.2.1.json",
+              "bytes": 15758
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/react/19.2.0.json",
+              "bytes": 18410
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/babel-runtime/6.26.0.json",
+              "bytes": 1797
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/challenge-platform/h/g/jsd/oneshot/330e41bb475c/0.6218168080440248:1788642313:zlyVkDoogZiBeoido6d83pI59iLrSIoW_MO12rK1PQc/a368677c7a785e96",
+              "bytes": 2109
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/@babel/runtime",
+              "bytes": 1281
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/react-dom/19.2.0.json",
+              "bytes": 1306635
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/@babel/core",
+              "bytes": 839
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/browserfs12/browserfs.min.js",
+              "bytes": 0
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/@babel/runtime/7.29.7.json",
+              "bytes": 4373
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/babel.7.21.8.min.js",
+              "bytes": 556420
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/@babel/core/7.29.7.json",
+              "bytes": 448849
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/react@19.2.0/flat",
+              "bytes": 1697
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/react@19.2.0/jsx-runtime.js",
+              "bytes": 890
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/babel.7.21.8.min.js",
+              "bytes": 0
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/babel-transpiler.dc3397b1.worker.js",
+              "bytes": 707
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/@babel/runtime@7.29.7/flat",
+              "bytes": 11769
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/@babel/runtime@7.29.7/helpers/interopRequireWildcard.js",
+              "bytes": 762
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/@babel/runtime@7.29.7/helpers/interopRequireDefault.js",
+              "bytes": 452
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/@babel/runtime@7.29.7/helpers/typeof.js",
+              "bytes": 933
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/0.483b0f0f9.chunk.js",
+              "bytes": 12653
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/1.390d5cd6d.chunk.js",
+              "bytes": 10591
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/7.33c8239f0.chunk.js",
+              "bytes": 5012
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/2.f916e8469.chunk.js",
+              "bytes": 145475
+            }
+          ]
+        },
+        {
+          "totalKnownBytes": 2974340,
+          "missingSizes": 1,
+          "requests": [
+            {
+              "url": "http://127.0.0.1:54543/sandpack",
+              "bytes": 251
+            },
+            {
+              "url": "http://127.0.0.1:54543/sandpack.js",
+              "bytes": 30639
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/",
+              "bytes": null,
+              "failure": "net::ERR_ABORTED"
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/",
+              "bytes": 2201
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/sandbox-startup.a0ea8d1cb.js",
+              "bytes": 3846
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/vendors~sandbox-startup.ca8a95b40.chunk.js",
+              "bytes": 6196
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/default~sandbox~sandbox-startup.a81a9aa5d.chunk.js",
+              "bytes": 7282
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/browserfs12/browserfs.min.js",
+              "bytes": 65746
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/sandbox.8a7d01a44.js",
+              "bytes": 93385
+            },
+            {
+              "url": "https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495",
+              "bytes": 10339
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/vendors~sandbox.ecbcf4e6a.chunk.js",
+              "bytes": 188891
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/challenge-platform/scripts/jsd/main.js",
+              "bytes": 0
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/rum?",
+              "bytes": 206
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/challenge-platform/h/g/scripts/jsd/330e41bb475c/main.js?",
+              "bytes": 10324
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/react-refresh/0.9.0.json",
+              "bytes": 7380
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/node-libs-browser/2.2.1.json",
+              "bytes": 15756
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/challenge-platform/h/g/jsd/oneshot/330e41bb475c/0.6218168080440248:1788642313:zlyVkDoogZiBeoido6d83pI59iLrSIoW_MO12rK1PQc/a3686786fa3ad81e",
+              "bytes": 2105
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/@babel/runtime",
+              "bytes": 1282
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/react/19.2.0.json",
+              "bytes": 18407
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/babel-runtime/6.26.0.json",
+              "bytes": 1801
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/@babel/core",
+              "bytes": 841
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/@babel/runtime/7.29.7.json",
+              "bytes": 4347
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/@babel/core/7.29.7.json",
+              "bytes": 449034
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/browserfs12/browserfs.min.js",
+              "bytes": 0
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/react-dom/19.2.0.json",
+              "bytes": 1306635
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/babel.7.21.8.min.js",
+              "bytes": 556569
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/react@19.2.0/flat",
+              "bytes": 1719
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/react@19.2.0/jsx-runtime.js",
+              "bytes": 890
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/babel.7.21.8.min.js",
+              "bytes": 0
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/babel-transpiler.dc3397b1.worker.js",
+              "bytes": 714
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/@babel/runtime@7.29.7/flat",
+              "bytes": 11769
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/@babel/runtime@7.29.7/helpers/interopRequireWildcard.js",
+              "bytes": 758
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/@babel/runtime@7.29.7/helpers/interopRequireDefault.js",
+              "bytes": 459
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/@babel/runtime@7.29.7/helpers/typeof.js",
+              "bytes": 934
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/7.33c8239f0.chunk.js",
+              "bytes": 4956
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/0.483b0f0f9.chunk.js",
+              "bytes": 12711
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/1.390d5cd6d.chunk.js",
+              "bytes": 10534
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/2.f916e8469.chunk.js",
+              "bytes": 145433
+            }
+          ]
+        },
+        {
+          "totalKnownBytes": 2975247,
+          "missingSizes": 1,
+          "requests": [
+            {
+              "url": "http://127.0.0.1:54543/sandpack",
+              "bytes": 251
+            },
+            {
+              "url": "http://127.0.0.1:54543/sandpack.js",
+              "bytes": 30639
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/",
+              "bytes": null,
+              "failure": "net::ERR_ABORTED"
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/",
+              "bytes": 2198
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/default~sandbox~sandbox-startup.a81a9aa5d.chunk.js",
+              "bytes": 7429
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/sandbox-startup.a0ea8d1cb.js",
+              "bytes": 4190
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/vendors~sandbox-startup.ca8a95b40.chunk.js",
+              "bytes": 6194
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/browserfs12/browserfs.min.js",
+              "bytes": 65788
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/sandbox.8a7d01a44.js",
+              "bytes": 93035
+            },
+            {
+              "url": "https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495",
+              "bytes": 10338
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/vendors~sandbox.ecbcf4e6a.chunk.js",
+              "bytes": 188893
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/rum?",
+              "bytes": 242
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/challenge-platform/scripts/jsd/main.js",
+              "bytes": 0
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/challenge-platform/h/g/scripts/jsd/330e41bb475c/main.js?",
+              "bytes": 10150
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/node-libs-browser/2.2.1.json",
+              "bytes": 16003
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/react-refresh/0.9.0.json",
+              "bytes": 7137
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/react/19.2.0.json",
+              "bytes": 18435
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/challenge-platform/h/g/jsd/oneshot/330e41bb475c/0.6218168080440248:1788642313:zlyVkDoogZiBeoido6d83pI59iLrSIoW_MO12rK1PQc/a36867a18ca5e52f",
+              "bytes": 2107
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/babel-runtime/6.26.0.json",
+              "bytes": 1800
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/@babel/runtime",
+              "bytes": 1282
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/@babel/core",
+              "bytes": 841
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/react-dom/19.2.0.json",
+              "bytes": 1306607
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/@babel/runtime/7.29.7.json",
+              "bytes": 4346
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/browserfs12/browserfs.min.js",
+              "bytes": 0
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/@babel/core/7.29.7.json",
+              "bytes": 449022
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/babel.7.21.8.min.js",
+              "bytes": 557115
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/react@19.2.0/flat",
+              "bytes": 1696
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/react@19.2.0/jsx-runtime.js",
+              "bytes": 887
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/babel.7.21.8.min.js",
+              "bytes": 0
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/babel-transpiler.dc3397b1.worker.js",
+              "bytes": 706
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/@babel/runtime@7.29.7/flat",
+              "bytes": 11770
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/@babel/runtime@7.29.7/helpers/interopRequireDefault.js",
+              "bytes": 460
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/@babel/runtime@7.29.7/helpers/interopRequireWildcard.js",
+              "bytes": 747
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/@babel/runtime@7.29.7/helpers/typeof.js",
+              "bytes": 933
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/0.483b0f0f9.chunk.js",
+              "bytes": 12674
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/1.390d5cd6d.chunk.js",
+              "bytes": 10627
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/7.33c8239f0.chunk.js",
+              "bytes": 4976
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/2.f916e8469.chunk.js",
+              "bytes": 145729
+            }
+          ]
+        }
+      ],
+      "cold": {
+        "median": 578.0999999940395,
+        "p95": 1106.2000000178814,
+        "samples": [
+          1106.2000000178814,
+          578.0999999940395,
+          556.5,
+          624.2000000178814,
+          521.4000000059605
+        ]
+      },
+      "warm": {
+        "median": 37.69999998807907,
+        "p95": 38.5,
+        "samples": [
+          38.099999994039536,
+          38.60000002384186,
+          38.19999998807907,
+          38.19999998807907,
+          37.400000005960464,
+          37.5,
+          37.80000001192093,
+          37,
+          36.80000001192093,
+          36.80000001192093,
+          38.5,
+          38.39999997615814,
+          38.20000001788139,
+          37.29999998211861,
+          37.89999997615814,
+          37.69999998807907,
+          37.400000005960464,
+          38,
+          37.69999998807907,
+          37.69999998807907,
+          37.5,
+          37.79999998211861,
+          36.69999998807907,
+          37.29999998211861,
+          37.599999994039536,
+          37.30000001192093,
+          37.400000005960464,
+          36.400000005960464,
+          38.30000001192093,
+          38.30000001192093
+        ]
+      }
+    },
+    {
+      "name": "devjar",
+      "components": 50,
+      "projectFiles": 51,
+      "coldMs": [
+        282.19999998807907,
+        233.89999997615814,
+        271.2000000178814,
+        311.10000002384186,
+        232.30000001192093
+      ],
+      "warmMs": [
+        19.5,
+        9.5,
+        11.099999994039536,
+        9.899999976158142,
+        10,
+        9.400000005960464,
+        9.799999982118607,
+        8.599999994039536,
+        8.900000005960464,
+        9.400000005960464,
+        9.699999988079071,
+        9.5,
+        8.700000017881393,
+        9.299999982118607,
+        9.5,
+        8.799999982118607,
+        8.099999994039536,
+        9,
+        8.799999982118607,
+        9,
+        8.300000011920929,
+        8.5,
+        8.599999994039536,
+        8.599999994039536,
+        9.099999994039536,
+        8.599999994039536,
+        8.599999994039536,
+        8,
+        8.300000011920929,
+        8.400000005960464
+      ],
+      "statePreserved": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "traffic": [
+        {
+          "totalKnownBytes": 981691,
+          "missingSizes": 0,
+          "requests": [
+            {
+              "url": "http://127.0.0.1:54543/devjar",
+              "bytes": 249
+            },
+            {
+              "url": "http://127.0.0.1:54543/devjar.js",
+              "bytes": 71946
+            },
+            {
+              "url": "http://127.0.0.1:54543/assets/transform-worker-54516wqj.js?binding=http%3A%2F%2F127.0.0.1%3A54543%2Fassets%2Fdevjar_browser_compiler-ayjcyb49.js&wasm=http%3A%2F%2F127.0.0.1%3A54543%2Fassets%2Ftransform-abb126ad.wasm",
+              "bytes": 173
+            },
+            {
+              "url": "http://127.0.0.1:54543/assets/devjar_browser_compiler-ayjcyb49.js",
+              "bytes": 1737
+            },
+            {
+              "url": "http://127.0.0.1:54543/assets/transform-abb126ad.wasm",
+              "bytes": 637973
+            },
+            {
+              "url": "https://esm.sh/react-refresh@0.17.0/runtime?dev=&deps=react%4019.2.0",
+              "bytes": 517
+            },
+            {
+              "url": "https://esm.sh/react-refresh@0.17.0/X-ZHJlYWN0QDE5LjIuMA/es2022/react-refresh.development.mjs",
+              "bytes": 4481
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0?dev",
+              "bytes": 240
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0/jsx-dev-runtime?dev",
+              "bytes": 250
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0/es2022/jsx-dev-runtime.development.mjs",
+              "bytes": 5041
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0/es2022/react.development.mjs",
+              "bytes": 14784
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0/client?dev=&deps=react%4019.2.0",
+              "bytes": 333
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0?dev=&deps=react%4019.2.0",
+              "bytes": 303
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0/X-ZHJlYWN0QDE5LjIuMA/es2022/react-dom.development.mjs",
+              "bytes": 5703
+            },
+            {
+              "url": "https://esm.sh/scheduler@%5E0.27.0?target=es2022&dev",
+              "bytes": 240
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0/X-ZHJlYWN0QDE5LjIuMA/es2022/client.development.mjs",
+              "bytes": 233363
+            },
+            {
+              "url": "https://esm.sh/scheduler@0.27.0/es2022/scheduler.development.mjs",
+              "bytes": 4358
+            }
+          ]
+        },
+        {
+          "totalKnownBytes": 981682,
+          "missingSizes": 0,
+          "requests": [
+            {
+              "url": "http://127.0.0.1:54543/devjar",
+              "bytes": 249
+            },
+            {
+              "url": "http://127.0.0.1:54543/devjar.js",
+              "bytes": 71946
+            },
+            {
+              "url": "http://127.0.0.1:54543/assets/transform-worker-54516wqj.js?binding=http%3A%2F%2F127.0.0.1%3A54543%2Fassets%2Fdevjar_browser_compiler-ayjcyb49.js&wasm=http%3A%2F%2F127.0.0.1%3A54543%2Fassets%2Ftransform-abb126ad.wasm",
+              "bytes": 173
+            },
+            {
+              "url": "http://127.0.0.1:54543/assets/devjar_browser_compiler-ayjcyb49.js",
+              "bytes": 1737
+            },
+            {
+              "url": "http://127.0.0.1:54543/assets/transform-abb126ad.wasm",
+              "bytes": 637973
+            },
+            {
+              "url": "https://esm.sh/react-refresh@0.17.0/runtime?dev=&deps=react%4019.2.0",
+              "bytes": 517
+            },
+            {
+              "url": "https://esm.sh/react-refresh@0.17.0/X-ZHJlYWN0QDE5LjIuMA/es2022/react-refresh.development.mjs",
+              "bytes": 4481
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0?dev",
+              "bytes": 240
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0/jsx-dev-runtime?dev",
+              "bytes": 250
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0/es2022/jsx-dev-runtime.development.mjs",
+              "bytes": 5041
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0/es2022/react.development.mjs",
+              "bytes": 14784
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0?dev=&deps=react%4019.2.0",
+              "bytes": 306
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0/client?dev=&deps=react%4019.2.0",
+              "bytes": 330
+            },
+            {
+              "url": "https://esm.sh/scheduler@%5E0.27.0?target=es2022&dev",
+              "bytes": 240
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0/X-ZHJlYWN0QDE5LjIuMA/es2022/react-dom.development.mjs",
+              "bytes": 5703
+            },
+            {
+              "url": "https://esm.sh/scheduler@0.27.0/es2022/scheduler.development.mjs",
+              "bytes": 4358
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0/X-ZHJlYWN0QDE5LjIuMA/es2022/client.development.mjs",
+              "bytes": 233354
+            }
+          ]
+        },
+        {
+          "totalKnownBytes": 981688,
+          "missingSizes": 0,
+          "requests": [
+            {
+              "url": "http://127.0.0.1:54543/devjar",
+              "bytes": 249
+            },
+            {
+              "url": "http://127.0.0.1:54543/devjar.js",
+              "bytes": 71946
+            },
+            {
+              "url": "http://127.0.0.1:54543/assets/transform-worker-54516wqj.js?binding=http%3A%2F%2F127.0.0.1%3A54543%2Fassets%2Fdevjar_browser_compiler-ayjcyb49.js&wasm=http%3A%2F%2F127.0.0.1%3A54543%2Fassets%2Ftransform-abb126ad.wasm",
+              "bytes": 173
+            },
+            {
+              "url": "http://127.0.0.1:54543/assets/devjar_browser_compiler-ayjcyb49.js",
+              "bytes": 1737
+            },
+            {
+              "url": "http://127.0.0.1:54543/assets/transform-abb126ad.wasm",
+              "bytes": 637973
+            },
+            {
+              "url": "https://esm.sh/react-refresh@0.17.0/runtime?dev=&deps=react%4019.2.0",
+              "bytes": 517
+            },
+            {
+              "url": "https://esm.sh/react-refresh@0.17.0/X-ZHJlYWN0QDE5LjIuMA/es2022/react-refresh.development.mjs",
+              "bytes": 4481
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0?dev",
+              "bytes": 240
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0/jsx-dev-runtime?dev",
+              "bytes": 250
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0/es2022/jsx-dev-runtime.development.mjs",
+              "bytes": 5041
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0/es2022/react.development.mjs",
+              "bytes": 14784
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0/client?dev=&deps=react%4019.2.0",
+              "bytes": 330
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0?dev=&deps=react%4019.2.0",
+              "bytes": 303
+            },
+            {
+              "url": "https://esm.sh/scheduler@%5E0.27.0?target=es2022&dev",
+              "bytes": 240
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0/X-ZHJlYWN0QDE5LjIuMA/es2022/react-dom.development.mjs",
+              "bytes": 5703
+            },
+            {
+              "url": "https://esm.sh/scheduler@0.27.0/es2022/scheduler.development.mjs",
+              "bytes": 4358
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0/X-ZHJlYWN0QDE5LjIuMA/es2022/client.development.mjs",
+              "bytes": 233363
+            }
+          ]
+        },
+        {
+          "totalKnownBytes": 981681,
+          "missingSizes": 0,
+          "requests": [
+            {
+              "url": "http://127.0.0.1:54543/devjar",
+              "bytes": 249
+            },
+            {
+              "url": "http://127.0.0.1:54543/devjar.js",
+              "bytes": 71946
+            },
+            {
+              "url": "http://127.0.0.1:54543/assets/transform-worker-54516wqj.js?binding=http%3A%2F%2F127.0.0.1%3A54543%2Fassets%2Fdevjar_browser_compiler-ayjcyb49.js&wasm=http%3A%2F%2F127.0.0.1%3A54543%2Fassets%2Ftransform-abb126ad.wasm",
+              "bytes": 173
+            },
+            {
+              "url": "http://127.0.0.1:54543/assets/devjar_browser_compiler-ayjcyb49.js",
+              "bytes": 1737
+            },
+            {
+              "url": "http://127.0.0.1:54543/assets/transform-abb126ad.wasm",
+              "bytes": 637973
+            },
+            {
+              "url": "https://esm.sh/react-refresh@0.17.0/runtime?dev=&deps=react%4019.2.0",
+              "bytes": 518
+            },
+            {
+              "url": "https://esm.sh/react-refresh@0.17.0/X-ZHJlYWN0QDE5LjIuMA/es2022/react-refresh.development.mjs",
+              "bytes": 4482
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0?dev",
+              "bytes": 240
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0/jsx-dev-runtime?dev",
+              "bytes": 250
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0/es2022/react.development.mjs",
+              "bytes": 14784
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0/es2022/jsx-dev-runtime.development.mjs",
+              "bytes": 5041
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0/client?dev=&deps=react%4019.2.0",
+              "bytes": 330
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0?dev=&deps=react%4019.2.0",
+              "bytes": 303
+            },
+            {
+              "url": "https://esm.sh/scheduler@%5E0.27.0?target=es2022&dev",
+              "bytes": 240
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0/X-ZHJlYWN0QDE5LjIuMA/es2022/react-dom.development.mjs",
+              "bytes": 5703
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0/X-ZHJlYWN0QDE5LjIuMA/es2022/client.development.mjs",
+              "bytes": 233354
+            },
+            {
+              "url": "https://esm.sh/scheduler@0.27.0/es2022/scheduler.development.mjs",
+              "bytes": 4358
+            }
+          ]
+        },
+        {
+          "totalKnownBytes": 981714,
+          "missingSizes": 0,
+          "requests": [
+            {
+              "url": "http://127.0.0.1:54543/devjar",
+              "bytes": 249
+            },
+            {
+              "url": "http://127.0.0.1:54543/devjar.js",
+              "bytes": 71946
+            },
+            {
+              "url": "http://127.0.0.1:54543/assets/transform-worker-54516wqj.js?binding=http%3A%2F%2F127.0.0.1%3A54543%2Fassets%2Fdevjar_browser_compiler-ayjcyb49.js&wasm=http%3A%2F%2F127.0.0.1%3A54543%2Fassets%2Ftransform-abb126ad.wasm",
+              "bytes": 173
+            },
+            {
+              "url": "http://127.0.0.1:54543/assets/devjar_browser_compiler-ayjcyb49.js",
+              "bytes": 1737
+            },
+            {
+              "url": "http://127.0.0.1:54543/assets/transform-abb126ad.wasm",
+              "bytes": 637973
+            },
+            {
+              "url": "https://esm.sh/react-refresh@0.17.0/runtime?dev=&deps=react%4019.2.0",
+              "bytes": 517
+            },
+            {
+              "url": "https://esm.sh/react-refresh@0.17.0/X-ZHJlYWN0QDE5LjIuMA/es2022/react-refresh.development.mjs",
+              "bytes": 4481
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0?dev",
+              "bytes": 243
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0/jsx-dev-runtime?dev",
+              "bytes": 250
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0/es2022/jsx-dev-runtime.development.mjs",
+              "bytes": 5041
+            },
+            {
+              "url": "https://esm.sh/react@19.2.0/es2022/react.development.mjs",
+              "bytes": 14784
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0?dev=&deps=react%4019.2.0",
+              "bytes": 303
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0/client?dev=&deps=react%4019.2.0",
+              "bytes": 330
+            },
+            {
+              "url": "https://esm.sh/scheduler@%5E0.27.0?target=es2022&dev",
+              "bytes": 240
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0/X-ZHJlYWN0QDE5LjIuMA/es2022/react-dom.development.mjs",
+              "bytes": 5703
+            },
+            {
+              "url": "https://esm.sh/react-dom@19.2.0/X-ZHJlYWN0QDE5LjIuMA/es2022/client.development.mjs",
+              "bytes": 233386
+            },
+            {
+              "url": "https://esm.sh/scheduler@0.27.0/es2022/scheduler.development.mjs",
+              "bytes": 4358
+            }
+          ]
+        }
+      ],
+      "cold": {
+        "median": 271.2000000178814,
+        "p95": 311.10000002384186,
+        "samples": [
+          282.19999998807907,
+          233.89999997615814,
+          271.2000000178814,
+          311.10000002384186,
+          232.30000001192093
+        ]
+      },
+      "warm": {
+        "median": 8.950000002980232,
+        "p95": 11.099999994039536,
+        "samples": [
+          19.5,
+          9.5,
+          11.099999994039536,
+          9.899999976158142,
+          10,
+          9.400000005960464,
+          9.799999982118607,
+          8.599999994039536,
+          8.900000005960464,
+          9.400000005960464,
+          9.699999988079071,
+          9.5,
+          8.700000017881393,
+          9.299999982118607,
+          9.5,
+          8.799999982118607,
+          8.099999994039536,
+          9,
+          8.799999982118607,
+          9,
+          8.300000011920929,
+          8.5,
+          8.599999994039536,
+          8.599999994039536,
+          9.099999994039536,
+          8.599999994039536,
+          8.599999994039536,
+          8,
+          8.300000011920929,
+          8.400000005960464
+        ]
+      }
+    },
+    {
+      "name": "sandpack",
+      "components": 50,
+      "projectFiles": 51,
+      "coldMs": [
+        863.2999999821186,
+        640.3000000119209,
+        920.0999999940395,
+        708,
+        793.2999999821186
+      ],
+      "warmMs": [
+        38.89999997615814,
+        38.69999998807907,
+        39,
+        38.599999994039536,
+        38.39999997615814,
+        39.20000001788139,
+        38.69999998807907,
+        38.099999994039536,
+        38.70000001788139,
+        38.29999998211861,
+        38.30000001192093,
+        39.099999994039536,
+        39.400000005960464,
+        39,
+        38.400000005960464,
+        39.29999998211861,
+        39.29999998211861,
+        39.60000002384186,
+        38.19999998807907,
+        39.099999994039536,
+        39.400000005960464,
+        38.900000005960464,
+        38.900000005960464,
+        38.70000001788139,
+        38.69999998807907,
+        38,
+        38.69999998807907,
+        38.30000001192093,
+        40.30000001192093,
+        38.89999997615814
+      ],
+      "statePreserved": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "traffic": [
+        {
+          "totalKnownBytes": 2973583,
+          "missingSizes": 1,
+          "requests": [
+            {
+              "url": "http://127.0.0.1:54543/sandpack",
+              "bytes": 251
+            },
+            {
+              "url": "http://127.0.0.1:54543/sandpack.js",
+              "bytes": 30639
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/",
+              "bytes": null,
+              "failure": "net::ERR_ABORTED"
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/",
+              "bytes": 2194
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/sandbox-startup.a0ea8d1cb.js",
+              "bytes": 3845
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/default~sandbox~sandbox-startup.a81a9aa5d.chunk.js",
+              "bytes": 7306
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/vendors~sandbox-startup.ca8a95b40.chunk.js",
+              "bytes": 6267
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/browserfs12/browserfs.min.js",
+              "bytes": 65712
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/sandbox.8a7d01a44.js",
+              "bytes": 92972
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/vendors~sandbox.ecbcf4e6a.chunk.js",
+              "bytes": 188958
+            },
+            {
+              "url": "https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495",
+              "bytes": 10339
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/rum?",
+              "bytes": 243
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/challenge-platform/scripts/jsd/main.js",
+              "bytes": 0
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/challenge-platform/h/g/scripts/jsd/330e41bb475c/main.js?",
+              "bytes": 10165
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/react-refresh/0.9.0.json",
+              "bytes": 7382
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/node-libs-browser/2.2.1.json",
+              "bytes": 15755
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/babel-runtime/6.26.0.json",
+              "bytes": 1583
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/react/19.2.0.json",
+              "bytes": 18629
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/challenge-platform/h/g/jsd/oneshot/330e41bb475c/0.6218168080440248:1788642313:zlyVkDoogZiBeoido6d83pI59iLrSIoW_MO12rK1PQc/a36867bcb970321c",
+              "bytes": 2095
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/@babel/core",
+              "bytes": 1333
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/@babel/runtime",
+              "bytes": 787
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/@babel/runtime/7.29.7.json",
+              "bytes": 4343
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/react-dom/19.2.0.json",
+              "bytes": 1306626
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/@babel/core/7.29.7.json",
+              "bytes": 449023
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/browserfs12/browserfs.min.js",
+              "bytes": 0
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/react@19.2.0/flat",
+              "bytes": 1696
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/react@19.2.0/jsx-runtime.js",
+              "bytes": 890
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/babel.7.21.8.min.js",
+              "bytes": 556451
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/babel.7.21.8.min.js",
+              "bytes": 0
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/babel-transpiler.dc3397b1.worker.js",
+              "bytes": 718
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/@babel/runtime@7.29.7/flat",
+              "bytes": 11769
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/@babel/runtime@7.29.7/helpers/interopRequireDefault.js",
+              "bytes": 460
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/@babel/runtime@7.29.7/helpers/interopRequireWildcard.js",
+              "bytes": 750
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/@babel/runtime@7.29.7/helpers/typeof.js",
+              "bytes": 930
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/0.483b0f0f9.chunk.js",
+              "bytes": 12632
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/1.390d5cd6d.chunk.js",
+              "bytes": 10570
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/7.33c8239f0.chunk.js",
+              "bytes": 4974
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/2.f916e8469.chunk.js",
+              "bytes": 145296
+            }
+          ]
+        },
+        {
+          "totalKnownBytes": 2974621,
+          "missingSizes": 1,
+          "requests": [
+            {
+              "url": "http://127.0.0.1:54543/sandpack",
+              "bytes": 251
+            },
+            {
+              "url": "http://127.0.0.1:54543/sandpack.js",
+              "bytes": 30639
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/",
+              "bytes": null,
+              "failure": "net::ERR_ABORTED"
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/",
+              "bytes": 2191
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/vendors~sandbox-startup.ca8a95b40.chunk.js",
+              "bytes": 6254
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/default~sandbox~sandbox-startup.a81a9aa5d.chunk.js",
+              "bytes": 7315
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/sandbox-startup.a0ea8d1cb.js",
+              "bytes": 4209
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/browserfs12/browserfs.min.js",
+              "bytes": 65827
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/sandbox.8a7d01a44.js",
+              "bytes": 93049
+            },
+            {
+              "url": "https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495",
+              "bytes": 10338
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/vendors~sandbox.ecbcf4e6a.chunk.js",
+              "bytes": 188509
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/challenge-platform/scripts/jsd/main.js",
+              "bytes": 0
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/rum?",
+              "bytes": 206
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/challenge-platform/h/g/scripts/jsd/330e41bb475c/main.js?",
+              "bytes": 10066
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/react-refresh/0.9.0.json",
+              "bytes": 7381
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/babel-runtime/6.26.0.json",
+              "bytes": 1581
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/node-libs-browser/2.2.1.json",
+              "bytes": 15756
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/react/19.2.0.json",
+              "bytes": 18435
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/challenge-platform/h/g/jsd/oneshot/330e41bb475c/0.6218168080440248:1788642313:zlyVkDoogZiBeoido6d83pI59iLrSIoW_MO12rK1PQc/a36867c8ccc4e529",
+              "bytes": 2106
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/@babel/runtime",
+              "bytes": 1281
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/@babel/core",
+              "bytes": 840
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/browserfs12/browserfs.min.js",
+              "bytes": 0
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/react-dom/19.2.0.json",
+              "bytes": 1306826
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/@babel/runtime/7.29.7.json",
+              "bytes": 4347
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/@babel/core/7.29.7.json",
+              "bytes": 448997
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/babel.7.21.8.min.js",
+              "bytes": 557073
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/react@19.2.0/flat",
+              "bytes": 1697
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/react@19.2.0/jsx-runtime.js",
+              "bytes": 893
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/babel.7.21.8.min.js",
+              "bytes": 0
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/babel-transpiler.dc3397b1.worker.js",
+              "bytes": 711
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/@babel/runtime@7.29.7/flat",
+              "bytes": 11770
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/@babel/runtime@7.29.7/helpers/interopRequireDefault.js",
+              "bytes": 462
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/@babel/runtime@7.29.7/helpers/interopRequireWildcard.js",
+              "bytes": 748
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/@babel/runtime@7.29.7/helpers/typeof.js",
+              "bytes": 936
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/0.483b0f0f9.chunk.js",
+              "bytes": 12694
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/7.33c8239f0.chunk.js",
+              "bytes": 4975
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/1.390d5cd6d.chunk.js",
+              "bytes": 10590
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/2.f916e8469.chunk.js",
+              "bytes": 145668
+            }
+          ]
+        },
+        {
+          "totalKnownBytes": 2974392,
+          "missingSizes": 1,
+          "requests": [
+            {
+              "url": "http://127.0.0.1:54543/sandpack",
+              "bytes": 251
+            },
+            {
+              "url": "http://127.0.0.1:54543/sandpack.js",
+              "bytes": 30639
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/",
+              "bytes": null,
+              "failure": "net::ERR_ABORTED"
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/",
+              "bytes": 2191
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/default~sandbox~sandbox-startup.a81a9aa5d.chunk.js",
+              "bytes": 7367
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/sandbox-startup.a0ea8d1cb.js",
+              "bytes": 3882
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/vendors~sandbox-startup.ca8a95b40.chunk.js",
+              "bytes": 6203
+            },
+            {
+              "url": "https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495",
+              "bytes": 10338
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/browserfs12/browserfs.min.js",
+              "bytes": 66129
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/sandbox.8a7d01a44.js",
+              "bytes": 93105
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/vendors~sandbox.ecbcf4e6a.chunk.js",
+              "bytes": 188679
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/challenge-platform/scripts/jsd/main.js",
+              "bytes": 0
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/rum?",
+              "bytes": 206
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/challenge-platform/h/g/scripts/jsd/330e41bb475c/main.js?",
+              "bytes": 9871
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/react/19.2.0.json",
+              "bytes": 18684
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/node-libs-browser/2.2.1.json",
+              "bytes": 15755
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/react-refresh/0.9.0.json",
+              "bytes": 7136
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/babel-runtime/6.26.0.json",
+              "bytes": 1578
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/challenge-platform/h/g/jsd/oneshot/330e41bb475c/0.6218168080440248:1788642313:zlyVkDoogZiBeoido6d83pI59iLrSIoW_MO12rK1PQc/a36867e41a2ae52f",
+              "bytes": 2105
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/@babel/runtime",
+              "bytes": 1282
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/@babel/core",
+              "bytes": 841
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/@babel/runtime/7.29.7.json",
+              "bytes": 4345
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/browserfs12/browserfs.min.js",
+              "bytes": 0
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/react-dom/19.2.0.json",
+              "bytes": 1306862
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/@babel/core/7.29.7.json",
+              "bytes": 448997
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/react@19.2.0/flat",
+              "bytes": 1697
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/react@19.2.0/jsx-runtime.js",
+              "bytes": 886
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/babel.7.21.8.min.js",
+              "bytes": 556982
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/babel.7.21.8.min.js",
+              "bytes": 0
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/babel-transpiler.dc3397b1.worker.js",
+              "bytes": 718
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/@babel/runtime@7.29.7/flat",
+              "bytes": 11770
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/@babel/runtime@7.29.7/helpers/interopRequireDefault.js",
+              "bytes": 461
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/@babel/runtime@7.29.7/helpers/interopRequireWildcard.js",
+              "bytes": 748
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/@babel/runtime@7.29.7/helpers/typeof.js",
+              "bytes": 935
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/1.390d5cd6d.chunk.js",
+              "bytes": 10556
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/7.33c8239f0.chunk.js",
+              "bytes": 5009
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/0.483b0f0f9.chunk.js",
+              "bytes": 12727
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/2.f916e8469.chunk.js",
+              "bytes": 145457
+            }
+          ]
+        },
+        {
+          "totalKnownBytes": 2974389,
+          "missingSizes": 1,
+          "requests": [
+            {
+              "url": "http://127.0.0.1:54543/sandpack",
+              "bytes": 251
+            },
+            {
+              "url": "http://127.0.0.1:54543/sandpack.js",
+              "bytes": 30639
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/",
+              "bytes": null,
+              "failure": "net::ERR_ABORTED"
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/",
+              "bytes": 2194
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/sandbox-startup.a0ea8d1cb.js",
+              "bytes": 3839
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/default~sandbox~sandbox-startup.a81a9aa5d.chunk.js",
+              "bytes": 7360
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/vendors~sandbox-startup.ca8a95b40.chunk.js",
+              "bytes": 6177
+            },
+            {
+              "url": "https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495",
+              "bytes": 10338
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/browserfs12/browserfs.min.js",
+              "bytes": 66110
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/sandbox.8a7d01a44.js",
+              "bytes": 92839
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/vendors~sandbox.ecbcf4e6a.chunk.js",
+              "bytes": 188658
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/rum?",
+              "bytes": 242
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/challenge-platform/scripts/jsd/main.js",
+              "bytes": 0
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/challenge-platform/h/g/scripts/jsd/330e41bb475c/main.js?",
+              "bytes": 10192
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/babel-runtime/6.26.0.json",
+              "bytes": 1581
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/node-libs-browser/2.2.1.json",
+              "bytes": 16004
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/react-refresh/0.9.0.json",
+              "bytes": 7137
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/react/19.2.0.json",
+              "bytes": 18437
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/challenge-platform/h/g/jsd/oneshot/330e41bb475c/0.6218168080440248:1788642313:zlyVkDoogZiBeoido6d83pI59iLrSIoW_MO12rK1PQc/a36867f088a33314",
+              "bytes": 2103
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/@babel/runtime",
+              "bytes": 1281
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/@babel/core",
+              "bytes": 839
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/@babel/runtime/7.29.7.json",
+              "bytes": 4345
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/browserfs12/browserfs.min.js",
+              "bytes": 0
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/@babel/core/7.29.7.json",
+              "bytes": 449025
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/react-dom/19.2.0.json",
+              "bytes": 1306826
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/babel.7.21.8.min.js",
+              "bytes": 556952
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/react@19.2.0/flat",
+              "bytes": 1696
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/react@19.2.0/jsx-runtime.js",
+              "bytes": 887
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/babel.7.21.8.min.js",
+              "bytes": 0
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/babel-transpiler.dc3397b1.worker.js",
+              "bytes": 709
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/@babel/runtime@7.29.7/flat",
+              "bytes": 11769
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/@babel/runtime@7.29.7/helpers/interopRequireDefault.js",
+              "bytes": 484
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/@babel/runtime@7.29.7/helpers/interopRequireWildcard.js",
+              "bytes": 748
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/@babel/runtime@7.29.7/helpers/typeof.js",
+              "bytes": 937
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/0.483b0f0f9.chunk.js",
+              "bytes": 12660
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/1.390d5cd6d.chunk.js",
+              "bytes": 10575
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/7.33c8239f0.chunk.js",
+              "bytes": 5013
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/2.f916e8469.chunk.js",
+              "bytes": 145542
+            }
+          ]
+        },
+        {
+          "totalKnownBytes": 2975116,
+          "missingSizes": 1,
+          "requests": [
+            {
+              "url": "http://127.0.0.1:54543/sandpack",
+              "bytes": 251
+            },
+            {
+              "url": "http://127.0.0.1:54543/sandpack.js",
+              "bytes": 30639
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/",
+              "bytes": null,
+              "failure": "net::ERR_ABORTED"
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/",
+              "bytes": 2190
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/default~sandbox~sandbox-startup.a81a9aa5d.chunk.js",
+              "bytes": 7374
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/sandbox-startup.a0ea8d1cb.js",
+              "bytes": 4164
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/vendors~sandbox-startup.ca8a95b40.chunk.js",
+              "bytes": 6196
+            },
+            {
+              "url": "https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495",
+              "bytes": 10338
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/browserfs12/browserfs.min.js",
+              "bytes": 65757
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/sandbox.8a7d01a44.js",
+              "bytes": 92996
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/vendors~sandbox.ecbcf4e6a.chunk.js",
+              "bytes": 188697
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/challenge-platform/scripts/jsd/main.js",
+              "bytes": 0
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/rum?",
+              "bytes": 206
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/challenge-platform/h/g/scripts/jsd/330e41bb475c/main.js?",
+              "bytes": 10332
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/react-refresh/0.9.0.json",
+              "bytes": 7382
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/babel-runtime/6.26.0.json",
+              "bytes": 1580
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/cdn-cgi/challenge-platform/h/g/jsd/oneshot/330e41bb475c/0.6218168080440248:1788642313:zlyVkDoogZiBeoido6d83pI59iLrSIoW_MO12rK1PQc/a368680f9a556ac9",
+              "bytes": 2104
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/react/19.2.0.json",
+              "bytes": 18410
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/node-libs-browser/2.2.1.json",
+              "bytes": 15973
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/@babel/runtime",
+              "bytes": 1282
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/@babel/core",
+              "bytes": 841
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/@babel/runtime/7.29.7.json",
+              "bytes": 4371
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/react-dom/19.2.0.json",
+              "bytes": 1306643
+            },
+            {
+              "url": "https://prod-packager-packages.codesandbox.io/v2/packages/@babel/core/7.29.7.json",
+              "bytes": 448994
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/react@19.2.0/flat",
+              "bytes": 1696
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/browserfs12/browserfs.min.js",
+              "bytes": 0
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/babel.7.21.8.min.js",
+              "bytes": 557310
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/react@19.2.0/jsx-runtime.js",
+              "bytes": 890
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/babel.7.21.8.min.js",
+              "bytes": 0
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/babel-transpiler.dc3397b1.worker.js",
+              "bytes": 711
+            },
+            {
+              "url": "https://data.jsdelivr.com/v1/package/npm/@babel/runtime@7.29.7/flat",
+              "bytes": 11769
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/@babel/runtime@7.29.7/helpers/interopRequireDefault.js",
+              "bytes": 461
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/@babel/runtime@7.29.7/helpers/interopRequireWildcard.js",
+              "bytes": 757
+            },
+            {
+              "url": "https://cdn.jsdelivr.net/npm/@babel/runtime@7.29.7/helpers/typeof.js",
+              "bytes": 936
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/1.390d5cd6d.chunk.js",
+              "bytes": 10613
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/0.483b0f0f9.chunk.js",
+              "bytes": 12772
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/7.33c8239f0.chunk.js",
+              "bytes": 4960
+            },
+            {
+              "url": "https://2-19-8-sandpack.codesandbox.io/static/js/2.f916e8469.chunk.js",
+              "bytes": 145521
+            }
+          ]
+        }
+      ],
+      "cold": {
+        "median": 793.2999999821186,
+        "p95": 920.0999999940395,
+        "samples": [
+          863.2999999821186,
+          640.3000000119209,
+          920.0999999940395,
+          708,
+          793.2999999821186
+        ]
+      },
+      "warm": {
+        "median": 38.79999999701977,
+        "p95": 39.60000002384186,
+        "samples": [
+          38.89999997615814,
+          38.69999998807907,
+          39,
+          38.599999994039536,
+          38.39999997615814,
+          39.20000001788139,
+          38.69999998807907,
+          38.099999994039536,
+          38.70000001788139,
+          38.29999998211861,
+          38.30000001192093,
+          39.099999994039536,
+          39.400000005960464,
+          39,
+          38.400000005960464,
+          39.29999998211861,
+          39.29999998211861,
+          39.60000002384186,
+          38.19999998807907,
+          39.099999994039536,
+          39.400000005960464,
+          38.900000005960464,
+          38.900000005960464,
+          38.70000001788139,
+          38.69999998807907,
+          38,
+          38.69999998807907,
+          38.30000001192093,
+          40.30000001192093,
+          38.89999997615814
+        ]
+      }
+    }
+  ]
+}

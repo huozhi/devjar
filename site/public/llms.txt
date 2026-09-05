@@ -4,6 +4,7 @@
 
 ## References
 
+- [Migrate from Sandpack or React Live](https://github.com/huozhi/devjar/blob/main/docs/MIGRATION.md)
 - [README and API reference](https://github.com/huozhi/devjar/blob/main/README.md)
 - [Personal site: playground to static export](https://github.com/huozhi/devjar/tree/main/examples/personal)
 - [Minimal website](https://github.com/huozhi/devjar/tree/main/examples/basic)

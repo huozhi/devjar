@@ -90,6 +90,8 @@ export default function LiveExample() {
 
 </details>
 
+Replacing an existing playground? See [migrating from Sandpack or React Live](./docs/MIGRATION.md).
+
 For props, file imports, and routing, see the [API reference](./docs/API.md).
 Advanced controls are covered there too:
 
