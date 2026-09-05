@@ -259,7 +259,7 @@ export default function Playground() {
   await preview.getByRole('textbox', { name: 'Code' }).fill(source)
   await frame.getByRole('button', { name: /^Hello Devjar works \d+$/ }).waitFor()
   await preview.getByLabel('Preview status').filter({ hasText: 'ready' }).waitFor()
-  assert.equal(await preview.getByRole('status').textContent(), '')
+  assert.equal(await preview.locator('pre[role="status"]').textContent(), '')
   assert.deepEqual(previewErrors, [])
   console.log('Packaged static export and live DevJar compilation, JSON/text imports, Refresh state preservation, and error recovery passed without isolation headers.')
 

@@ -427,6 +427,7 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
       }
 
       if (result?.changed) {
+        const recovering = Boolean(errorBoundary?.state.error)
         errorBoundary?.reset()
         const refreshRuntime = moduleRuntime.refreshRuntime
         if (!refreshRuntime) throw new Error('devjar: refresh runtime was not initialized')
@@ -435,7 +436,7 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
           ? refreshRuntime._getMountedRootCount()
           : 0
 
-        if (!refreshUpdate || mountedRootCount === 0) {
+        if (recovering || !refreshUpdate || mountedRootCount === 0) {
           revision++
           reactRoot.render(_jsx(
             ErrorBoundary!,
@@ -619,12 +620,17 @@ function useLiveCode({
     }
     const onRuntimeError = (event: ErrorEvent) => reportError(event.error || new Error(event.message))
     const onRejection = (event: PromiseRejectionEvent) => reportError(event.reason)
-    const onReactError = (event: Event) => reportError((event as CustomEvent).detail)
+    const onReactError = (event: Event) => {
+      setError((event as CustomEvent).detail)
+      setStatus('failed')
+    }
     const frameWindow = iframe.contentWindow!
     frameWindow.addEventListener('error', onRuntimeError)
     frameWindow.addEventListener('unhandledrejection', onRejection)
     doc.addEventListener('devjar:error', onReactError)
+    let resolveScript: (() => void) | undefined
     scriptReadyRef.current = new Promise<void>((resolve, reject) => {
+      resolveScript = resolve
       appScript.onload = () => resolve()
       appScript.onerror = () => reject(new Error('devjar: application script failed to load'))
     })
@@ -643,6 +649,7 @@ function useLiveCode({
       body.removeChild(appScript)
       if (tailwindScript) body.removeChild(tailwindScript)
       resolveTailwind?.()
+      resolveScript?.()
     }
   }, [])
 
