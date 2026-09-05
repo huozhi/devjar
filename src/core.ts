@@ -290,7 +290,6 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
     new (props: ErrorBoundaryProps): ErrorBoundaryInstance
   }
 
-  const importModule = new Function('url', 'return import(url)')
   let reactRoot: import('react-dom/client').Root | undefined
   let ErrorBoundary: ErrorBoundaryClass | undefined
   let errorBoundary: ErrorBoundaryInstance | null = null
@@ -337,9 +336,10 @@ function createRenderer(createModule_: typeof createModule, resolveModule: Resol
       || reactDomModuleUrl !== nextReactDomModuleUrl) {
       reactModuleUrl = nextReactModuleUrl
       reactDomModuleUrl = nextReactDomModuleUrl
+      // Preserve bundler ignore hints: these imports execute in the iframe.
       rendererModules = Promise.all([
-        importModule(reactModuleUrl),
-        importModule(reactDomModuleUrl),
+        import(/* webpackIgnore: true */ /* turbopackIgnore: true */ /* @vite-ignore */ reactModuleUrl),
+        import(/* webpackIgnore: true */ /* turbopackIgnore: true */ /* @vite-ignore */ reactDomModuleUrl),
       ])
     }
     const [ReactMod, ReactDOMMod] = await rendererModules

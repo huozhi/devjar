@@ -3,9 +3,6 @@ type BrowserCompiler = {
   transform: (filename: string, source: string) => string
 }
 
-// Keep loading behind the worker's message handler so initialization failures
-// are returned through the same error channel as compilation failures.
-const dynamicImport = new Function('specifier', 'return import(specifier)')
 const workerUrl = new URL(globalThis.location.href)
 
 function requiredAssetUrl(name: string) {
@@ -15,7 +12,8 @@ function requiredAssetUrl(name: string) {
 }
 
 async function loadCompiler(): Promise<BrowserCompiler> {
-  const compiler = await dynamicImport(requiredAssetUrl('binding')) as BrowserCompiler
+  // This worker is emitted as a standalone asset, outside the host's module graph.
+  const compiler = await import(requiredAssetUrl('binding')) as BrowserCompiler
   await compiler.default({ module_or_path: requiredAssetUrl('wasm') })
   return compiler
 }

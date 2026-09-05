@@ -192,6 +192,10 @@ and Devjar's CLI emit these files automatically; no copy script is needed.
 The compiler uses ordinary, non-shared WebAssembly memory, so embedding a
 preview does not require COOP or COEP headers.
 
+Content Security Policy is separate: the preview inherits the host's policy.
+Policies that block JavaScript eval are not supported yet because the current
+`es-module-lexer` dependency uses eval to decode import names.
+
 </details>
 
 <details>
