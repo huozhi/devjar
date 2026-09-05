@@ -3,10 +3,23 @@ name: Release
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Version to release, e.g. 1.0.0-next.1 or 1.0.0 (without v)'
+      bump:
+        description: 'Version bump from stable (an active prerelease keeps its target version)'
         required: true
-        type: string
+        type: choice
+        default: patch
+        options:
+          - patch
+          - minor
+          - major
+      channel:
+        description: 'Release channel'
+        required: true
+        type: choice
+        default: next
+        options:
+          - next
+          - stable
 
 permissions:
   contents: write
@@ -34,7 +47,8 @@ jobs:
       - name: Prepare version
         id: release
         env:
-          RELEASE_VERSION: ${{ inputs.version }}
+          RELEASE_BUMP: ${{ inputs.bump }}
+          RELEASE_CHANNEL: ${{ inputs.channel }}
         run: node scripts/prepare-release.ts
 
       - name: Commit and tag as GitHub Actions

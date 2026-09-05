@@ -499,8 +499,10 @@ bun test
 Run the full build after runtime changes to regenerate client and worker assets.
 CLI tests open local HTTP servers.
 
-To release, open **Actions → Release → Run workflow** on `main` and enter a
-version such as `1.0.0-next.1`. Actions commits the version as
+To release, open **Actions → Release → Run workflow** on `main`. Choose
+**patch / minor / major** and **next / stable**. From `0.11.0`, major + next
+produces `1.0.0-next.1`. During a prerelease cycle, next increments its suffix
+and stable promotes the existing target to `1.0.0`; the bump choice is ignored. Actions commits the version as
 `github-actions[bot]`, pushes its tag, and starts the **Publish** workflow.
 Publish runs the checks, publishes prereleases to `next` (stable versions to
 `latest`), and generates GitHub release notes. Follow the Publish run for the
