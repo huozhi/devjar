@@ -25,8 +25,8 @@ importers:
         specifier: ^1.62.1
         version: 1.62.1
       '@sugar-high/react':
-        specifier: 2.2.0
-        version: 2.2.0(react@19.2.7)(sugar-high@2.2.1)
+        specifier: 2.2.1
+        version: 2.2.1(react@19.2.7)(sugar-high@2.3.0)
       '@types/node':
         specifier: ^22.10.7
         version: 22.20.0
@@ -55,8 +55,8 @@ importers:
         specifier: ^19.2.1
         version: 19.2.7(react@19.2.7)
       sugar-high:
-        specifier: 2.2.1
-        version: 2.2.1
+        specifier: 2.3.0
+        version: 2.3.0
       typescript:
         specifier: ^7.0.2
         version: 7.0.2
@@ -631,11 +631,11 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@sugar-high/react@2.2.0':
-    resolution: {integrity: sha512-KLDXrGL817fIqoUseSyvkabul7OUjLJsqo2ncGRBieuAwWy8ABPGemEuCCTEYMUFYxRs5cZrWUMUxHJ8C47YWw==}
+  '@sugar-high/react@2.2.1':
+    resolution: {integrity: sha512-d5urw0U7a/bl0absI6siQkNQzyHJKvaL9z5ltWl/HEY0WyfpGLiZHn7tEmkRpV+VqjhFcAjttHYMVk08gvIyHQ==}
     peerDependencies:
       react: ^18.0.0 || ^19.0.0
-      sugar-high: ^2.2.1
+      sugar-high: ^2.3.0
 
   '@swc/core-darwin-arm64@1.16.0':
     resolution: {integrity: sha512-SJQPl+xG/zB8bNjC/gTg3WOmOvz7EzlQD+VShfCKFYPNr2qvb+vATUY11vYEjnMWCn6wV8H8eAtjQrVflYyX5A==}
@@ -1098,8 +1098,8 @@ packages:
     resolution: {integrity: sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A==}
     engines: {node: '>=8'}
 
-  sugar-high@2.2.1:
-    resolution: {integrity: sha512-r3JrwWgUdKsRwrhjpTEFUJ7QtzZmoavkSaoxFYC6eRYY8QZvuPDbrHD3spc7R6jIFNlV3l5ONlp/36YazbF2VA==}
+  sugar-high@2.3.0:
+    resolution: {integrity: sha512-Ht4Lvy2xieZLpDQdVrHRAdiJdfEJd8Q2U5MA3/DHrMaU6EEj5MErOlEQMN5vs2c7Pm4RCtFb8n/kHlFN6LP+wQ==}
 
   supports-preserve-symlinks-flag@1.0.0:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}
@@ -1515,10 +1515,10 @@ snapshots:
   '@rollup/rollup-win32-x64-msvc@4.62.2':
     optional: true
 
-  '@sugar-high/react@2.2.0(react@19.2.7)(sugar-high@2.2.1)':
+  '@sugar-high/react@2.2.1(react@19.2.7)(sugar-high@2.3.0)':
     dependencies:
       react: 19.2.7
-      sugar-high: 2.2.1
+      sugar-high: 2.3.0
 
   '@swc/core-darwin-arm64@1.16.0':
     optional: true
@@ -1937,7 +1937,7 @@ snapshots:
     dependencies:
       ansi-regex: 5.0.1
 
-  sugar-high@2.2.1: {}
+  sugar-high@2.3.0: {}
 
   supports-preserve-symlinks-flag@1.0.0: {}
 

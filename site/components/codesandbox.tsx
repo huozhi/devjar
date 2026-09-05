@@ -1,7 +1,7 @@
 'use client'
 
 import './codesandbox.css'
-import { demoContentModule, demoContentPresets } from '../lib/demo-files'
+import { demoContentJson, demoContentPresets } from '../lib/demo-files'
 
 const CDN_HOST = 'https://esm.sh'
 const REACT_DEV_MODULES = new Set([
@@ -25,6 +25,7 @@ function resolveModule(specifier: string) {
 }
 
 import { Editor } from '@sugar-high/react'
+import { taffy } from '@sugar-high/react/themes'
 import { DevJar } from 'devjar'
 import FileIcon from './file-icon'
 import RootActions from './root-actions'
@@ -71,7 +72,7 @@ export function Codesandbox({
   // Initialize activeFile with the root page when available.
   const getInitialActiveFile = (files: Record<string, string>) => {
     if (focusFile) return focusFile
-    if (files['content.ts']) return 'content.ts'
+    if (files['content.json']) return 'content.json'
     const rootPage = ['pages/index.tsx', 'pages/index.ts', 'pages/index.jsx', 'pages/index.js']
       .find(filename => filename in files)
     if (rootPage) return rootPage
@@ -142,14 +143,14 @@ export function Codesandbox({
       }
       if (event.data !== 'devjar:change-content') return
       setFiles(current => {
-        if (!current['content.ts']) return current
-        const index = demoContentPresets.findIndex(content => demoContentModule(content) === current['content.ts'])
+        if (!current['content.json']) return current
+        const index = demoContentPresets.findIndex(content => demoContentJson(content) === current['content.json'])
         return {
           ...current,
-          'content.ts': demoContentModule(demoContentPresets[(index + 1) % demoContentPresets.length]),
+          'content.json': demoContentJson(demoContentPresets[(index + 1) % demoContentPresets.length]),
         }
       })
-      setActiveFile('content.ts')
+      setActiveFile('content.json')
     }
 
     window.addEventListener('message', handleEditRequest)
@@ -556,6 +557,7 @@ export function Codesandbox({
           <button onClick={() => setFiles(initialFiles)}>Reset code ↺</button>
         </div>}
           <Editor
+            theme={taffy.light}
             className="editor"
             controls={false}
             title={null}

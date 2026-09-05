@@ -3,151 +3,304 @@
 </p>
 
 # devjar
-> turn a folder of React pages into a prototype
 
-Devjar turns a folder of React pages into a self-contained static site. It also
-includes an optional in-browser code playground.
+Make an idea real. Change it live.
 
-```sh
-npx devjar dev
-npx devjar build
-npx devjar start
-```
+Devjar has two main features: live code APIs for embedding editable React
+projects in an iframe, and a zero-config CLI for building static websites.
 
-## Demo
+## Live code APIs
 
-<video src="https://github.com/user-attachments/assets/e4d11123-2e78-4e0d-a78d-4b5d2fff9c1e" controls width="100%">
-  <a href="https://github.com/user-attachments/assets/e4d11123-2e78-4e0d-a78d-4b5d2fff9c1e">Watch the devjar demo</a>
-</video>
-
-## Introduction
-
-Use the CLI to build and host React prototypes without configuring a bundler.
-Devjar also exports a React component and hook for embedding editable code
-examples that run inside an isolated iframe.
-
-**Notice:** devjar requires React 19. The iframe runtime and development server
-render in the browser; CLI production builds statically render each page.
-Projects use the same `pages/` convention in the iframe runtime and CLI.
-
-## Install
+Embed a live React preview with `<DevJar>`. Requires React 19.
 
 ```sh
 pnpm add devjar
 ```
 
-## React Code Runtime
+### DevJar component
 
-### `<DevJar>`
-
-`DevJar` is a react component that allows you to develop and test your code directly in the browser, using a CDN to load your dependencies.
-
-**Props**
-
-* `files`: Project files using the same `pages/` convention as the CLI.
-* `dependencies`: Optional package name/version map. Packages load from esm.sh.
-* `resolveModule`: Optional override that maps module specifiers to browser-loadable module URLs.
-* `onError`: Callback function of error event from the iframe sandbox. By default `console.log`.
-* `transformWorkerUrl`: Optional custom URL for the packaged transform worker.
-
-`pages/index.*` maps to `/`, nested page files map to nested routes, and
-relative page links navigate without leaving the iframe. Unmatched links render
-a built-in 404 page unless the project provides `pages/404.*`.
-
-**Example**
-
-```jsx
+```tsx
 import { DevJar } from 'devjar'
 
-const CDN_HOST = 'https://esm.sh'
-
 const files = {
-  'pages/index.jsx': `export default function Page() { return 'hello world' }`
+  'pages/index.tsx': `export default function Page() {
+    return <h1>Hello from devjar</h1>
+  }`,
 }
 
-function App() {
+export default function App() {
   return (
-    <DevJar
-      files={files}
-      resolveModule={(specifier) => {
-        return `${CDN_HOST}/${specifier}`
-      }}
-    />
+    <DevJar files={files} title="Live preview" />
   )
 }
 ```
 
-### `useLiveCode(options)`
+Pass a new `files` object to update the preview. Add your own editor or controls;
+Devjar handles compilation and renders the project inside an iframe. All four
+homepage gallery demos use this API through
+[`Codesandbox`](./site/components/codesandbox.tsx).
 
-A hook that provides lower-level control over the live code execution environment.
+The host needs the [iframe hosting headers](#iframe-hosting-requirements).
+Use a client component in frameworks with server components.
 
-**Parameters**
+<details>
+<summary>Example: update JSON content with React state</summary>
 
-* `options`
-  * `resolveModule(specifier)`: A function that receives a module specifier and returns the browser-loadable URL. For example, import React from 'react' will load React from skypack.dev/react.
-  * `transformWorkerUrl`: Optional custom URL for the packaged transform worker.
+```tsx
+'use client'
 
-**Returns**
+import { useState } from 'react'
+import { DevJar } from 'devjar'
 
-* `state`
-  * `ref`: A reference to the iframe element where the live coding will be executed.
-  * `error`: An error message in case the live coding encounters an issue.
-  * `load(codeFiles)`: void: Loads code files and executes them as live code.
+const initialFiles = {
+  'pages/index.tsx': `import content from '../content.json'
+export default function Page() {
+  return <h1>{content.message}</h1>
+}`,
+  'content.json': JSON.stringify({ message: 'Hello from devjar' }),
+}
 
-**Example**
+export default function LiveExample() {
+  const [files, setFiles] = useState(initialFiles)
 
-```jsx
+  return (
+    <>
+      <button onClick={() => setFiles(current => ({
+        ...current,
+        'content.json': JSON.stringify({ message: 'Updated live!' }),
+      }))}>
+        Change the message
+      </button>
+      <DevJar
+        files={files}
+        tailwind={false}
+        title="Live React preview"
+        style={{ width: '100%', height: 320, border: 0 }}
+      />
+    </>
+  )
+}
+```
+
+</details>
+
+<details>
+<summary>Component props and defaults</summary>
+
+| Prop | Type | Behavior |
+| --- | --- | --- |
+| `files` | `Record<string, string>` | Required. Virtual paths mapped to source text |
+| `dependencies` | `Record<string, string>` | Optional package versions for the default esm.sh resolver |
+| `resolveModule` | `(specifier: string) => string` | Optional resolver override returning browser-loadable ESM URLs |
+| `transform` | `boolean` | Default `true`; compile JSX and TypeScript in a worker |
+| `tailwind` | `boolean` | Default `true`; enable the iframe's Tailwind browser runtime |
+| `onError` | `(error: unknown) => void` | Called when error state changes; defaults to `console.error` in the browser |
+| `transformWorkerUrl` | `string` or `URL` | Optional custom transform worker location |
+| `ref` | `React.Ref<HTMLIFrameElement>` | Access the rendered iframe |
+| Other iframe props | `React.IframeHTMLAttributes` | Forwarded to the iframe, including `title`, `style`, and `className` |
+
+Keep `files` and custom resolver functions stable between unrelated parent
+renders. To edit a file, replace its string in a new `files` object.
+
+</details>
+
+<details>
+<summary>Virtual files, JSON imports, and iframe navigation</summary>
+
+The runtime supports JavaScript, TypeScript, JSX, TSX, CSS, and default JSON
+imports. JSON must use double quotes and cannot contain comments or trailing
+commas. Use relative imports between virtual files. Bare package imports resolve
+to CDN modules; React dependencies must use compatible versions.
+
+The iframe uses the same `pages/` route convention as the CLI. Links such as
+`<a href="/about">About</a>` navigate inside the iframe. Provide `pages/404.tsx`
+for a custom missing-page view. Changes propagate through local imports and use
+React Fast Refresh where possible.
+
+The virtual file map contains source strings. The CLI's disk asset pipeline,
+`public/`, and static `api/` serving are separate CLI features. For iframe image
+or media content, use browser-accessible URLs.
+
+The iframe separates the preview's DOM and styles from the host page. It runs
+in the host's origin; it is not a security boundary for untrusted code.
+
+</details>
+
+### useLiveCode hook
+
+Use `useLiveCode` when you want to own the iframe and decide when a project runs.
+
+<details>
+<summary>Hook example and return values</summary>
+
+Use `useLiveCode` when you want to own the iframe and decide when to load files.
+It accepts the same `dependencies`, `resolveModule`, `transform`, `tailwind`, and
+`transformWorkerUrl` options as the component.
+
+```tsx
+'use client'
+
 import { useLiveCode } from 'devjar'
 
-function Playground() {
-  const { ref, error, load } = useLiveCode({
-    // The CDN url of each imported module path in your code
-    // e.g. `import React from 'react'` will load react from skypack.dev/react
-    resolveModule(specifier) {
-      return `https://cdn.skypack.dev/${specifier}`
-    }
-  })
-
-  // logging failures
-  if (error) {
-    console.error(error)
-  }
-
-  // load code files and execute them as live code
-  function run() {
-    load({
-      'pages/index.jsx': `import Message from '../components/message'
-export default function Page() { return <Message /> }`,
-      'components/message.jsx': `export default function Message() {
-  return 'hello world'
+const files = {
+  'pages/index.tsx': `export default function Page() {
+  return <h1>Hello from an iframe</h1>
 }`,
-    })
-  }
+}
 
-  // Attach the ref to an iframe element for runtime of code execution
+export default function ManualPreview() {
+  const { ref, error, load } = useLiveCode({ tailwind: false })
+
   return (
-    <div>
-      <button onClick={run}>run</button>
-      <iframe ref={ref} />
-    </div>
+    <>
+      <button onClick={() => void load(files)}>Run</button>
+      {error != null && <pre>{String(error)}</pre>}
+      <iframe ref={ref} title="Live React preview" style={{ width: '100%', height: 320 }} />
+    </>
   )
 }
 ```
+
+| Return value | Meaning |
+| --- | --- |
+| `ref` | Attach to the iframe that will run the project |
+| `error` | Current runtime error, if any |
+| `load(files)` | Load or update the virtual project; returns `Promise<void>` |
+
+</details>
+
+### Iframe hosting requirements
+
+Embedded previews require a secure context and cross-origin isolation. Devjar's
+CLI sets the headers for you; other hosts need:
+
+```http
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Embedder-Policy: credentialless
+```
+
+<details>
+<summary>Hosting details and Next.js configuration</summary>
+
+The iframe transforms code in the browser using Oxc and shared WebAssembly
+memory, so its host page must be cross-origin isolated. Devjar packages the
+browser transformer, WASM binary, and helper worker as lazy runtime assets;
+compatible bundlers emit these files without requiring a manual copy step.
+The `devjar dev` server sends the required headers so an editor can be added while
+it is running. `devjar start` sends them only for builds that use the editor.
+Static deployments that use `devjar` must configure equivalent headers on
+their hosting platform; sites without the editor do not need them.
+
+#### Next.js headers example
+
+```js
+const nextConfig = {
+  async headers() {
+    return [{
+      source: '/:path*',
+      headers: [
+        { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+        { key: 'Cross-Origin-Embedder-Policy', value: 'credentialless' },
+      ],
+    }]
+  },
+}
+```
+
+</details>
 
 ## CLI
 
-Devjar includes a zero-config CLI for turning a folder of React pages into a
-prototype. All settings are passed as command-line flags; the CLI does not load
-a configuration file or a `devjar` field from `package.json`. It reads only
-`dependencies` and `devDependencies` to resolve CDN versions or local packages.
-The CLI requires Node.js 22 or newer.
+Turn a folder of React pages into a static website. Requires Node.js 22+.
+
+Create `pages/index.tsx`:
+
+```tsx
+export default function Page() {
+  return <h1>Hello from devjar</h1>
+}
+```
+
+Then run:
+
+```sh
+npx devjar dev    # Develop with live updates
+npx devjar build  # Generate dist/
+npx devjar start  # Preview the build
+```
+
+Deploy `dist/` to a static host. Builds include prerendered HTML, CSS, assets,
+and vendored dependencies. Run `npx devjar` for help.
+
+### Routes and dependencies
+
+```text
+package.json          # Optional: dependency versions
+pages/
+├── index.tsx         → /
+├── about.tsx         → /about
+└── docs/start.tsx    → /docs/start
+```
+
+Packages load from the CDN; no local installation is needed. An optional
+`package.json` pins versions through `dependencies` or `devDependencies`.
+All CLI settings use flags, with no configuration file.
+
+<details>
+<summary>Example: pin dependency versions</summary>
+
+```json
+{
+  "dependencies": {
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
+  }
+}
+```
+
+Import packages by name in your pages. The CLI reads only `dependencies` and
+`devDependencies` from the project manifest. Production builds vendor CDN
+modules so deployed sites do not need the CDN.
+
+</details>
+
+<details>
+<summary>All commands and flags</summary>
+
+```sh
+npx devjar [command] [root] [options]
+```
+
+`root` defaults to the current directory. Running `npx devjar` with no command
+prints help.
+
+| Command | Purpose |
+| --- | --- |
+| `dev [root]` | Serve source files with live updates |
+| `build [root]` | Generate static output in `<root>/dist` |
+| `start [root]` | Serve the existing build |
+
+| Flag | Commands | Default / purpose |
+| --- | --- | --- |
+| `--host <host>` | `dev`, `start` | `localhost`; use `0.0.0.0` for network access |
+| `--port <port>` | `dev`, `start` | `3000` |
+| `--cdn <url>` | `dev`, `build` | `https://esm.sh` |
+| `--base <path>` | `dev`, `build` | `/`; deployment subdirectory |
+| `-o, --out-dir <directory>` | `build`, `start` | `dist`; must be inside the project |
+| `-h, --help` | All | Show help |
+| `-v, --version` | All | Show installed version |
+
+</details>
+
+<details>
+<summary>Project structure, nested routes, and custom 404 pages</summary>
 
 The project does not need a bundler configuration or a local `node_modules`
 directory:
 
 ```text
 my-prototype/
-├── package.json
+├── package.json       # optional
 ├── pages/
 │   ├── index.jsx
 │   └── about.jsx
@@ -177,6 +330,11 @@ The pages directory maps directly to URLs:
 | `pages/docs/start.jsx` | `/docs/start` |
 | `pages/404.jsx` | unmatched routes |
 
+</details>
+
+<details>
+<summary>JSON, CSS, and asset imports</summary>
+
 JSON files provide a default export and update live when edited:
 
 ```tsx
@@ -198,21 +356,10 @@ export default function Page() {
 }
 ```
 
-Production builds copy imported assets to `_jar/assets/` with content-hashed
-filenames so they can be cached as immutable files. Production builds also
-vendor bare imports and their transitive assets under `_jar/vendor/`; deployed
-sites do not depend on the module CDN. Dependency versions come from
-`dependencies` or `devDependencies`:
+</details>
 
-```json
-{
-  "dependencies": {
-    "react": "19.2.0",
-    "react-dom": "19.2.0",
-    "lucide-react": "0.542.0"
-  }
-}
-```
+<details>
+<summary>Local package development</summary>
 
 To develop a playground alongside a local library, point the dependency at its
 directory:
@@ -236,9 +383,19 @@ library's build or watch command first. Library edits reload the playground in
 `devjar dev`. Builds include the local modules, and prerendering can use them too.
 Other dependencies still use the CDN, with React shared with the playground.
 
+</details>
+
+<details>
+<summary>Public files and static APIs</summary>
+
 Files below `public/` are served from `/`. JSON and text files below `api/`
 are available at their corresponding `/api/` URLs. Executable API routes are
 not supported.
+
+</details>
+
+<details>
+<summary>Tailwind CSS</summary>
 
 For CLI projects, add `tailwindcss` or `@tailwindcss/browser` to the dependency
 list to enable Tailwind. Development uses Tailwind's browser compiler for live
@@ -250,13 +407,18 @@ Tailwind at runtime.
 Use complete class names for conditional styles instead of constructing them
 dynamically so the production build can detect every candidate.
 
+</details>
+
+<details>
+<summary>Custom module CDN</summary>
+
 Non-local bare imports use esm.sh in development and as the source for vendored
 production modules. Select a different ESM-compatible CDN with the `--cdn`
 flag:
 
 ```sh
-devjar dev --cdn https://modules.example.com
-devjar build --cdn https://modules.example.com
+npx devjar dev --cdn https://modules.example.com
+npx devjar build --cdn https://modules.example.com
 ```
 
 The CLI applies dependency versions to CDN URLs using the
@@ -265,25 +427,33 @@ be available while dependencies are collected, but it is not contacted by the
 deployed site. Modules and their referenced assets are stored below a
 content-hashed directory and can be cached as immutable files.
 
+</details>
+
+<details>
+<summary>Deploy under a base path</summary>
+
 Use `--base <path>` when the site will be hosted below the domain root. The
 same base is embedded in the build, so `devjar start` reads it automatically:
 
 ```sh
-devjar dev --base /preview/
-devjar build --base /preview/
+npx devjar dev --base /preview/
+npx devjar build --base /preview/
 ```
 
 Pages, public files, API files, and Devjar runtime assets are then served below
 `/preview/`. Base paths are normalized with one leading and trailing slash.
 
-### Build and host
+</details>
+
+<details>
+<summary>Build output, metadata, and prerendering</summary>
 
 Create a static build, then serve it without source-file watching or on-request
 transforms:
 
 ```sh
-devjar build
-devjar start
+npx devjar build
+npx devjar start
 ```
 
 The build writes the initial React content and imported CSS into an HTML file for
@@ -327,12 +497,20 @@ during render will fail the build with the affected route.
 Use `--out-dir <directory>` to change the build location. The output directory
 must remain inside the project root.
 
-The repository includes three runnable examples:
+Imported assets are emitted under `_jar/assets/` with content-hashed filenames.
+Vendored dependencies and their transitive assets are stored under `_jar/vendor/`.
+
+</details>
+
+<details>
+<summary>Runnable examples</summary>
+
+The repository includes these runnable examples:
 
 ```sh
-devjar dev examples/basic
-devjar dev examples/dashboard
-devjar dev examples/swr
+npx devjar dev examples/basic
+npx devjar dev examples/dashboard
+npx devjar dev examples/swr
 ```
 
 The dashboard demonstrates page navigation, shared components, a CDN-loaded
@@ -346,10 +524,13 @@ The site in `site/` runs Devjar's own editor and live preview as a pages-based
 Devjar project (`devjar dev site`).
 
 ```sh
-devjar dev [root] --host localhost --port 3000
+npx devjar dev [root] --host localhost --port 3000
 ```
 
-### Preview on your phone
+</details>
+
+<details>
+<summary>Preview on your phone</summary>
 
 ```sh
 npx devjar dev --host 0.0.0.0
@@ -361,33 +542,21 @@ The default host remains localhost; pass `--host 0.0.0.0` to expose the server
 on your network. Embedded editors require a secure, cross-origin-isolated context,
 so use ordinary CLI pages for HTTP phone previews.
 
-## Notice: iframe cross-origin isolation
-
-The iframe transforms code in the browser using Oxc and shared WebAssembly
-memory, so its host page must be cross-origin isolated. Devjar packages the
-browser transformer, WASM binary, and helper worker as lazy runtime assets;
-compatible bundlers emit these files without requiring a manual copy step.
-The `devjar dev` server sends the required headers so an editor can be added while
-it is running. `devjar start` sends them only for builds that use the editor.
-Static deployments that use `devjar` must configure equivalent headers on
-their hosting platform; sites without the editor do not need them.
+</details>
 
 <details>
-<summary>Next.js headers example</summary>
+<summary>Repository development</summary>
 
-```js
-const nextConfig = {
-  async headers() {
-    return [{
-      source: '/:path*',
-      headers: [
-        { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
-        { key: 'Cross-Origin-Embedder-Policy', value: 'credentialless' },
-      ],
-    }]
-  },
-}
+```sh
+pnpm install
+pnpm run build      # Build library, CLI, client, and worker assets
+pnpm run dev        # Watch the library and serve the website
+pnpm run typecheck
+bun test
 ```
+
+Run the full build after changing runtime code; the package needs its client and
+worker assets as well as the library bundle. CLI tests open local HTTP servers.
 
 </details>
 

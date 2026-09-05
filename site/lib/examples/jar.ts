@@ -10,16 +10,50 @@ export const jarFiles = {
     "glass": 0.12
   }
   `,
+  'confetti.ts': source`\
+  // GLSL fragment shader: edit the paper's appearance live.
+  export default \`
+  uniform float uTime;
+  varying vec2 vUv;
+  varying vec3 vColor;
+
+  void main() {
+    // Try 0.45 for round pieces, or 0.05 for square corners.
+    float radius = 0.15;
+    vec2 edge = abs(vUv - 0.5) - vec2(0.5 - radius);
+    if (length(max(edge, 0.0)) > radius) discard;
+
+    // Raise this to 0.5 for a stronger shimmer.
+    float shimmer = 0.12 * sin(uTime * 3.0 + vUv.y * 12.0);
+    vec3 paper = vColor * (0.88 + shimmer);
+    gl_FragColor = vec4(paper, 1.0);
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
+  }
+  \`
+  `,
   'pages/index.tsx': source`\
   import { useEffect, useMemo, useRef, useState } from 'react'
   import { Canvas, useFrame } from '@react-three/fiber'
   import { CanvasTexture, Color, Object3D, DoubleSide, EquirectangularReflectionMapping, SRGBColorSpace, SplineCurve, Vector2 } from 'three'
   import jar from '../jar.json'
+  import fragmentShader from '../confetti'
   import '../styles.css'
+
+  const vertexShader = \`
+  varying vec2 vUv;
+  varying vec3 vColor;
+  void main() {
+    vUv = uv;
+    vColor = instanceColor;
+    gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0);
+  }
+  \`
 
   function Coriandoli({ moving, burst }) {
     const mesh = useRef(null)
     const time = useRef(0)
+    const uniforms = useMemo(() => ({ uTime: { value: 0 } }), [])
     const count = Math.max(1, Math.min(400, Math.floor(Number(jar.pieces) || 1)))
     const pieces = useMemo(() => Array.from({ length: count }, (_, index) => {
       const phase = index * 2.39996
@@ -89,6 +123,7 @@ export const jarFiles = {
           }
         })
       }
+      uniforms.uTime.value = time.current
       pieces.forEach((piece, index) => {
         dummy.position.set(piece.x, piece.y, piece.z)
         dummy.rotation.set(piece.rx, piece.ry, piece.rz)
@@ -100,7 +135,7 @@ export const jarFiles = {
     })
     return <instancedMesh key={count} ref={mesh} args={[undefined, undefined, count]} frustumCulled={false}>
       <planeGeometry args={[1, 1]} />
-      <meshBasicMaterial side={DoubleSide} toneMapped={false} />
+      <shaderMaterial vertexShader={vertexShader} fragmentShader={fragmentShader} uniforms={uniforms} side={DoubleSide} vertexColors />
     </instancedMesh>
   }
 

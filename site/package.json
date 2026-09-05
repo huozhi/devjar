@@ -1,9 +1,9 @@
 {
   "private": true,
   "dependencies": {
-    "@sugar-high/react": "2.2.0",
+    "@sugar-high/react": "2.2.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "sugar-high": "2.2.1"
+    "sugar-high": "2.3.0"
   }
 }

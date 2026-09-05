@@ -50,15 +50,15 @@ export const demoContentPresets = [
   },
 ]
 
-export function demoContentModule(content: typeof demoContentPresets[number]) {
-  return `export default ${JSON.stringify(content, null, 2)}\n`
+export function demoContentJson(content: typeof demoContentPresets[number]) {
+  return `${JSON.stringify(content, null, 2)}\n`
 }
 
 export const demoFiles = {
-  'content.ts': demoContentModule(demoContentPresets[0]),
+  'content.json': demoContentJson(demoContentPresets[0]),
   'pages/index.tsx': source`\
   import Layout from '../components/layout'
-  import content from '../content'
+  import content from '../content.json'
 
   export default function Page() {
     return <Layout current="/">
@@ -82,7 +82,7 @@ export const demoFiles = {
   `,
   'pages/about.tsx': source`\
   import Layout from '../components/layout'
-  import content from '../content'
+  import content from '../content.json'
 
   export default function About() {
     return <Layout current="/about">
@@ -96,7 +96,7 @@ export const demoFiles = {
   `,
   'pages/story.tsx': source`\
   import Layout from '../components/layout'
-  import content from '../content'
+  import content from '../content.json'
 
   export default function Story() {
     return <Layout current="/story">
@@ -111,7 +111,7 @@ export const demoFiles = {
   }
   `,
   'components/layout.tsx': source`\
-  import content from '../content'
+  import content from '../content.json'
   import '../styles.css'
 
   export default function Layout({ current, children }) {
