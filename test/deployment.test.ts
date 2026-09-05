@@ -47,7 +47,7 @@ test('deployment cache skips unchanged compiler builds and invalidates compiler 
     await writeFile(join(output, wasm), `wasm ${builds}`)
   }
   try {
-    for (const directory of ['compiler/src', 'scripts', 'src']) await mkdir(join(root, directory), { recursive: true })
+    for (const directory of ['compiler/src', 'scripts', 'src/client']) await mkdir(join(root, directory), { recursive: true })
     const inputs = ['compiler/src/lib.rs', 'compiler/Cargo.toml', 'compiler/Cargo.lock', 'compiler/rust-toolchain.toml',
       'scripts/setup-compiler.sh', 'scripts/build-workers.ts', 'scripts/compiler-cache.ts']
     for (const input of inputs) await writeFile(join(root, input), 'original')
@@ -56,8 +56,8 @@ test('deployment cache skips unchanged compiler builds and invalidates compiler 
 
     // A new checkout restores only node_modules, not generated compiler outputs.
     await rm(output, { recursive: true })
-    await writeFile(join(root, 'src/core.ts'), 'runtime edit')
-    await writeFile(join(root, 'src/transform-worker.ts'), 'worker edit')
+    await writeFile(join(root, 'src/client/core.ts'), 'runtime edit')
+    await writeFile(join(root, 'src/client/transform-worker.ts'), 'worker edit')
     expect(await ensureCompiler(root, build)).toBe(true)
     expect(builds).toBe(1)
     expect(await readFile(join(output, wasm), 'utf8')).toBe('wasm 1')

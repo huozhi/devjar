@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, writeFile, rm, realpath, symlink } from 'node:fs/promis
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { init, parse } from 'es-module-lexer'
-import { linkModules } from '../src/core'
+import { linkModules } from '../src/client/core'
 import { collectProjectFiles, compileProjectModule, DevModuleGraph } from '../src/cli/modules'
 import { textModuleSuffix, isTextImport } from '../src/text'
 

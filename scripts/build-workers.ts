@@ -29,7 +29,7 @@ const stagingDirectory = await mkdtemp(join(tmpdir(), 'devjar-transform-assets-'
 try {
   const result = await Bun.build({
     entrypoints: [
-      join(root, 'src/transform-worker.ts'),
+      join(root, 'src/client/transform-worker.ts'),
       join(bindingDirectory, 'devjar_browser_compiler.js'),
     ],
     outdir: stagingDirectory,
@@ -63,7 +63,7 @@ try {
     wasm: `assets/${wasmName}`,
   }
 
-  const generatedDirectory = join(root, 'src/generated')
+  const generatedDirectory = join(root, 'src/client/generated')
   await mkdir(generatedDirectory, { recursive: true })
   // Literal asset references survive into the npm entry, allowing host bundlers
   // to discover and emit every compiler file without a runtime JSON fetch.

@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { createLoadQueue } from '../src/load-queue'
+import { createLoadQueue } from '../src/client/load-queue'
 
 function deferred() {
   let resolve!: () => void

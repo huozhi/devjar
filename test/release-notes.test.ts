@@ -6,7 +6,7 @@ test('release notes include core outcomes and omit polish and maintenance', () =
   const result = summarizeChanges([
     commit('feat(runtime): import JSON', ['src/json.ts'], ''),
     commit('fix(cli): improve errors (#42)', ['src/bin/devjar.ts'], ''),
-    commit('perf(runtime): reduce compiler work', ['src/core.ts'], ''),
+    commit('perf(runtime): reduce compiler work', ['src/client/core.ts'], ''),
     commit('feat: reshape shader demo', ['site/lib/examples/shader.ts'], ''),
     commit('fix(examples): improve mobile layout', ['examples/personal/styles.css'], ''),
     commit('feat(site): add a banner', ['site/pages/index.tsx', 'package.json'], ''),

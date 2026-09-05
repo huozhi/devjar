@@ -3,7 +3,7 @@ import { createServer } from 'node:http'
 import { mkdtemp, mkdir, writeFile, readFile, readdir, rm, realpath } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { createIframeRouteManifest } from '../src/core'
+import { createIframeRouteManifest } from '../src/client/core'
 import { buildProject, loadRouteManifest } from '../src/cli/index'
 import { testCdnModule } from '../scripts/test-cdn'
 

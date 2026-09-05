@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { createTransformPool } from '../src/transform-pool'
+import { createTransformPool } from '../src/client/transform-pool'
 
 class FakeWorker {
   onmessage: ((event: { data: unknown }) => void) | null = null

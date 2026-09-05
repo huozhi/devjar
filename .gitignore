@@ -6,4 +6,4 @@ dist
 .vercel
 .env.local
 
-/src/generated/
+/src/client/generated/

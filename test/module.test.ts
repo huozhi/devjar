@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { createModule, type ModuleRuntime } from '../src/module'
+import { createModule, type ModuleRuntime } from '../src/client/module'
 
 const refreshRuntimeUrl = `data:text/javascript;utf-8,${encodeURIComponent(`
 export default {

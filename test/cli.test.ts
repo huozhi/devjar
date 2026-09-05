@@ -11,7 +11,7 @@ import {
   startDevServer,
 } from '../src/cli/index'
 import { CDN_HOST, createEsmShResolver } from '../src/cdn'
-import { createIframeRouteManifest, linkModules } from '../src/core'
+import { createIframeRouteManifest, linkModules } from '../src/client/core'
 import { collectProjectFiles, compileProjectModule } from '../src/cli/modules'
 import { getTailwindBrowserUrl, getTailwindBuildUrls } from '../src/tailwind'
 import { extractTailwindCandidates } from '../src/cli/tailwind-build'
