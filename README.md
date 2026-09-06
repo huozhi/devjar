@@ -251,6 +251,12 @@ Add `tailwindcss` or `@tailwindcss/browser` to enable Tailwind. Development
 compiles in the browser; builds emit CSS with no runtime compiler.
 Use complete class names rather than constructing them dynamically.
 
+Tailwind support is limited to utility classes. Tailwind-specific directives
+in imported CSS, such as `@theme`, `@apply`, and `@utility`, are not supported.
+Use CSS variables, ordinary classes, and native media queries
+for custom styles. Import each stylesheet from JS/TS; nested CSS `@import`
+rules are not supported in development.
+
 </details>
 
 <details>

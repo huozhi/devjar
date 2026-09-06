@@ -139,6 +139,20 @@ pages/
             </div>
 
             <div className="section">
+              <h3>Tailwind CSS</h3>
+              <p>
+                Add <code>tailwindcss</code> or <code>@tailwindcss/browser</code> to enable Tailwind.
+                Use complete class names; builds emit CSS with no runtime compiler.
+              </p>
+              <p>
+                Tailwind support is limited to utility classes. Tailwind-specific directives in imported CSS,
+                such as <code>@theme</code>, <code>@apply</code>, and <code>@utility</code>, are not supported.
+                Use CSS variables, ordinary classes, and native media queries for custom styles.
+                Import each stylesheet from JS/TS; nested CSS <code>@import</code> rules are not supported in development.
+              </p>
+            </div>
+
+            <div className="section">
               <h3>Three commands</h3>
               <p>Develop locally, create the static output, then preview exactly what you will deploy.</p>
               <div className="code-block" aria-label="Devjar commands">
