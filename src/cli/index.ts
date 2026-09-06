@@ -262,7 +262,12 @@ const showBootstrapError = value => {
   errorRoot.hidden = false
   errorRoot.textContent = 'Devjar could not start:\\n\\n' + value
 }
-addEventListener('error', event => showBootstrapError(event.message || 'A browser module failed to load'))
+addEventListener('error', event => {
+  // ResizeObserver can defer layout work without an application exception.
+  if (!event.error && (event.message === 'ResizeObserver loop completed with undelivered notifications.'
+    || event.message === 'ResizeObserver loop limit exceeded')) return
+  showBootstrapError(event.message || 'A browser module failed to load')
+})
 addEventListener('unhandledrejection', event => showBootstrapError(event.reason?.stack || event.reason || 'An asynchronous module failed'))
 </script>`
     : ''

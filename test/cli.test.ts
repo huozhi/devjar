@@ -447,7 +447,29 @@ describe('dev server', () => {
     expect(shellSource).not.toContain('<iframe')
     expect(await (await fetch(`${base}/about`, { method: 'HEAD' })).text()).toBe('')
     const bootstrap = shellSource.match(/<script>\n([\s\S]+?)<\/script>/)?.[1]
-    expect(() => new Function(bootstrap || '')).not.toThrow()
+    expect(bootstrap).toBeDefined()
+    const overlay = { hidden: true, textContent: '' }
+    const listeners: Record<string, (event: { message?: string; error?: Error; reason?: Error }) => void> = {}
+    new Function('document', 'addEventListener', bootstrap!)(
+      { getElementById: () => overlay },
+      (type: string, listener: typeof listeners[string]) => { listeners[type] = listener },
+    )
+    for (const message of [
+      'ResizeObserver loop completed with undelivered notifications.',
+      'ResizeObserver loop limit exceeded',
+    ]) {
+      listeners.error({ message })
+      expect(overlay.hidden).toBe(true)
+      listeners.error({ message, error: new Error(message) })
+      expect(overlay.hidden).toBe(false)
+      expect(overlay.textContent).toContain(message)
+      overlay.hidden = true
+    }
+    listeners.error({ message: 'App failed', error: new Error('App failed') })
+    expect(overlay.hidden).toBe(false)
+    expect(overlay.textContent).toContain('App failed')
+    listeners.unhandledrejection({ reason: new Error('Async failed') })
+    expect(overlay.textContent).toContain('Async failed')
 
     const routes = await (await fetch(`${base}/_jar/routes.json`)).json()
     expect(routes.routes['/about'].page).toBe('pages/about.tsx')
