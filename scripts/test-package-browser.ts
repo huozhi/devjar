@@ -78,6 +78,8 @@ async function assertPage(page: Page, heading: string, title: string) {
   )
   assert.equal(await page.locator('h1').textContent(), heading)
   assert.equal(await page.title(), title)
+  assert.equal(await page.locator('head link[rel=icon]').getAttribute('href'), '/preview/icon.svg')
+  assert.equal(await page.locator('head meta[property="og:image"]').getAttribute('content'), '/preview/opengraph-image.png')
 }
 
 try {
@@ -100,6 +102,8 @@ try {
       'react-dom': '19.2.0',
     },
   }))
+  await writeFile(join(projectRoot, 'icon.svg'), '<svg xmlns="http://www.w3.org/2000/svg"/>')
+  await writeFile(join(projectRoot, 'opengraph-image.png'), Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aD1sAAAAASUVORK5CYII=', 'base64'))
   await writeFile(join(projectRoot, 'assets/logo.svg'), '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><circle cx="4" cy="4" r="4" /></svg>')
   await writeFile(join(projectRoot, 'pages/index.tsx'), `import logo from '../assets/logo.svg'
 export default function Page() {
