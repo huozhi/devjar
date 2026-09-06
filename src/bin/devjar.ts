@@ -157,7 +157,7 @@ async function run() {
       exclude,
       base: base || '/',
     })
-    const deploymentRoot = vercelOutputRoot(process.env.VERCEL, process.cwd())
+    const deploymentRoot = vercelOutputRoot(process.cwd())
     if (deploymentRoot) await writeVercelOutput(result.outDir, deploymentRoot)
     console.log(style(1, 'Devjar build complete'))
     console.log('')

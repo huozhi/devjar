@@ -26,8 +26,16 @@ describe('Vercel deployment', () => {
 
       expect(await readFile(join(output, 'static/index.html'), 'utf8')).toBe('Devjar')
       expect(JSON.parse(await readFile(join(output, 'config.json'), 'utf8'))).toEqual(vercelOutputConfig)
-      expect(vercelOutputRoot('1', root)).toBe(join(root, '.vercel/output'))
-      expect(vercelOutputRoot(undefined, root)).toBeUndefined()
+      const previousVercel = process.env.VERCEL
+      try {
+        process.env.VERCEL = '1'
+        expect(vercelOutputRoot(root)).toBe(join(root, '.vercel/output'))
+        delete process.env.VERCEL
+        expect(vercelOutputRoot(root)).toBeUndefined()
+      } finally {
+        if (previousVercel === undefined) delete process.env.VERCEL
+        else process.env.VERCEL = previousVercel
+      }
     } finally {
       await rm(root, { recursive: true, force: true })
     }

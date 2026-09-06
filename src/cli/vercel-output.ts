@@ -24,8 +24,8 @@ export const vercelOutputConfig = {
   ],
 }
 
-export function vercelOutputRoot(vercel: string | undefined, cwd: string) {
-  return vercel === '1' ? join(cwd, '.vercel/output') : undefined
+export function vercelOutputRoot(cwd: string) {
+  return process.env.VERCEL === '1' ? join(cwd, '.vercel/output') : undefined
 }
 
 export async function writeVercelOutput(staticSource: string, outputRoot: string) {
