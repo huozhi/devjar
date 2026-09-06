@@ -13,6 +13,8 @@ export default function Docs() {
       <meta name="description" content={description} />
       <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
+      <meta name="twitter:title" content={title} />
+      <meta name="twitter:description" content={description} />
       <link rel="alternate" type="text/plain" title="Devjar agent reference" href="/llms.txt" />
       <main className="docs-page">
         <header className="docs-header">
