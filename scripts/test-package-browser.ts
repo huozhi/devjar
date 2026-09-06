@@ -203,12 +203,40 @@ export default function Page() {
   assert.deepEqual(consoleErrors, [])
   assert.deepEqual(pageErrors, [])
 
+  // Navigate while the initial route import is pending. The destination must
+  // render without trying to hydrate the home page's prerendered HTML.
+  const manifest = await (await page.request.get(`${baseUrl}_jar/routes.json`)).json()
+  const homeModuleUrl = new URL(manifest.routes['/'].module, baseUrl).href
+  let releaseHomeModule!: () => void
+  const homeModuleGate = new Promise<void>(resolve => { releaseHomeModule = resolve })
+  await page.route(homeModuleUrl, async route => {
+    await homeModuleGate
+    await route.continue()
+  })
+  try {
+    const homeModuleRequest = page.waitForRequest(homeModuleUrl)
+    await page.goto(baseUrl, { waitUntil: 'domcontentloaded' })
+    await homeModuleRequest
+    await page.locator('a[href="/docs/start"]').click()
+    await assertPage(page, 'Docs', 'Package docs')
+    assert.equal(await page.evaluate('globalThis.__devjarRenderCount'), 1)
+    assert.deepEqual(consoleErrors, [])
+    assert.deepEqual(pageErrors, [])
+  } finally {
+    releaseHomeModule()
+    await page.unrouteAll({ behavior: 'wait' })
+  }
+  await page.evaluate(url => import(url).then(() => undefined), homeModuleUrl)
+  await assertPage(page, 'Docs', 'Package docs')
+  assert.deepEqual(consoleErrors, [])
+  assert.deepEqual(pageErrors, [])
+
   consoleErrors.length = 0
   const missingResponse = await page.goto(`${baseUrl}missing`)
   assert.equal(missingResponse?.status(), 404)
   await page.waitForFunction('globalThis.__devjarRenderCount > 0')
   await assertPage(page, 'Custom 404', 'Package missing')
-  assert(consoleErrors.every(message => message.includes('404 (Not Found)')))
+  assert(consoleErrors.every(message => message.includes('404 (Not Found)')), consoleErrors.join('\n'))
   assert.deepEqual(pageErrors, [])
 
   // Reuse the package fixture to exercise the browser compiler through DevJar.

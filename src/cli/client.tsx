@@ -34,6 +34,7 @@ function getBase() {
 }
 
 const base = getBase()
+const prerenderedRoute = routeFromPathname(location.pathname)
 
 function getAppRoot() {
   const existingRoot = document.getElementById('__reactRoot')
@@ -190,7 +191,9 @@ async function load(route: string) {
       { revision: renderRevision },
       React.createElement(module.default),
     )
-    if (!reactRoot && !routeManifest.liveReload && appRoot.hasChildNodes()) {
+    // A navigation can finish importing before the initial route. Only hydrate
+    // when the requested page matches the route that supplied the HTML.
+    if (!reactRoot && route === prerenderedRoute && !routeManifest.liveReload && appRoot.hasChildNodes()) {
       reactRoot = hydrateRoot(appRoot, page, { onRecoverableError: showError })
     } else {
       if (!reactRoot) reactRoot = createRoot(appRoot)
