@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./site/public/icon.svg" alt="devjar logo" width="112" height="112">
+  <img src="./site/icon.svg" alt="devjar logo" width="112" height="112">
 </p>
 
 # devjar

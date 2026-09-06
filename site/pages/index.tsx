@@ -6,7 +6,6 @@ import '../styles.css'
 
 const title = 'Devjar — Live Playground & Static Site Export'
 const description = 'Live React playgrounds and zero-config static site export.'
-const socialImage = '/og-image.jpg'
 
 export default function Page() {
   return (
@@ -16,13 +15,11 @@ export default function Page() {
       <meta name="author" content="@huozhi" />
       <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
-      <meta property="og:image" content={socialImage} />
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={title} />
       <meta name="twitter:description" content={description} />
-      <meta name="twitter:image" content={socialImage} />
+      <meta name="twitter:image" content="/opengraph-image.jpg" />
       <link rel="alternate" type="text/plain" title="Devjar agent reference" href="/llms.txt" />
-      <link rel="icon" href="/icon.svg" type="image/svg+xml" />
       <main>
         <Banner />
 
