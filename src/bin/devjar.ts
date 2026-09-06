@@ -4,6 +4,7 @@ import { networkUrls } from '../cli/network'
 import { readFile } from 'node:fs/promises'
 import { join, relative } from 'node:path'
 import { buildProject, startBuiltServer, startDevServer } from '../cli/index'
+import { vercelOutputRoot, writeVercelOutput } from '../cli/vercel-output'
 
 type Command = 'dev' | 'build' | 'start'
 
@@ -156,6 +157,8 @@ async function run() {
       exclude,
       base: base || '/',
     })
+    const deploymentRoot = vercelOutputRoot(process.cwd())
+    if (deploymentRoot) await writeVercelOutput(result.outDir, deploymentRoot)
     console.log(style(1, 'Devjar build complete'))
     console.log('')
     console.log(`Output  ${style(36, relative(process.cwd(), result.outDir) || '.')}`)

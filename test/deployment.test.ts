@@ -3,34 +3,42 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { ensureCompiler } from '../scripts/compiler-cache'
+import { vercelOutputConfig, vercelOutputRoot, writeVercelOutput } from '../src/cli/vercel-output'
 
 describe('Vercel deployment', () => {
-  test('builds the static website without requiring isolation headers', async () => {
+  test('builds the static website through the Vercel Build Output API', async () => {
     const config = JSON.parse(await readFile(new URL('../vercel.json', import.meta.url), 'utf8'))
 
     expect(config.framework).toBeNull()
     expect(config.buildCommand).toBe('bun scripts/build-vercel.ts')
-    expect(config.outputDirectory).toBe('site/dist')
-    expect(config.headers).toEqual([
-      {
-        source: '/_jar/assets/(.*)',
-        headers: [
-          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
-        ],
-      },
-      {
-        source: '/_jar/vendor/(.*)',
-        headers: [
-          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
-        ],
-      },
-      {
-        source: '/_jar/runtime-(.*).js',
-        headers: [
-          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
-        ],
-      },
-    ])
+    expect(config.outputDirectory).toBeUndefined()
+    expect(config.headers).toBeUndefined()
+  })
+
+  test('places static files and immutable asset rules in the build output', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'devjar-vercel-output-'))
+    const source = join(root, 'site')
+    const output = join(root, '.vercel/output')
+    try {
+      await mkdir(source, { recursive: true })
+      await writeFile(join(source, 'index.html'), 'Devjar')
+      await writeVercelOutput(source, output)
+
+      expect(await readFile(join(output, 'static/index.html'), 'utf8')).toBe('Devjar')
+      expect(JSON.parse(await readFile(join(output, 'config.json'), 'utf8'))).toEqual(vercelOutputConfig)
+      const previousVercel = process.env.VERCEL
+      try {
+        process.env.VERCEL = '1'
+        expect(vercelOutputRoot(root)).toBe(join(root, '.vercel/output'))
+        delete process.env.VERCEL
+        expect(vercelOutputRoot(root)).toBeUndefined()
+      } finally {
+        if (previousVercel === undefined) delete process.env.VERCEL
+        else process.env.VERCEL = previousVercel
+      }
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
   })
 })
 
