@@ -1,10 +1,24 @@
 import { source } from '../demo-files'
 
-export function shuffleShaderColor(code: string) {
-  return code.replace(/(\bhue\s*:\s*)(-?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)(?=\s*[,}])/i, (_, prefix, value) => {
-    const hue = ((Number(value) % 1 + 1) % 1 + 0.2 + Math.random() * 0.6) % 1
-    return prefix + hue.toFixed(2)
-  })
+export const shaderSettings = [
+  { name: 'Warm', speed: 0.35, scale: 2.4, warp: 1.2, hue: 0.15, bands: 3 },
+  { name: 'Cool', speed: 0.25, scale: 1.8, warp: 0.7, hue: 0.55, bands: 5 },
+  { name: 'Violet', speed: 0.45, scale: 3.0, warp: 1.5, hue: 0.85, bands: 2 },
+]
+
+export function applyShaderSettings(code: string, settings: typeof shaderSettings[number]) {
+  return Object.entries(settings).reduce((nextCode, [key, value]) => {
+    if (key === 'name') {
+      return nextCode.replace(/^\/\/[^\n]*/, `// ${value} — change a number to reshape the light.`)
+    }
+    return nextCode.replace(new RegExp(`(${key}: )[\\d.]+`), `$1${value}`)
+  }, code)
+}
+
+export function shuffleShaderSettings(code: string) {
+  const alternatives = shaderSettings.filter(settings => applyShaderSettings(code, settings) !== code)
+  const settings = alternatives[Math.floor(Math.random() * alternatives.length)] ?? shaderSettings[0]
+  return applyShaderSettings(code, settings)
 }
 
 export const shaderFiles = {
