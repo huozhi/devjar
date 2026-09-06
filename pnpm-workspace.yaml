@@ -5,5 +5,5 @@ allowBuilds:
   '@swc/core': true
   sharp: true
 minimumReleaseAgeExclude:
-  - '@sugar-high/react@2.2.0'
-  - sugar-high@2.2.1
+  - '@sugar-high/react'
+  - sugar-high

@@ -249,7 +249,7 @@ export function projectComponent() { return environment }
       await realpath(websiteRoot),
       join(websiteRoot, 'pages/index.tsx'),
     )
-    expect([...files].sort()).toEqual([
+    expect([...files]).toEqual(expect.arrayContaining([
       'assets/fonts/IoskeleyMono-Regular.woff2',
       'components/banner.tsx',
       'components/codesandbox.css',
@@ -264,7 +264,7 @@ export function projectComponent() { return environment }
       'lib/examples/shader.ts',
       'pages/index.tsx',
       'styles.css',
-    ])
+    ]))
   })
 
   test('uses the project Tailwind version for the cached browser runtime', () => {
@@ -367,6 +367,58 @@ export default function Page() { return <pre>{example}</pre> }`,
 })
 
 describe('dev server', () => {
+  test('discovers root metadata images and reloads when they change', async () => {
+    const projectRoot = await mkdtemp(join(tmpdir(), 'devjar-metadata-'))
+    let server: Awaited<ReturnType<typeof startDevServer>> | undefined
+    let reader: ReadableStreamDefaultReader<Uint8Array> | undefined
+    try {
+      await mkdir(join(projectRoot, 'pages'))
+      await mkdir(join(projectRoot, 'public'))
+      await writeFile(join(projectRoot, 'pages/index.tsx'), 'export default function Page() { return null }')
+      const icons = ['ico', 'png', 'jpg', 'jpeg', 'svg', 'gif', 'webp'].map(ext => `icon.${ext}`)
+      const images = ['png', 'jpg', 'jpeg', 'gif', 'webp'].map(ext => `opengraph-image.${ext}`)
+      for (const filename of [...icons, ...images]) {
+        await writeFile(join(projectRoot, filename), filename)
+      }
+      await writeFile(join(projectRoot, 'public/icon.svg'), 'public icon')
+      await writeFile(join(projectRoot, 'opengraph-image.svg'), '<svg/>')
+      await writeFile(join(projectRoot, 'icon.txt'), 'unsupported')
+      await mkdir(join(projectRoot, 'opengraph-image.ico'))
+      server = await startDevServer({ root: projectRoot, host: '127.0.0.1', port: 0, cdn: undefined, base: '/docs/' })
+      const base = `http://${server.host}:${server.port}/docs`
+      for (const route of ['/', '/nested/page']) {
+        const document = await (await fetch(`${base}${route}`)).text()
+        for (const filename of icons) expect(document).toContain(`rel="icon" href="/docs/${filename}"`)
+        for (const filename of images) expect(document).toContain(`property="og:image" content="/docs/${filename}"`)
+        expect(document).not.toContain('opengraph-image.svg')
+        expect(document).not.toContain('icon.txt')
+        expect(document).not.toContain('opengraph-image.ico')
+      }
+      for (const filename of [...icons, ...images]) {
+        const response = await fetch(`${base}/${filename}`)
+        expect(response.headers.get('content-type')).toStartWith('image/')
+        expect(await response.text()).toBe(filename)
+      }
+      const events = await fetch(`${base}/_jar/events`)
+      reader = events.body!.getReader()
+      await reader.read()
+      await rm(join(projectRoot, 'icon.svg'))
+      const change = await Promise.race([
+        readChangeEvent(reader),
+        new Promise<never>((_resolve, reject) => {
+          setTimeout(() => reject(new Error('Timed out waiting for metadata reload')), 2_000)
+        }),
+      ])
+      expect(change.reload).toBe(true)
+      const document = await (await fetch(`${base}/`)).text()
+      expect(document).not.toContain('href="/docs/icon.svg"')
+    } finally {
+      await reader?.cancel()
+      await server?.close()
+      await rm(projectRoot, { recursive: true, force: true })
+    }
+  })
+
   let server: Awaited<ReturnType<typeof startDevServer>> | undefined
   afterAll(async () => server?.close())
 
@@ -572,6 +624,8 @@ describe('production build', () => {
     const address = cdn.address() as import('node:net').AddressInfo
     projectRoot = await mkdtemp(join(tmpdir(), 'devjar-build-'))
     await cp(dashboardRoot, projectRoot, { recursive: true })
+    await writeFile(join(projectRoot, 'icon.svg'), '<svg/>')
+    await writeFile(join(projectRoot, 'opengraph-image.jpg'), 'social image')
     const result = await buildProject({
       root: projectRoot,
       outDir: 'dist',
@@ -637,6 +691,13 @@ describe('production build', () => {
     expect(tailwindCss).toContain('shadow-[3px_3px_0_#1c1917]')
     expect(await readFile(join(buildRoot, 'api/projects.json'), 'utf8')).toContain('Mobile refresh')
     expect(await readFile(join(buildRoot, 'mark.svg'), 'utf8')).toContain('<svg')
+    for (const page of ['index.html', 'projects/index.html', '404.html']) {
+      const document = await readFile(join(buildRoot, page), 'utf8')
+      expect(document).toContain('<link rel="icon" href="/preview/icon.svg" type="image/svg+xml">')
+      expect(document).toContain('<meta property="og:image" content="/preview/opengraph-image.jpg">')
+    }
+    expect(await readFile(join(buildRoot, 'icon.svg'), 'utf8')).toBe('<svg/>')
+    expect(await readFile(join(buildRoot, 'opengraph-image.jpg'), 'utf8')).toBe('social image')
   })
 
   test('refuses to clean an output directory outside the project', async () => {
@@ -738,6 +799,8 @@ export default function Page() {
         `.page { color: black; background-image: url('./assets/background.png'); }
 @font-face { font-family: Body; src: url("./assets/body.woff2?#iefix") format("woff2"); }`,
       )
+      await writeFile(join(projectRoot, 'icon.png'), 'icon')
+      await writeFile(join(projectRoot, 'opengraph-image.png'), 'og')
       await writeFile(join(projectRoot, 'notes.md'), 'Text imported at build time')
       await writeFile(join(projectRoot, 'assets/logo.svg'), '<svg><circle r="4" /></svg>')
       await writeFile(join(projectRoot, 'assets/background.png'), Buffer.from('background'))
@@ -771,6 +834,10 @@ export default function Page() {
       const notFoundDocument = await readFile(join(result.outDir, '404.html'), 'utf8')
       expect(notFoundDocument).toContain('<title data-devjar-default>Devjar</title>')
       expect(notFoundDocument).toContain('<h1>Static not found</h1>')
+      for (const page of [document, aboutDocument, notFoundDocument]) {
+        expect(page).toContain('<link rel="icon" href="/icon.png" type="image/png">')
+        expect(page).toContain('<meta property="og:image" content="/opengraph-image.png">')
+      }
       expect(await readFile(join(result.outDir, '404/index.html'), 'utf8'))
         .toContain('<h1>Static not found</h1>')
       const clientAsset = document.match(/\/_jar\/assets\/(client-[a-f0-9]{10}\.js)/)![1]

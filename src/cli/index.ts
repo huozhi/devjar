@@ -201,6 +201,7 @@ type HtmlOptions = {
   devjarRuntime: boolean
   liveReload: boolean
   head: string
+  metadataFiles: string[]
   content: string
   styles: string
 }
@@ -245,6 +246,12 @@ await import(${JSON.stringify(options.clientUrl)})
   const staticStyles = options.styles
     ? `<style data-devjar-static>${options.styles.replace(/<\/style/gi, '<\\/style')}</style>`
     : ''
+  const metadataHead = options.metadataFiles.map(filename => {
+    const url = withBase(options.base, `/${filename}`)
+    return filename.startsWith('icon.')
+      ? `<link rel="icon" href="${url}" type="${contentTypes[extname(filename)]}">`
+      : `<meta property="og:image" content="${url}">`
+  }).join('')
   const documentHead = /<title(?:\s|>)/i.test(options.head)
     ? options.head
     : `<title data-devjar-default>Devjar</title>${options.head}`
@@ -264,7 +271,7 @@ addEventListener('unhandledrejection', event => showBootstrapError(event.reason?
     : ''
   return `<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="devjar-base" content="${options.base}">${documentHead}${tailwindPreload}<script type="importmap">${JSON.stringify({ imports })}</script>
+<meta name="devjar-base" content="${options.base}">${documentHead}${metadataHead}${tailwindPreload}<script type="importmap">${JSON.stringify({ imports })}</script>
 <style>html,body,#root,#__reactRoot{width:100%;min-height:100%;margin:0}${errorStyles}</style>${staticStyles}
 ${tailwindStylesheet}</head><body><div id="root"><div id="__reactRoot">${options.content}</div></div>${errorOverlay}${tailwindScript}${clientScript}</body></html>`
 }
@@ -493,6 +500,9 @@ export async function startDevServer(options: DevServerOptions) {
         }
         return
       }
+      const metadataFiles = await discoverMetadataFiles(root)
+      if (metadataFiles.includes(requestPath.slice(1))
+        && await serveFile(request, response, root, requestPath.slice(1), undefined, noStore)) return
       if (await serveFile(request, response, join(root, 'public'), requestPath.slice(1), undefined, noStore)) return
       const packageJson = await readPackage(root)
       const dependencies = packageDependencies(packageJson)
@@ -516,6 +526,7 @@ export async function startDevServer(options: DevServerOptions) {
             runtimeUrl: withBase(base, '/_jar/runtime.js'),
             devjarRuntime: true,
             liveReload: true,
+            metadataFiles,
             head: '',
             content: '',
             styles: '',
@@ -540,7 +551,7 @@ export async function startDevServer(options: DevServerOptions) {
       pendingFiles.clear()
       const timestamp = pendingTimestamp
       pendingTimestamp = 0
-      let reload = changedFiles.includes('package.json')
+      let reload = changedFiles.includes('package.json') || changedFiles.some(isMetadataFile)
       const routes = changedFiles.some(filename => (
         filename.startsWith('pages/') && routeFromPagePath(filename.slice('pages/'.length)) !== undefined
       ))
@@ -669,6 +680,17 @@ async function copyApiFiles(source: string, destination: string) {
   }
 }
 
+function isMetadataFile(filename: string) {
+  return /^icon\.(ico|png|jpg|jpeg|svg|gif|webp)$/.test(filename)
+    || /^opengraph-image\.(png|jpg|jpeg|gif|webp)$/.test(filename)
+}
+
+async function discoverMetadataFiles(root: string) {
+  const entries = await readdir(root, { withFileTypes: true })
+  return entries.filter(entry => entry.isFile() && isMetadataFile(entry.name))
+    .map(entry => entry.name).sort()
+}
+
 async function copyPublicFiles(source: string, destination: string) {
   if (!await directoryExists(source)) return
   for (const entry of await readdir(source, { withFileTypes: true })) {
@@ -770,6 +792,7 @@ async function writeRouteHtml(
     | 'clientUrl'
     | 'runtimeUrl'
     | 'devjarRuntime'
+    | 'metadataFiles'
   >,
 ) {
   const outputPath = routeHtmlPath(outDir, route)
@@ -784,6 +807,7 @@ async function writeRouteHtml(
     runtimeUrl: options.runtimeUrl,
     devjarRuntime: options.devjarRuntime,
     liveReload: false,
+    metadataFiles: options.metadataFiles,
     head: rendered.head,
     content: rendered.markup,
     styles: rendered.styles,
@@ -925,6 +949,10 @@ async function buildProjectWithLocalPackages(options: BuildOptions, localPackage
   await rm(outDir, { recursive: true, force: true })
   await mkdir(outDir, { recursive: true })
   await copyPublicFiles(join(root, 'public'), outDir)
+  const metadataFiles = await discoverMetadataFiles(root)
+  for (const filename of metadataFiles) {
+    await cp(join(root, filename), join(outDir, filename))
+  }
   await writeFile(join(outDir, 'manifest.json'), JSON.stringify(manifest))
   const runtimeAssets = await copyRuntimeAssets(join(outDir, '_jar'), devjarRuntime)
   const runtimeUrl = runtimeAssets.runtimeAsset
@@ -932,6 +960,7 @@ async function buildProjectWithLocalPackages(options: BuildOptions, localPackage
     : withBase(base, '/_jar/runtime.js')
   for (const route of Object.keys(manifest.routes)) {
     await writeRouteHtml(outDir, route, renderedRoutes[route], {
+      metadataFiles,
       resolveModule: resolveBuiltModule,
       resolveRuntimeModule: resolveBuiltRuntimeModule,
       tailwindUrl: undefined,

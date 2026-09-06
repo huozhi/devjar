@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./site/public/icon.svg" alt="devjar logo" width="112" height="112">
+  <img src="./site/icon.svg" alt="devjar logo" width="112" height="112">
 </p>
 
 # devjar
@@ -312,6 +312,21 @@ for content-hashed assets. Use the Other framework preset and run
 
 <details>
 <summary>Page metadata and prerendering</summary>
+
+Place images in the project root (alongside `pages/`) to add them to every
+page in development and static exports:
+
+```text
+icon.svg             → <link rel="icon" href="/icon.svg" type="image/svg+xml">
+opengraph-image.jpg  → <meta property="og:image" content="/opengraph-image.jpg">
+```
+
+Icons support `.ico`, `.png`, `.jpg`, `.jpeg`, `.svg`, `.gif`, and `.webp`.
+Open Graph images support `.png`, `.jpg`, `.jpeg`, `.gif`, and `.webp`.
+Multiple matching files are included in filename order. URLs respect `--base`;
+root metadata files take precedence over files with the same name in `public/`.
+
+Add page titles and other metadata in the page component:
 
 ```tsx
 export default function Page() {
