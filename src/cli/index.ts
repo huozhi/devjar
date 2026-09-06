@@ -250,7 +250,7 @@ await import(${JSON.stringify(options.clientUrl)})
     const url = withBase(options.base, `/${filename}`)
     return filename.startsWith('icon.')
       ? `<link rel="icon" href="${url}" type="${contentTypes[extname(filename)]}">`
-      : `<meta property="og:image" content="${url}">`
+      : `<meta property="og:image" content="${url}"><meta name="twitter:image" content="${url}">`
   }).join('')}`
   const documentHead = /<title(?:\s|>)/i.test(options.head)
     ? options.head

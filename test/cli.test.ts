@@ -391,7 +391,10 @@ describe('dev server', () => {
         const document = await (await fetch(`${base}${route}`)).text()
         expect(document).toContain('<meta name="twitter:card" content="summary_large_image">')
         for (const filename of icons) expect(document).toContain(`rel="icon" href="/docs/${filename}"`)
-        for (const filename of images) expect(document).toContain(`property="og:image" content="/docs/${filename}"`)
+        for (const filename of images) {
+          expect(document).toContain(`property="og:image" content="/docs/${filename}"`)
+          expect(document).toContain(`name="twitter:image" content="/docs/${filename}"`)
+        }
         expect(document).not.toContain('opengraph-image.svg')
         expect(document).not.toContain('icon.txt')
         expect(document).not.toContain('opengraph-image.ico')
@@ -695,6 +698,7 @@ describe('production build', () => {
     expect(builtHtml).toContain('<title data-devjar-default>Devjar</title>')
     expect(builtHtml).toContain('<meta name="devjar-base" content="/preview/">')
     expect(builtHtml).toContain('<meta name="twitter:card" content="summary_large_image">')
+    expect(builtHtml).toContain('<meta name="twitter:image" content="/preview/opengraph-image.jpg">')
     expect(builtHtml).toContain(`src="/preview/_jar/assets/${clientAsset}"`)
     expect(builtHtml).toMatch(/<link data-devjar-tailwind rel="stylesheet" href="\/preview\/_jar\/assets\/tailwind-[a-f0-9]{10}\.css">/)
     expect(builtHtml).not.toContain('<script data-devjar-tailwind')
@@ -863,6 +867,7 @@ export default function Page() {
         expect(page).toContain('<meta name="twitter:card" content="summary_large_image">')
         expect(page).toContain('<link rel="icon" href="/icon.png" type="image/png">')
         expect(page).toContain('<meta property="og:image" content="/opengraph-image.png">')
+        expect(page).toContain('<meta name="twitter:image" content="/opengraph-image.png">')
       }
       expect(await readFile(join(result.outDir, '404/index.html'), 'utf8'))
         .toContain('<h1>Static not found</h1>')
