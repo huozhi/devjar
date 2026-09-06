@@ -1,0 +1,30 @@
+.jar-playground { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(0, 1.55fr); border: 1px solid #deded6; border-radius: 8px; overflow: hidden; background: #f3eee6; }
+.jar-controls { display: flex; flex-direction: column; justify-content: center; gap: 24px; padding: 28px 32px; background: #f6f6f6; border-right: 1px solid #deded6; color: #383830; }
+.jar-controls-heading { display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
+.jar-controls-heading button { border: 0; padding: 4px 0; background: none; color: #77776c; font: inherit; font-size: 11px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.jar-sliders { display: flex; justify-content: space-between; gap: 12px; }
+.jar-controls label { display: flex; flex-direction: column; align-items: center; gap: 14px; font-size: 11px; }
+.jar-controls output { order: 2; color: #87867d; font: 11px var(--font-ioskeley-mono); font-variant-numeric: tabular-nums; }
+.jar-controls input {
+  --jar-handle: #fafaf8 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='32' viewBox='0 0 22 32'%3E%3Cpath d='M7 11h8m-8 5h8m-8 5h8' stroke='%23919185' stroke-width='1.2' stroke-linecap='round'/%3E%3C/svg%3E") center / 22px 32px no-repeat;
+  appearance: none; -webkit-appearance: none; writing-mode: vertical-lr; direction: rtl;
+  width: 32px; height: 112px; margin: 0; background: transparent; cursor: pointer;
+}
+.jar-controls input::-webkit-slider-runnable-track { width: 4px; height: 100%; border-radius: 4px; background: #d9dad2; }
+.jar-controls input::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; width: 22px; height: 32px; margin-left: -9px; border: 1px solid #bfc0b4; border-radius: 8px; background: var(--jar-handle); box-shadow: 0 2px 4px #30332212; }
+.jar-controls input::-moz-range-track { width: 4px; height: 100%; border-radius: 4px; background: #d9dad2; }
+.jar-controls input::-moz-range-thumb { width: 20px; height: 30px; border: 1px solid #bfc0b4; border-radius: 8px; background: var(--jar-handle); box-shadow: 0 2px 4px #30332212; }
+.jar-controls :focus-visible { outline: 2px solid #a16a46; outline-offset: 4px; }
+.jar-controls p { margin: 0; color: #87867d; font-size: 11px; }
+.jar-preview { position: relative; height: 360px; min-width: 0; }
+.jar-preview iframe { display: block; width: 100%; height: 100%; border: 0; }
+.jar-loading { position: absolute; inset: 0; display: grid; place-items: center; background: #f3eee699; backdrop-filter: blur(3px); color: #786b5c; font: 11px var(--font-ioskeley-mono); animation: jar-loading-in 180ms 250ms both; pointer-events: none; }
+.jar-loading span { padding: 12px 18px; border-radius: 24px; background: #faf8f1cc; }
+@keyframes jar-loading-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .jar-loading { animation-duration: 1ms; } }
+.jar-status { position: absolute; left: 18px; top: 14px; max-width: calc(100% - 36px); margin: 0; color: #786b5c; background: #f3eee6; font: 11px var(--font-ioskeley-mono); white-space: pre-wrap; }
+@media (max-width: 900px) {
+  .jar-playground { grid-template-columns: 1fr; }
+  .jar-preview { grid-row: 1; }
+  .jar-controls { padding: 22px 24px; gap: 20px; border-right: 0; border-top: 1px solid #deded6; }
+}

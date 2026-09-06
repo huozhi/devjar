@@ -26,7 +26,7 @@
 [data-codesandbox="react"][data-focused] .codesandbox-layout[data-editor-action] { position: relative; }
 [data-codesandbox="react"][data-focused] [data-editor-action] .editor { padding-bottom: 90px; }
 .floating-editor-action { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 2; display: flex; align-items: center; flex-direction: row; gap: 8px; white-space: nowrap; }
-.floating-editor-action button { display: inline-flex; align-items: center; gap: 9px; border: 1px solid #33372c; background: #292d24; color: #f7f4e9; padding: 11px 17px; border-radius: 24px; font-size: 12px; cursor: pointer; box-shadow: 0 4px 12px #272d2420; }
+.floating-editor-action button { display: inline-flex; align-items: center; gap: 9px; border: 1px solid #33372c; background: #292d24; color: #f7f4e9; padding: 11px 17px; border-radius: 24px; font-size: 12px; cursor: pointer; box-shadow: 0 4px 12px #272d2420; -webkit-tap-highlight-color: transparent; }
 .floating-editor-action .playback-action { width: 100px; flex-shrink: 0; justify-content: center; }
 .playback-action > span { width: 15px; flex-shrink: 0; text-align: center; }
 .floating-editor-action button:hover { background: #424a36; }
@@ -35,7 +35,7 @@
 .floating-editor-action button:disabled { opacity: .5; cursor: wait; }
 @media (max-width: 900px) {
   [data-codesandbox="react"][data-focused] [data-editor-action] .editor { padding-bottom: 0; }
-  .floating-editor-action { position: static; transform: none; flex-shrink: 0; justify-content: center; padding: 12px 0 16px; border-top: 1px solid #eeede6; background: #fff; }
+  .floating-editor-action { position: static; transform: none; flex-shrink: 0; justify-content: center; padding: 12px 0 16px; border-top: 1px solid #eeede6; background: #f6f6f6; }
 }
 
 @media (max-width: 640px) {

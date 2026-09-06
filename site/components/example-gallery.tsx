@@ -2,7 +2,7 @@ import { Codesandbox } from './codesandbox'
 import { demoFiles, demoContentPresets, demoContentJson } from '../lib/demo-files'
 import { drumFiles, shuffleDrumPattern } from '../lib/examples/drums'
 import { shaderFiles, shuffleShaderColor } from '../lib/examples/shader'
-import { jarFiles } from '../lib/examples/jar'
+import { JarPlayground } from './jar-playground'
 import './example-gallery.css'
 
 const contentScroll = { intervalMs: undefined, file: 'content.json', values: demoContentPresets.map(demoContentJson) }
@@ -24,7 +24,6 @@ const shaderAction = { label: 'Shuffle color', generate: shuffleShaderColor, pla
 const examples = [
   { id: 'drums', files: drumFiles, focusFile: 'patterns/pocket.ts', label: 'Drum machine', editorAction: { label: 'Shuffle beat', generate: shuffleDrumPattern, playback: true } },
   { id: 'template', files: demoFiles, focusFile: 'content.json', label: 'CMS example', editorAction: undefined },
-  { id: 'jar', files: jarFiles, focusFile: 'cards.json', label: 'Cards in a jar · React Three Fiber', editorAction: undefined },
 ]
 export function ExampleGallery() {
   return (
@@ -48,6 +47,10 @@ export function ExampleGallery() {
             </div>
           </section>
         ))}
+        <section id="jar" className="example-row" aria-label="Cards in a jar">
+          <h3 className="example-row-heading">Cards in a jar · React Three Fiber</h3>
+          <JarPlayground />
+        </section>
       </section>
     </>
   )

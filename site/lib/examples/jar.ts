@@ -1,13 +1,9 @@
 import { source } from '../demo-files'
 
+export const jarSettings = { throw: 3.2, gravity: 9, glass: 0.22 }
+
 export const jarFiles = {
-  'jar.json': source`\
-  {
-    "throw": 3.2,
-    "gravity": 9,
-    "glass": 0.22
-  }
-  `,
+  'jar.json': JSON.stringify(jarSettings, null, 2),
   'cards.json': source`\
   [
     { "design": "code", "color": "#eee2ca", "width": 0.54, "height": 0.76, "x": -0.24, "z": -0.12, "tilt": 0.18 },
@@ -268,6 +264,7 @@ export const jarFiles = {
   }
   `,
   'styles.css': source`\
+  body { -webkit-user-select: none; user-select: none; }
   * { box-sizing: border-box; }
   body { margin: 0; background: #f3eee6; color: #786b5c; font: 11px ui-monospace, monospace; }
   main { height: 360px; position: relative; }

@@ -123,6 +123,7 @@ export const shaderFiles = {
   \`
   `,
   'styles.css': source`\
+  body { -webkit-user-select: none; user-select: none; }
   * { box-sizing: border-box; }
   body { margin: 0; background: #13131b; color: #c7c5d6; font-family: Arial, sans-serif; }
   main { min-height: 360px; display: flex; flex-direction: column; }

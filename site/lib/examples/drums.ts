@@ -303,6 +303,7 @@ export const drumFiles = {
   }
   `,
   'styles.css': source`\
+  body { -webkit-user-select: none; user-select: none; }
   * { box-sizing: border-box; }
   body { margin: 0; font-family: Arial, sans-serif; background: #e7e5df; color: #e9e6dc; }
   button, input { font: inherit; } button { cursor: pointer; }

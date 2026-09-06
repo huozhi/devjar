@@ -144,6 +144,7 @@ export const demoFiles = {
   }
   `,
   'styles.css': source`\
+  body { -webkit-user-select: none; user-select: none; }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: #f7f7f7; color: #404040; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
   .page { max-width: 1000px; margin: 0 auto; padding: 0 24px 24px; }
