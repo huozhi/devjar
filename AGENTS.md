@@ -49,16 +49,15 @@
 
 ```sh
 pnpm install
-pnpm run setup:compiler
 pnpm run build
 pnpm run dev
 pnpm run typecheck
 bun test
 ```
 
-Source builds require Rust and wasm-bindgen; `setup:compiler` installs the pinned
-toolchain and binding generator. Published npm packages include the compiled
-WASM and do not require Rust.
+Source builds cache the generated compiler and install the pinned Rust toolchain
+and wasm-bindgen on a cache miss. `setup:compiler` can also run setup explicitly.
+Published npm packages include the compiled WASM and do not require Rust.
 
 Run the full build after runtime changes to regenerate client and worker assets.
 CLI tests open local HTTP servers.

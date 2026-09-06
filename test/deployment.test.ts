@@ -10,7 +10,7 @@ describe('Vercel deployment', () => {
     const config = JSON.parse(await readFile(new URL('../vercel.json', import.meta.url), 'utf8'))
 
     expect(config.framework).toBeNull()
-    expect(config.buildCommand).toBe('bun scripts/build-vercel.ts')
+    expect(config.buildCommand).toBe('pnpm run build:website')
     expect(config.outputDirectory).toBeUndefined()
     expect(config.headers).toBeUndefined()
   })
@@ -42,7 +42,7 @@ describe('Vercel deployment', () => {
   })
 })
 
-test('deployment cache skips unchanged compiler builds and invalidates compiler inputs or damaged assets', async () => {
+test('compiler cache skips unchanged builds and invalidates compiler inputs or damaged assets', async () => {
   const root = await mkdtemp(join(tmpdir(), 'devjar-compiler-cache-'))
   const output = join(root, 'compiler/pkg')
   const cache = join(root, 'node_modules/.cache/devjar-compiler')

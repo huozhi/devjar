@@ -8,7 +8,6 @@ to use the native `oxc-transform` package.
 From the repository root:
 
 ```sh
-pnpm run setup:compiler
 pnpm run build:worker
 ```
 
@@ -30,11 +29,13 @@ for the Rust sources, manifests, toolchain, and build/setup scripts restores
 `compiler/pkg` and sets `DEVJAR_COMPILER_CACHE_HIT=true`, skipping Rust setup
 and compilation. Worker JavaScript and hashed asset references are still built
 each time. Cache misses build from source, reusing Cargo dependencies, target
-files, and the wasm-bindgen executable when available. Local builds continue
-to use Cargo's normal build cache.
+files, and the wasm-bindgen executable when available.
 
-Vercel uses `bun scripts/build-vercel.ts` to keep the generated binding and WASM
-in `node_modules/.cache/devjar-compiler`, inside its persisted dependency cache.
+Source builds keep the generated binding and WASM in
+`node_modules/.cache/devjar-compiler`. On a cache miss, the worker build runs
+setup and compiles Rust before bundling the worker once. Local builds also
+reuse Cargo's normal build cache. Vercel runs `pnpm run build:website` and
+stores the compiler cache inside its persisted dependency cache.
 The cache key covers compiler sources, Cargo manifests and configuration, the
 toolchain, and compiler build/setup scripts. A hit restores `compiler/pkg` and
 skips Rust setup and compilation while still rebuilding the current worker,

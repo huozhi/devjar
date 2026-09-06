@@ -3,6 +3,7 @@ import { cp, copyFile, mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/pr
 import { homedir, tmpdir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { ensureCompiler } from './compiler-cache'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const bindingDirectory = join(root, 'compiler/pkg')
@@ -15,12 +16,19 @@ if (process.env.DEVJAR_COMPILER_CACHE_HIT === 'true') {
     }
   }
   console.log('Reusing cached browser compiler')
-} else for (const command of [
-  [Bun.which('cargo') ?? join(process.env.CARGO_HOME ?? join(homedir(), '.cargo'), 'bin/cargo'), 'build', '--locked', '--release', '--target', 'wasm32-unknown-unknown'],
-  [join(root, 'compiler/tools/bin/wasm-bindgen'), 'target/wasm32-unknown-unknown/release/devjar_browser_compiler.wasm', '--target', 'web', '--out-dir', 'pkg'],
-]) {
-  const process = Bun.spawn(command, { cwd: join(root, 'compiler'), stdout: 'inherit', stderr: 'inherit' })
-  if (await process.exited !== 0) throw new Error('Compiler build failed. Run pnpm run setup:compiler first.')
+} else {
+  const hit = await ensureCompiler(root, async () => {
+    console.log('Browser compiler cache miss; building from Rust sources')
+    for (const command of [
+      ['bash', join(root, 'scripts/setup-compiler.sh')],
+      [Bun.which('cargo') ?? join(process.env.CARGO_HOME ?? join(homedir(), '.cargo'), 'bin/cargo'), 'build', '--locked', '--release', '--target', 'wasm32-unknown-unknown'],
+      [join(root, 'compiler/tools/bin/wasm-bindgen'), 'target/wasm32-unknown-unknown/release/devjar_browser_compiler.wasm', '--target', 'web', '--out-dir', 'pkg'],
+    ]) {
+      const child = Bun.spawn(command, { cwd: join(root, 'compiler'), stdout: 'inherit', stderr: 'inherit' })
+      if (await child.exited !== 0) throw new Error(`Compiler build failed: ${command.join(' ')}`)
+    }
+  })
+  console.log(hit ? 'Reusing cached browser compiler' : 'Saved browser compiler cache')
 }
 const distDirectory = join(root, 'dist')
 const assetsDirectory = join(distDirectory, 'assets')
