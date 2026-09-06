@@ -6,5 +6,6 @@ dist
 .vercel
 .env.local
 error.log
+video/out/
 
 /src/client/generated/

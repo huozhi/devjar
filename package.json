@@ -55,6 +55,9 @@
     "dev:cli": "node ./dist/bin.js dev examples/dashboard",
     "demo:build": "node ./dist/bin.js build examples/dashboard",
     "demo:start": "node ./dist/bin.js start examples/dashboard/dist",
+    "video": "remotion studio video/index.ts --config=video/remotion.config.ts",
+    "video:check": "remotion compositions video/index.ts --config=video/remotion.config.ts",
+    "video:render": "remotion render video/index.ts devjar-v1 video/out/devjar-v1.mp4 --config=video/remotion.config.ts --muted",
     "test": "bun test",
     "test:package": "bun scripts/check-package.ts",
     "typecheck": "tsc --noEmit",
@@ -70,6 +73,8 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
+    "@remotion/cli": "4.0.521",
+    "@remotion/transitions": "4.0.521",
     "@sugar-high/react": "2.2.2",
     "@types/node": "^22.10.7",
     "@types/react": "^19.0.7",
@@ -80,6 +85,7 @@
     "devjar": "link:",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
+    "remotion": "4.0.521",
     "sugar-high": "2.3.1",
     "typescript": "^7.0.2"
   },

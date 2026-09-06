@@ -3,6 +3,7 @@ packages:
 
 allowBuilds:
   '@swc/core': true
+  esbuild: true
   sharp: true
 minimumReleaseAgeExclude:
   - '@sugar-high/react'
