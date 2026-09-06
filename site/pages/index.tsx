@@ -15,7 +15,6 @@ export default function Page() {
       <meta name="author" content="@huozhi" />
       <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
-      <meta name="twitter:card" content="summary_large_image" />
       <link rel="alternate" type="text/plain" title="Devjar agent reference" href="/llms.txt" />
       <main>
         <Banner />
