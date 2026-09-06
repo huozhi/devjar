@@ -246,12 +246,12 @@ await import(${JSON.stringify(options.clientUrl)})
   const staticStyles = options.styles
     ? `<style data-devjar-static>${options.styles.replace(/<\/style/gi, '<\\/style')}</style>`
     : ''
-  const metadataHead = options.metadataFiles.map(filename => {
+  const metadataHead = `<meta name="twitter:card" content="summary_large_image">${options.metadataFiles.map(filename => {
     const url = withBase(options.base, `/${filename}`)
     return filename.startsWith('icon.')
       ? `<link rel="icon" href="${url}" type="${contentTypes[extname(filename)]}">`
       : `<meta property="og:image" content="${url}">`
-  }).join('')
+  }).join('')}`
   const documentHead = /<title(?:\s|>)/i.test(options.head)
     ? options.head
     : `<title data-devjar-default>Devjar</title>${options.head}`

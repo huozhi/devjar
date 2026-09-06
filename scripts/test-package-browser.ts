@@ -78,6 +78,7 @@ async function assertPage(page: Page, heading: string, title: string) {
   )
   assert.equal(await page.locator('h1').textContent(), heading)
   assert.equal(await page.title(), title)
+  assert.equal(await page.locator('head meta[name="twitter:card"]').getAttribute('content'), 'summary_large_image')
   assert.equal(await page.locator('head link[rel=icon]').getAttribute('href'), '/preview/icon.svg')
   assert.equal(await page.locator('head meta[property="og:image"]').getAttribute('content'), '/preview/opengraph-image.png')
 }

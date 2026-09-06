@@ -389,6 +389,7 @@ describe('dev server', () => {
       const base = `http://${server.host}:${server.port}/docs`
       for (const route of ['/', '/nested/page']) {
         const document = await (await fetch(`${base}${route}`)).text()
+        expect(document).toContain('<meta name="twitter:card" content="summary_large_image">')
         for (const filename of icons) expect(document).toContain(`rel="icon" href="/docs/${filename}"`)
         for (const filename of images) expect(document).toContain(`property="og:image" content="/docs/${filename}"`)
         expect(document).not.toContain('opengraph-image.svg')
@@ -693,6 +694,7 @@ describe('production build', () => {
     const builtHtml = await readFile(join(buildRoot, 'index.html'), 'utf8')
     expect(builtHtml).toContain('<title data-devjar-default>Devjar</title>')
     expect(builtHtml).toContain('<meta name="devjar-base" content="/preview/">')
+    expect(builtHtml).toContain('<meta name="twitter:card" content="summary_large_image">')
     expect(builtHtml).toContain(`src="/preview/_jar/assets/${clientAsset}"`)
     expect(builtHtml).toMatch(/<link data-devjar-tailwind rel="stylesheet" href="\/preview\/_jar\/assets\/tailwind-[a-f0-9]{10}\.css">/)
     expect(builtHtml).not.toContain('<script data-devjar-tailwind')
@@ -858,6 +860,7 @@ export default function Page() {
       expect(notFoundDocument).toContain('<title data-devjar-default>Devjar</title>')
       expect(notFoundDocument).toContain('<h1>Static not found</h1>')
       for (const page of [document, aboutDocument, notFoundDocument]) {
+        expect(page).toContain('<meta name="twitter:card" content="summary_large_image">')
         expect(page).toContain('<link rel="icon" href="/icon.png" type="image/png">')
         expect(page).toContain('<meta property="og:image" content="/opengraph-image.png">')
       }

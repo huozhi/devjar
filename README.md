@@ -330,6 +330,7 @@ opengraph-image.jpg  → <meta property="og:image" content="/opengraph-image.jpg
 
 Icons support `.ico`, `.png`, `.jpg`, `.jpeg`, `.svg`, `.gif`, and `.webp`.
 Open Graph images support `.png`, `.jpg`, `.jpeg`, `.gif`, and `.webp`.
+Every page includes a `summary_large_image` Twitter card tag.
 Multiple matching files are included in filename order. URLs respect `--base`;
 root metadata files take precedence over files with the same name in `public/`.
 
