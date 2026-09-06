@@ -9,6 +9,7 @@ Make an idea real. Change it live.
 Embed editable React previews in your app, or build a static website with a
 zero-config CLI.
 
+Documentation: [devjar.vercel.app/docs](https://devjar.vercel.app/docs).
 Agent reference: [llms.txt](./site/public/llms.txt).
 
 ## Live code APIs

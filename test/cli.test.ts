@@ -244,6 +244,7 @@ export function projectComponent() { return environment }
   test('loads the website and its editable source files', async () => {
     const manifest = await loadTestRouteManifest(websiteRoot)
     expect(manifest.routes['/'].page).toBe('pages/index.tsx')
+    expect(manifest.routes['/docs'].page).toBe('pages/docs.tsx')
 
     const files = await collectProjectFiles(
       await realpath(websiteRoot),

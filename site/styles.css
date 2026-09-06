@@ -138,6 +138,7 @@ footer {
 }
 .intro-links { position: absolute; top: 28px; right: 32px; display: flex; align-items: center; gap: 12px; color: #737373; }
 .intro-links a { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 6px; text-decoration: none; }
+.intro-links .intro-docs { width: auto; padding: 0 10px; font-size: 14px; }
 .intro-links a:hover { color: #171717; background: #f4f4f4; }
 .intro-section h1 { margin: 0; font-size: clamp(72px, 9vw, 120px); font-weight: 600; letter-spacing: -.07em; line-height: 1; }
 .intro-copy { margin: 20px 0 0; color: #737373; font-size: clamp(18px, 2.2vw, 26px); font-weight: 300; letter-spacing: -.025em; line-height: 1.4; }

@@ -4,8 +4,11 @@
 
 ## References
 
+- [Documentation: live code APIs and CLI](https://devjar.vercel.app/docs)
+- [Interactive examples](https://devjar.vercel.app/)
 - [Migrate from Sandpack or React Live](https://github.com/huozhi/devjar/blob/main/docs/MIGRATION.md)
-- [README and API reference](https://github.com/huozhi/devjar/blob/main/README.md)
+- [README](https://github.com/huozhi/devjar/blob/main/README.md)
+- [Detailed API reference](https://github.com/huozhi/devjar/blob/main/docs/API.md)
 - [Personal site: playground to static export](https://github.com/huozhi/devjar/tree/main/examples/personal)
 - [Minimal website](https://github.com/huozhi/devjar/tree/main/examples/basic)
 - [Dashboard](https://github.com/huozhi/devjar/tree/main/examples/dashboard)
@@ -102,8 +105,10 @@ configuration file or a devjar field in package.json. User settings are CLI flag
 - Text imports work in the live runtime and CLI. They are explicit; shader extensions have no special behavior.
 - Use normal anchors such as <a href="/about">About</a>. Virtual projects navigate within the iframe.
 - Put <title> and <meta> in page components for document metadata.
+- Root icon.* and opengraph-image.* files add shared icon and Open Graph image tags to every CLI page and are copied into the export.
 - An optional package.json supplies dependencies and devDependencies for CDN versions or local package paths. CDN dependencies need no local install.
 - Keep React and React DOM versions compatible across the parent app and preview.
+- Apps and embedded previews run in the browser. Dependencies must be browser-compatible. Listing a server-only library in dependencies does not make it usable; it must provide a browser-compatible bundle or entry point. Devjar does not provide a server runtime or polyfill Node.js APIs.
 - In the CLI, public/ files are served from the root. Imported image, font, audio, video, and PDF files export asset URLs.
 - The virtual files map holds source strings; it does not provide the CLI's public directory or binary-asset pipeline.
 

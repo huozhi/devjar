@@ -1,0 +1,83 @@
+.docs-page {
+  max-width: 728px;
+  margin: 0 auto;
+  padding: 28px 24px 32px;
+}
+
+.docs-home {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 10px;
+  margin-left: -10px;
+  border-radius: 6px;
+  font-family: var(--font-ioskeley-mono);
+  font-size: 18px;
+  letter-spacing: -.04em;
+}
+
+.docs-header nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 13px;
+  color: #737373;
+}
+
+.docs-header a {
+  text-decoration: none;
+}
+
+.docs-header a:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.docs-header .docs-home:hover {
+  color: inherit;
+  background: #f4f4f4;
+  text-decoration: none;
+}
+
+.docs-header h1 {
+  margin: 64px 0 16px;
+  font-size: clamp(36px, 7vw, 52px);
+  font-weight: 500;
+  letter-spacing: -.05em;
+  color: #171717;
+}
+
+.docs-header .docs-contents {
+  justify-content: flex-start;
+  margin-top: 28px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #e7e5e4;
+}
+
+.docs-page .usage-section {
+  padding: 0;
+  scroll-margin-top: 24px;
+}
+
+.docs-note {
+  margin: 0;
+  padding: 4px 0 4px 20px;
+  border-left: 3px solid #c9c3b8;
+  color: #6b7280;
+  font-size: 0.9375rem;
+  line-height: 1.7;
+}
+
+.docs-note p { margin: 0; }
+
+.docs-page :focus-visible {
+  outline: 2px solid #737373;
+  outline-offset: 4px;
+}
+
+@media (max-width: 640px) {
+  .docs-page { padding: 24px 16px 32px; }
+}
