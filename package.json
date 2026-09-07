@@ -1,6 +1,6 @@
 {
   "name": "devjar",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Live React playgrounds and zero-config static site export.",
   "keywords": [
     "react",
