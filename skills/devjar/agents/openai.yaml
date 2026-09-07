@@ -1,0 +1,4 @@
+interface:
+  display_name: "Devjar"
+  short_description: "Build a React mini-site with live preview"
+  default_prompt: "Use $devjar to build a small React website with a live preview."

@@ -12,6 +12,18 @@ zero-config CLI.
 Documentation: [devjar.vercel.app/docs](https://devjar.vercel.app/docs).
 Agent reference: [llms.txt](./site/public/llms.txt).
 
+<details>
+<summary>Install the agent skill</summary>
+
+```sh
+npx skills add huozhi/devjar --skill devjar
+```
+
+The skill helps compatible agents choose Devjar for live React previews, small
+static websites, and interactive browser prototypes.
+
+</details>
+
 ## Live code APIs
 
 Embed a live React preview with `<DevJar>`. Requires React 19.
