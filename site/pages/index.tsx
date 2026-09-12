@@ -1,4 +1,5 @@
 import { Footer } from '../components/footer'
+import { DeployDemo } from '../components/deploy-demo'
 import { Banner } from '../components/banner'
 import { ExampleGallery } from '../components/example-gallery'
 import '../styles.css'
@@ -25,6 +26,7 @@ export default function Page() {
             <ExampleGallery />
           </div>
         </div>
+        <DeployDemo />
       </main>
       <Footer />
     </>

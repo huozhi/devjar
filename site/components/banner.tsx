@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 const tabs = [
   { id: 'prompt', label: 'Prompt', text: 'Build a website with Devjar. Follow https://devjar.vercel.app/llms.txt' },
   { id: 'install', label: 'Install', text: 'npm install devjar' },
-  { id: 'cli', label: 'CLI', text: 'npx devjar dev' },
+  { id: 'cli', label: 'CLI', text: 'npx devjar dev\nnpx devjar build' },
 ]
 
 export function Banner() {
@@ -48,7 +48,7 @@ export function Banner() {
       </nav>
       <h1>devjar</h1>
       <p className="intro-copy">Live Playground &amp; Static Site Export</p>
-      <p className="intro-agents">Designed for agents. Zero Config</p>
+      <p className="intro-agents">Designed for agents. Zero config. No node_modules required.</p>
       <div className="intro-command">
         <div className="intro-command-tabs" role="tablist" aria-label="Get started">
           {tabs.map((tab, index) => <button key={tab.id} ref={node => { buttons.current[index] = node }}

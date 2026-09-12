@@ -421,3 +421,59 @@ html { scroll-behavior: smooth; }
 
 @media (max-width: 900px) and (min-width: 641px) { .intro-section { padding-left: 16px; padding-right: 16px; } }
 @media (max-width: 640px) { .intro-links { top: 20px; right: 12px; } .intro-command-panel { min-height: 124px; } }
+
+.deploy-section { max-width: 1024px; margin: 64px auto 0; padding: 0 32px; color: #40403b; }
+.deploy-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 24px; }
+.deploy-eyebrow { font: 10px/1.5 var(--font-ioskeley-mono); letter-spacing: .12em; color: #827c71; }
+.deploy-heading h2 { margin: 12px 0; font-size: clamp(28px, 4vw, 38px); font-weight: 500; letter-spacing: -.045em; }
+.deploy-heading p:not(.deploy-eyebrow) { margin: 0; font-size: 14px; color: #73716b; line-height: 1.6; }
+.deploy-terminal-body { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 48px; padding: 24px 0; }
+.deploy-terminal code, .deploy-terminal pre { font: 12px/1.8 var(--font-ioskeley-mono); }
+.deploy-terminal pre { margin: 0; }
+.deploy-step-ready { color: #8a8377; padding: 6px 0 24px; }
+.deploy-step-files { color: #8a8377; padding: 16px 0 24px; }
+.deploy-prompt { color: #a49b8b; }
+.deploy-step-upload { padding-top: 16px; color: #8a8377; }
+.deploy-step-done { color: #52775a; padding-top: 8px; }
+.deploy-browser { min-width: 0; }
+.deploy-browser-address { display: grid; flex: 1; min-width: 0; padding: 9px 12px; border-bottom: 1px solid #dcd8cf; text-align: center; font: 10px/1.4 var(--font-ioskeley-mono); }
+.deploy-browser-address span { grid-area: 1 / 1; }
+.deploy-url-local { opacity: 0; }
+.deploy-url-live { color: #52775a; }
+.deploy-preview { position: relative; isolation: isolate; overflow: hidden; padding: 30px 0 24px; min-height: 240px; color: #334c3c; }
+.deploy-preview-label { font-size: 7px; letter-spacing: .1em; }
+.deploy-preview-title { margin-top: 10px; font: 48px/.95 Georgia, serif; letter-spacing: -.06em; }
+.deploy-preview p { font-size: 10px; margin: 12px 0 18px; }
+.deploy-preview-art { position: absolute; z-index: -1; right: -35px; bottom: 28px; width: 130px; height: 150px; transform: rotate(-25deg); }
+.deploy-preview-art span { position: absolute; inset: 0; border: 1px solid #9faa87; border-radius: 50%; background: #c9d0b530; }
+.deploy-preview-art span:nth-child(2) { transform: translateX(-18px); }
+.deploy-preview-art span:nth-child(3) { transform: translateX(-36px); }
+.deploy-note { margin: 14px 0 0; color: #827c71; font-size: 11px; line-height: 1.7; }
+.deploy-note a { text-underline-offset: 3px; }
+@media (prefers-reduced-motion: no-preference) {
+  .deploy-step { opacity: 0; }
+  .deploy-url-local { opacity: 1; }
+  .deploy-url-live { opacity: 0; }
+  .is-playing .deploy-step { animation: deploy-dev 12s infinite;
+  }
+  .is-playing .deploy-step-ready { animation-name: deploy-ready; }
+  .is-playing .deploy-step-build { animation-name: deploy-build; }
+  .is-playing .deploy-step-files { animation-name: deploy-files; }
+  .is-playing .deploy-step-command { animation-name: deploy-command; }
+  .is-playing .deploy-step-upload { animation-name: deploy-upload; }
+  .is-playing .deploy-step-done, .is-playing .deploy-url-live { animation: deploy-live 12s infinite; }
+  .is-playing .deploy-url-local { animation: deploy-local 12s infinite; }
+}
+@keyframes deploy-dev { 0% { opacity: 1; clip-path: inset(0 100% 0 0); } 8%, 94% { opacity: 1; clip-path: inset(0); } 100% { opacity: 0; } }
+@keyframes deploy-ready { 0%, 9% { opacity: 0; } 13%, 94% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes deploy-build { 0%, 22% { opacity: 0; clip-path: inset(0 100% 0 0); } 23% { opacity: 1; } 32%, 94% { opacity: 1; clip-path: inset(0); } 100% { opacity: 0; } }
+@keyframes deploy-files { 0%, 33% { opacity: 0; } 37%, 94% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes deploy-command { 0%, 45% { opacity: 0; clip-path: inset(0 100% 0 0); } 46% { opacity: 1; } 57%, 94% { opacity: 1; clip-path: inset(0); } 100% { opacity: 0; } }
+@keyframes deploy-upload { 0%, 58% { opacity: 0; } 62%, 94% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes deploy-live { 0%, 66% { opacity: 0; } 70%, 94% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes deploy-local { 0%, 66% { opacity: 1; } 70%, 94% { opacity: 0; } 100% { opacity: 1; } }
+@media (max-width: 640px) {
+  .deploy-section { padding: 0 12px; margin-top: 40px; }
+  .deploy-terminal-body { grid-template-columns: 1fr; gap: 24px; padding: 20px 0; }
+  .deploy-browser { width: 100%; max-width: 380px; justify-self: center; }
+}
