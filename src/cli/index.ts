@@ -275,7 +275,7 @@ addEventListener('unhandledrejection', event => showBootstrapError(event.reason?
     ? '.devjar-error{box-sizing:border-box;position:fixed;z-index:10;inset:auto 0 0;margin:0;padding:6px 12px;max-height:25vh;overflow:auto;border:0;border-radius:0;background:#fff7f6;color:#9f2d20;font:11px/1.4 ui-monospace,monospace;white-space:pre-wrap}'
     : ''
   return `<!doctype html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="devjar-base" content="${options.base}">${documentHead}${metadataHead}${tailwindPreload}<script type="importmap">${JSON.stringify({ imports })}</script>
 <style>html,body,#root,#__reactRoot{width:100%;min-height:100%;margin:0}${errorStyles}</style>${staticStyles}
 ${tailwindStylesheet}</head><body><div id="root"><div id="__reactRoot">${options.content}</div></div>${errorOverlay}${tailwindScript}${clientScript}</body></html>`

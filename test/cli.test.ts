@@ -849,6 +849,7 @@ export default function Page() {
       expect(document).not.toContain('__jarError')
       expect(document).not.toContain('devjar-error')
       expect(document).toContain('<head><meta charset="utf-8"')
+      expect(document).toContain('<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">')
       expect(document).toContain('<title>Static title</title><meta name="description" content="Static description">')
       expect(document).not.toContain('<div id="__reactRoot"><title>')
       expect(document).toContain('<main class="page"><h1>Static now</h1>')
