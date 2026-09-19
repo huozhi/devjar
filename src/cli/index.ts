@@ -33,6 +33,7 @@ import { prerender, type PrerenderedRoute } from './prerender'
 import { compileTailwind } from './tailwind-build'
 import { vendorModules } from './vendor'
 import { LocalPackages } from './local-packages'
+import { readProjectDependencies } from './project-dependencies'
 
 // Stable identities for vendoring; these URLs are loaded from disk, never fetched.
 const localPackagePrefix = 'https://local.devjar.invalid/_jar/local'
@@ -113,13 +114,6 @@ async function readPackage(root: string): Promise<PackageJson> {
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return {}
     throw error
-  }
-}
-
-function packageDependencies(packageJson: PackageJson) {
-  return {
-    ...packageJson.devDependencies,
-    ...packageJson.dependencies,
   }
 }
 
@@ -509,8 +503,7 @@ export async function startDevServer(options: DevServerOptions) {
       if (metadataFiles.includes(requestPath.slice(1))
         && await serveFile(request, response, root, requestPath.slice(1), undefined, noStore)) return
       if (await serveFile(request, response, join(root, 'public'), requestPath.slice(1), undefined, noStore)) return
-      const packageJson = await readPackage(root)
-      const dependencies = packageDependencies(packageJson)
+      const dependencies = readProjectDependencies(root).versions
       const cdn = resolveCdn(options.cdn)
       send(
         request,
@@ -875,8 +868,7 @@ async function buildProjectWithLocalPackages(options: BuildOptions, localPackage
     throw new Error('The build output must be a directory inside the project root')
   }
 
-  const packageJson = await readPackage(root)
-  const dependencies = packageDependencies(packageJson)
+  const dependencies = readProjectDependencies(root).versions
   const runtime = await runtimeRoot()
   const cdn = resolveCdn(options.cdn)
   const discovered = await discoverRoutes(root, options.exclude)
