@@ -53,18 +53,6 @@ test('resolves file URLs, relative references, absolute paths and scoped subpath
   }
 })
 
-test('resolves a parent manifest local dependency relative to its owner', async () => {
-  await writeFile(join(temporaryRoot, 'package.json'), JSON.stringify({
-    devDependencies: { '@test/spinner': 'file:./local library' },
-  }))
-  await writeFile(join(root, 'package.json'), JSON.stringify({ dependencies: {} }))
-  const local = packages()
-  const url = local.resolve('@test/spinner', 'browser', root)
-  expect((await local.load(new URL(url))).contents).toContain('/_jar/local/')
-  const label = local.resolve('@test/spinner/label', 'browser', root)
-  expect((await local.load(new URL(label))).contents).toContain('Local spinner')
-})
-
 test('supports legacy entry points, export conditions and unexported subpaths', async () => {
   const local = packages()
   await writeFile(join(library, 'package.json'), JSON.stringify({ main: './src/index.tsx' }))

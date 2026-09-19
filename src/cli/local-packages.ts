@@ -4,7 +4,6 @@ import { extname, isAbsolute, join, posix, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createEsmShResolver } from '../shared/cdn'
 import { compileProjectModule } from './modules'
-import { readProjectDependencies } from './project-dependencies'
 
 type Package = {
   dependencies?: Record<string, string>
@@ -101,13 +100,13 @@ export class LocalPackages {
   resolve(specifier: string, platform: 'browser' | 'server', importerRoot: string): string {
     if (/^https?:\/\//.test(specifier)) return specifier
     const name = specifier.startsWith('@') ? specifier.split('/').slice(0, 2).join('/') : specifier.split('/')[0]
-    const project = readProjectDependencies(this.options.root)
-    const importer = importerRoot === this.options.root ? {} : readPackage(importerRoot)
-    const projectDependencies = project.versions
+    const project = readPackage(this.options.root)
+    const importer = importerRoot === this.options.root ? project : readPackage(importerRoot)
+    const projectDependencies = { ...project.devDependencies, ...project.dependencies }
     const dependencies = { ...importer.dependencies, ...projectDependencies }
     if (['react', 'react-dom', 'react-refresh'].includes(name) && !(name in projectDependencies)) delete dependencies[name]
     const version = dependencies[name]
-    const dependencyRoot = project.owners[name] || importerRoot
+    const dependencyRoot = Object.prototype.hasOwnProperty.call(projectDependencies, name) ? this.options.root : importerRoot
     const path = version && localPath(version, dependencyRoot)
     if (!path) return createEsmShResolver(dependencies, this.options.cdn, this.options.development)(specifier)
     const root = realpathSync(path)

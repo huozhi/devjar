@@ -160,10 +160,9 @@ They remain importable; `_layout.tsx` has no automatic layout behavior.
 }
 ```
 
-Put this in `package.json`. Both `dependencies` and `devDependencies` are read.
-The project manifest takes precedence over the nearest parent manifest, which
-supplies missing packages. Within a manifest, `dependencies` take precedence.
-Builds vendor CDN packages into the output.
+Put this in `package.json`. Both `dependencies` and `devDependencies` are read
+from the project manifest; `dependencies` take precedence when a package appears
+in both. Builds vendor CDN packages into the output.
 
 </details>
 

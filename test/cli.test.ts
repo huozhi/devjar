@@ -187,13 +187,9 @@ export function projectComponent() { return environment }
       cdn.listen(0, '127.0.0.1', resolvePromise)
     })
     const address = cdn.address() as import('node:net').AddressInfo
-    const workspaceRoot = await mkdtemp(join(tmpdir(), 'devjar-zero-config-'))
-    const projectRoot = join(workspaceRoot, 'web')
+    const projectRoot = await mkdtemp(join(tmpdir(), 'devjar-zero-config-'))
     try {
       await cp(root, projectRoot, { recursive: true })
-      await writeFile(join(workspaceRoot, 'package.json'), JSON.stringify({
-        devDependencies: { react: '18.3.0', 'react-dom': '18.3.0', tailwindcss: '4.3.0' },
-      }))
       const indexPath = join(projectRoot, 'pages/index.tsx')
       await writeFile(indexPath, `import 'devjar'\n${await readFile(indexPath, 'utf8')}`)
       const packageJsonPath = join(projectRoot, 'package.json')
@@ -202,27 +198,11 @@ export function projectComponent() { return environment }
       packageJson.dependencies = {
         'es-module-lexer': '9.9.9',
         react: '19.3.0',
+        'react-dom': '19.3.0',
       }
-      delete packageJson.devDependencies.react
-      delete packageJson.devDependencies['react-dom']
-      delete packageJson.devDependencies.tailwindcss
+      packageJson.devDependencies.react = '18.3.0'
+      packageJson.devDependencies['react-dom'] = '18.3.0'
       await writeFile(packageJsonPath, JSON.stringify(packageJson))
-
-      const development = await startDevServer({
-        root: projectRoot,
-        host: '127.0.0.1',
-        port: 0,
-        cdn: `http://127.0.0.1:${address.port}`,
-        base: '/',
-      })
-      try {
-        const shell = await (await fetch(`http://127.0.0.1:${development.port}/`)).text()
-        expect(shell).toContain('/@tailwindcss/browser@4.3.0')
-        expect(shell).toContain('/react@19.3.0')
-        expect(shell).toContain('/react-dom@18.3.0')
-      } finally {
-        await development.close()
-      }
 
       const result = await buildProject({
         root: projectRoot,
@@ -243,17 +223,15 @@ export function projectComponent() { return environment }
       expect(entry).not.toContain('modules.example.test')
       expect(document).not.toContain('http://')
       expect(document).not.toContain('https://')
-      expect(document).toContain('data-devjar-tailwind')
       expect(requests.some(path => path.includes('/es-module-lexer@1.6.0'))).toBe(true)
       expect(requests.some(path => path.includes('/es-module-lexer@9.9.9'))).toBe(false)
       expect(requests.some(path => path.includes('/react@19.3.0'))).toBe(true)
       expect(requests.some(path => path.includes('/react@18.3.0'))).toBe(false)
-      expect(requests.some(path => path.includes('/react-dom@19.3.0'))).toBe(false)
-      expect(requests.some(path => path.includes('/react-dom@18.3.0'))).toBe(true)
-      expect(requests.some(path => path.includes('/tailwindcss@4.3.0'))).toBe(true)
+      expect(requests.some(path => path.includes('/react-dom@19.3.0'))).toBe(true)
+      expect(requests.some(path => path.includes('/react-dom@18.3.0'))).toBe(false)
     } finally {
       await new Promise<void>(resolvePromise => cdn.close(() => resolvePromise()))
-      await rm(workspaceRoot, { recursive: true, force: true })
+      await rm(projectRoot, { recursive: true, force: true })
     }
   })
 
