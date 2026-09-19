@@ -1,6 +1,6 @@
 {
   "private": true,
-  "dependencies": {
+  "devDependencies": {
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "tailwindcss": "^4.1.0"

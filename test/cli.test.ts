@@ -195,7 +195,13 @@ export function projectComponent() { return environment }
       const packageJsonPath = join(projectRoot, 'package.json')
       const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8'))
       packageJson.devjar = { cdn: 'https://modules.example.test/' }
-      packageJson.dependencies['es-module-lexer'] = '9.9.9'
+      packageJson.dependencies = {
+        'es-module-lexer': '9.9.9',
+        react: '19.3.0',
+        'react-dom': '19.3.0',
+      }
+      packageJson.devDependencies.react = '18.3.0'
+      packageJson.devDependencies['react-dom'] = '18.3.0'
       await writeFile(packageJsonPath, JSON.stringify(packageJson))
 
       const result = await buildProject({
@@ -219,6 +225,10 @@ export function projectComponent() { return environment }
       expect(document).not.toContain('https://')
       expect(requests.some(path => path.includes('/es-module-lexer@1.6.0'))).toBe(true)
       expect(requests.some(path => path.includes('/es-module-lexer@9.9.9'))).toBe(false)
+      expect(requests.some(path => path.includes('/react@19.3.0'))).toBe(true)
+      expect(requests.some(path => path.includes('/react@18.3.0'))).toBe(false)
+      expect(requests.some(path => path.includes('/react-dom@19.3.0'))).toBe(true)
+      expect(requests.some(path => path.includes('/react-dom@18.3.0'))).toBe(false)
     } finally {
       await new Promise<void>(resolvePromise => cdn.close(() => resolvePromise()))
       await rm(projectRoot, { recursive: true, force: true })
