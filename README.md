@@ -160,8 +160,9 @@ They remain importable; `_layout.tsx` has no automatic layout behavior.
 }
 ```
 
-Put this in `package.json`. Only `dependencies` and `devDependencies` are read
-from the project manifest. Builds vendor CDN packages into the output.
+Put this in `package.json`. Both `dependencies` and `devDependencies` are read
+from the project manifest; `dependencies` take precedence when a package appears
+in both. Builds vendor CDN packages into the output.
 
 </details>
 
@@ -253,13 +254,14 @@ executable API routes are not supported.
 
 ```json
 {
-  "dependencies": {
+  "devDependencies": {
     "tailwindcss": "^4.1.0"
   }
 }
 ```
 
-Add `tailwindcss` or `@tailwindcss/browser` to enable Tailwind. Development
+Add `tailwindcss` or `@tailwindcss/browser` to `devDependencies` or
+`dependencies` to enable Tailwind. Development
 compiles in the browser; builds emit CSS with no runtime compiler.
 Use complete class names rather than constructing them dynamically.
 
