@@ -202,6 +202,7 @@ type HtmlOptions = {
   liveReload: boolean
   head: string
   metadataFiles: string[]
+  metadataOrigin: string
   content: string
   styles: string
 }
@@ -248,9 +249,10 @@ await import(${JSON.stringify(options.clientUrl)})
     : ''
   const metadataHead = `<meta name="twitter:card" content="summary_large_image">${options.metadataFiles.map(filename => {
     const url = withBase(options.base, `/${filename}`)
+    const absoluteUrl = `${options.metadataOrigin}${url}`
     return filename.startsWith('icon.')
       ? `<link rel="icon" href="${url}" type="${contentTypes[extname(filename)]}">`
-      : `<meta property="og:image" content="${url}"><meta name="twitter:image" content="${url}">`
+      : `<meta property="og:image" content="${absoluteUrl}"><meta name="twitter:image" content="${absoluteUrl}">`
   }).join('')}`
   const documentHead = /<title(?:\s|>)/i.test(options.head)
     ? options.head
@@ -532,6 +534,7 @@ export async function startDevServer(options: DevServerOptions) {
             devjarRuntime: true,
             liveReload: true,
             metadataFiles,
+            metadataOrigin: 'http://localhost',
             head: '',
             content: '',
             styles: '',
@@ -798,6 +801,7 @@ async function writeRouteHtml(
     | 'runtimeUrl'
     | 'devjarRuntime'
     | 'metadataFiles'
+    | 'metadataOrigin'
   >,
 ) {
   const outputPath = routeHtmlPath(outDir, route)
@@ -813,6 +817,7 @@ async function writeRouteHtml(
     devjarRuntime: options.devjarRuntime,
     liveReload: false,
     metadataFiles: options.metadataFiles,
+    metadataOrigin: options.metadataOrigin,
     head: rendered.head,
     content: rendered.markup,
     styles: rendered.styles,
@@ -869,6 +874,10 @@ export async function buildProject(options: BuildOptions) {
 async function buildProjectWithLocalPackages(options: BuildOptions, localPackages: LocalPackages) {
   const root = await realpath(resolve(options.root))
   const base = normalizeBase(options.base)
+  const vercelProductionUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL
+  const metadataOrigin = vercelProductionUrl
+    ? `https://${vercelProductionUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')}`
+    : 'http://localhost'
   const outDir = resolve(root, options.outDir)
   const outputBoundary = await existingDirectory(outDir)
   if (outDir === root || !isInside(root, outDir) || !isInside(root, outputBoundary)) {
@@ -966,6 +975,7 @@ async function buildProjectWithLocalPackages(options: BuildOptions, localPackage
   for (const route of Object.keys(manifest.routes)) {
     await writeRouteHtml(outDir, route, renderedRoutes[route], {
       metadataFiles,
+      metadataOrigin,
       resolveModule: resolveBuiltModule,
       resolveRuntimeModule: resolveBuiltRuntimeModule,
       tailwindUrl: undefined,

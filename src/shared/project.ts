@@ -17,8 +17,9 @@ export function normalizeBase(base: string) {
 }
 
 export function withBase(base: string, path: string) {
-  if (path === '/') return base
-  return base === '/' ? path : `${base.slice(0, -1)}${path}`
+  const absolutePath = path.startsWith('/') ? path : `/${path}`
+  if (absolutePath === '/') return base
+  return base === '/' ? absolutePath : `${base.slice(0, -1)}${absolutePath}`
 }
 
 export function withoutBase(base: string, pathname: string) {
