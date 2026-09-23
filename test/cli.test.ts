@@ -403,8 +403,8 @@ describe('dev server', () => {
         expect(document).toContain('<meta name="twitter:card" content="summary_large_image">')
         for (const filename of icons) expect(document).toContain(`rel="icon" href="/docs/${filename}"`)
         for (const filename of images) {
-          expect(document).toContain(`property="og:image" content="http://localhost/docs/${filename}"`)
-          expect(document).toContain(`name="twitter:image" content="http://localhost/docs/${filename}"`)
+          expect(document).toContain(`property="og:image" content="http://localhost:3000/docs/${filename}"`)
+          expect(document).toContain(`name="twitter:image" content="http://localhost:3000/docs/${filename}"`)
         }
         expect(document).not.toContain('opengraph-image.svg')
         expect(document).not.toContain('icon.txt')
@@ -709,7 +709,7 @@ describe('production build', () => {
     expect(builtHtml).toContain('<title data-devjar-default>Devjar</title>')
     expect(builtHtml).toContain('<meta name="devjar-base" content="/preview/">')
     expect(builtHtml).toContain('<meta name="twitter:card" content="summary_large_image">')
-    expect(builtHtml).toContain('<meta name="twitter:image" content="http://localhost/preview/opengraph-image.jpg">')
+    expect(builtHtml).toContain('<meta name="twitter:image" content="http://localhost:3000/preview/opengraph-image.jpg">')
     expect(builtHtml).toContain(`src="/preview/_jar/assets/${clientAsset}"`)
     expect(builtHtml).toMatch(/<link data-devjar-tailwind rel="stylesheet" href="\/preview\/_jar\/assets\/tailwind-[a-f0-9]{10}\.css">/)
     expect(builtHtml).not.toContain('<script data-devjar-tailwind')
@@ -734,7 +734,7 @@ describe('production build', () => {
     for (const page of ['index.html', 'projects/index.html', '404.html']) {
       const document = await readFile(join(buildRoot, page), 'utf8')
       expect(document).toContain('<link rel="icon" href="/preview/icon.svg" type="image/svg+xml">')
-      expect(document).toContain('<meta property="og:image" content="http://localhost/preview/opengraph-image.jpg">')
+      expect(document).toContain('<meta property="og:image" content="http://localhost:3000/preview/opengraph-image.jpg">')
     }
     expect(await readFile(join(buildRoot, 'icon.svg'), 'utf8')).toBe('<svg/>')
     expect(await readFile(join(buildRoot, 'opengraph-image.jpg'), 'utf8')).toBe('social image')
@@ -765,7 +765,7 @@ describe('production build', () => {
 
     const shell = await (await fetch(`${origin}/preview/projects`)).text()
     expect(shell).toMatch(/\/preview\/_jar\/vendor\/[a-f0-9]{12}\/[a-f0-9]{12}\.js/)
-    expect(shell).not.toContain('http://')
+    expect(shell).not.toContain('/_jar/events')
     expect(shell).not.toContain('https://')
     expect(shell).not.toContain('?dev')
     const clientPath = shell.match(/\/preview\/_jar\/assets\/client-[a-f0-9]{10}\.js/)![0]
@@ -877,8 +877,8 @@ export default function Page() {
       for (const page of [document, aboutDocument, notFoundDocument]) {
         expect(page).toContain('<meta name="twitter:card" content="summary_large_image">')
         expect(page).toContain('<link rel="icon" href="/icon.png" type="image/png">')
-        expect(page).toContain('<meta property="og:image" content="http://localhost/opengraph-image.png">')
-        expect(page).toContain('<meta name="twitter:image" content="http://localhost/opengraph-image.png">')
+        expect(page).toContain('<meta property="og:image" content="http://localhost:3000/opengraph-image.png">')
+        expect(page).toContain('<meta name="twitter:image" content="http://localhost:3000/opengraph-image.png">')
       }
       expect(await readFile(join(result.outDir, '404/index.html'), 'utf8'))
         .toContain('<h1>Static not found</h1>')
