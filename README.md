@@ -188,6 +188,7 @@ npx devjar [command] [root] [options]
 | `--cdn <url>` | `dev`, `build` | `https://esm.sh` |
 | `--exclude <path>` | `build` | Page file or directory to omit; repeatable |
 | `--base <path>` | `dev`, `build` | `/`; deployment subdirectory |
+| `--origin <url>` | `build` | Vercel production URL, or `http://localhost:3000`; absolute origin for social image URLs |
 | `-o, --out-dir <directory>` | `build`, `start` | `dist`; must stay inside the project |
 | `-h, --help` | All | Show help |
 | `-v, --version` | All | Show installed version |

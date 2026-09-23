@@ -57,6 +57,7 @@ export type BuildOptions = {
   prerender: boolean
   exclude: string[]
   base: string
+  origin?: string
 }
 
 export type StartServerOptions = {
@@ -264,6 +265,7 @@ const showBootstrapError = value => {
   errorRoot.hidden = false
   errorRoot.textContent = 'Devjar could not start:\\n\\n' + value
 }
+
 addEventListener('error', event => {
   // ResizeObserver can defer layout work without an application exception.
   if (!event.error && (event.message === 'ResizeObserver loop completed with undelivered notifications.'
@@ -281,6 +283,20 @@ addEventListener('unhandledrejection', event => showBootstrapError(event.reason?
 <meta name="devjar-base" content="${options.base}">${documentHead}${metadataHead}${tailwindPreload}<script type="importmap">${JSON.stringify({ imports })}</script>
 <style>html,body,#root,#__reactRoot{width:100%;min-height:100%;margin:0}${errorStyles}</style>${staticStyles}
 ${tailwindStylesheet}</head><body><div id="root"><div id="__reactRoot">${options.content}</div></div>${errorOverlay}${tailwindScript}${clientScript}</body></html>`
+}
+
+function metadataOrigin(origin: string | undefined) {
+  const value = origin || (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : 'http://localhost:3000')
+  let url: URL
+  try {
+    url = new URL(value.includes('://') ? value : `https://${value}`)
+  } catch {
+    throw new Error(`Invalid origin: ${value}`)
+  }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new Error(`Invalid origin: ${value}`)
+  return url.origin
 }
 
 const contentTypes: Record<string, string> = {
@@ -874,10 +890,7 @@ export async function buildProject(options: BuildOptions) {
 async function buildProjectWithLocalPackages(options: BuildOptions, localPackages: LocalPackages) {
   const root = await realpath(resolve(options.root))
   const base = normalizeBase(options.base)
-  const vercelProductionUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL
-  const metadataOrigin = vercelProductionUrl
-    ? `https://${vercelProductionUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')}`
-    : 'http://localhost'
+  const metadataBaseOrigin = metadataOrigin(options.origin)
   const outDir = resolve(root, options.outDir)
   const outputBoundary = await existingDirectory(outDir)
   if (outDir === root || !isInside(root, outDir) || !isInside(root, outputBoundary)) {
@@ -975,7 +988,7 @@ async function buildProjectWithLocalPackages(options: BuildOptions, localPackage
   for (const route of Object.keys(manifest.routes)) {
     await writeRouteHtml(outDir, route, renderedRoutes[route], {
       metadataFiles,
-      metadataOrigin,
+      metadataOrigin: metadataBaseOrigin,
       resolveModule: resolveBuiltModule,
       resolveRuntimeModule: resolveBuiltRuntimeModule,
       tailwindUrl: undefined,

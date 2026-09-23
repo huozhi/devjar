@@ -27,6 +27,7 @@ Commands:
 Options:
   --cdn <url>      ESM-compatible module CDN (dev and build)
   --base <path>    Public base path (dev and build; default: /)
+  --origin <url>   Absolute origin for metadata URLs (build; default: Vercel URL or http://localhost:3000)
   --exclude <path> Exclude a page file or directory from the build (repeatable)
   --host <host>    Host to listen on (dev and start; default: localhost)
   --port <port>    Port to listen on (dev and start; default: 3000)
@@ -120,6 +121,7 @@ async function run() {
   let port: number | undefined
   let cdn: string | undefined
   let base: string | undefined
+  let origin: string | undefined
   let outDir: string | undefined
   const exclude: string[] = []
 
@@ -129,6 +131,7 @@ async function run() {
     else if (arg === '--port' || arg === '-p') port = Number(valueAfter(args, index++))
     else if (arg === '--cdn') cdn = valueAfter(args, index++)
     else if (arg === '--base') base = valueAfter(args, index++)
+    else if (arg === '--origin') origin = valueAfter(args, index++)
     else if (arg === '--exclude') exclude.push(valueAfter(args, index++))
     else if (arg === '--out-dir' || arg === '-o') outDir = valueAfter(args, index++)
     else if (arg.startsWith('-')) throw new Error(`Unknown option: ${arg}`)
@@ -142,6 +145,7 @@ async function run() {
   if (command === 'build' && (host || port !== undefined)) {
     throw new Error('build does not accept --host or --port')
   }
+  if (command !== 'build' && origin) throw new Error('--origin is only available for build')
   if (command === 'start' && (cdn || base)) {
     throw new Error('start does not accept --cdn or --base; configure these when building')
   }
@@ -156,6 +160,7 @@ async function run() {
       prerender: true,
       exclude,
       base: base || '/',
+      origin,
     })
     const deploymentRoot = vercelOutputRoot(process.cwd())
     if (deploymentRoot) await writeVercelOutput(result.outDir, deploymentRoot)
