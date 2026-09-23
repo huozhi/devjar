@@ -550,7 +550,7 @@ export async function startDevServer(options: DevServerOptions) {
             devjarRuntime: true,
             liveReload: true,
             metadataFiles,
-            metadataOrigin: 'http://localhost',
+            metadataOrigin: 'http://localhost:3000',
             head: '',
             content: '',
             styles: '',
