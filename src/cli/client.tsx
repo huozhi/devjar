@@ -1,4 +1,4 @@
-import React, { Component, type ElementType, type ReactNode } from 'react'
+import React, { Component, type ElementType, type ErrorInfo, type ReactNode } from 'react'
 import { createRoot, hydrateRoot, type Root } from 'react-dom/client'
 import { createHotUpdater } from './hmr'
 import type { HmrChange, RouteEntry, RouteManifest } from './protocol'
@@ -54,6 +54,10 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 
   static getDerivedStateFromError(error: unknown) {
     return { error }
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    showError(`${errorMessage(error)}${info.componentStack || ''}`)
   }
 
   componentDidUpdate(previousProps: ErrorBoundaryProps) {
@@ -131,16 +135,17 @@ function preloadRoute(route: string) {
 }
 
 function errorMessage(error: unknown) {
-  if (error instanceof Error) return error.stack || error.message
+  if (error instanceof Error) {
+    const message = `${error.name}: ${error.message}`
+    return error.stack?.includes(message) ? error.stack : `${message}\n${error.stack || ''}`
+  }
   return String(error)
 }
 
 function showError(error: unknown) {
   const message = errorMessage(error)
-  if (!errorRoot) {
-    console.error(message)
-    return
-  }
+  console.error(message)
+  if (!errorRoot) return
   errorRoot.textContent = message
   errorRoot.hidden = false
 }

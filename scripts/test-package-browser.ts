@@ -241,6 +241,32 @@ export default function Page() {
   assert(consoleErrors.every(message => message.includes('404 (Not Found)')), consoleErrors.join('\n'))
   assert.deepEqual(pageErrors, [])
 
+  // A caught React render failure must reach both the development overlay and console.
+  await stopServer(server)
+  await writeFile(join(projectRoot, 'pages/broken.tsx'), `export default function BrokenPage() {
+    throw new Error('Diagnostic render failure')
+  }`)
+  server = spawn(devjar, ['dev', '--host', '127.0.0.1', '--port', '0'], {
+    cwd: projectRoot, stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  const developmentUrl = await serverUrl(server)
+  const diagnosticPage = await browser.newPage()
+  const diagnosticErrors: string[] = []
+  diagnosticPage.on('console', message => {
+    if (message.type() === 'error') diagnosticErrors.push(message.text())
+  })
+  await diagnosticPage.goto(`${developmentUrl}broken`)
+  const overlay = diagnosticPage.locator('#__jarError')
+  await overlay.waitFor({ state: 'visible' })
+  const diagnostic = await overlay.textContent()
+  assert(diagnostic?.startsWith('Error: Diagnostic render failure'), diagnostic || '')
+  assert(diagnostic?.includes('Diagnostic render failure'), diagnostic || '')
+  assert(diagnostic?.includes('BrokenPage'), diagnostic || '')
+  assert(diagnosticErrors.some(message => message.includes('Diagnostic render failure') && message.includes('BrokenPage')))
+  await diagnosticPage.close()
+  await stopServer(server)
+  await rm(join(projectRoot, 'pages/broken.tsx'))
+
   // Reuse the package fixture to exercise the browser compiler through DevJar.
   // This catches asset/worker wiring and state preservation that native tests cannot.
   await stopServer(server)

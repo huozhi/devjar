@@ -386,6 +386,12 @@ function createResponder(headers: Record<string, string>) {
   }
 }
 
+function reportRequestError(error: unknown) {
+  const detail = error instanceof Error ? error.stack || error.message : String(error)
+  console.error(detail)
+  return detail
+}
+
 export async function startDevServer(options: DevServerOptions) {
   const root = await realpath(resolve(options.root))
   const host = options.host
@@ -459,7 +465,7 @@ export async function startDevServer(options: DevServerOptions) {
           })
           send(request, response, 200, 'application/json; charset=utf-8', JSON.stringify(manifest))
         } catch (error) {
-          send(request, response, 500, 'application/json; charset=utf-8', JSON.stringify({ error: error instanceof Error ? error.message : String(error) }))
+          send(request, response, 500, 'application/json; charset=utf-8', JSON.stringify({ error: reportRequestError(error) }))
         }
         return
       }
@@ -489,7 +495,7 @@ export async function startDevServer(options: DevServerOptions) {
           modules.update(projectPath, compiled)
           send(request, response, 200, 'text/javascript; charset=utf-8', compiled.code)
         } catch (error) {
-          send(request, response, 404, 'text/javascript; charset=utf-8', `throw new Error(${JSON.stringify(error instanceof Error ? error.message : String(error))})`)
+          send(request, response, 500, 'text/javascript; charset=utf-8', `throw new Error(${JSON.stringify(reportRequestError(error))})`)
         }
         return
       }
@@ -558,7 +564,7 @@ export async function startDevServer(options: DevServerOptions) {
         ),
       )
     } catch (error) {
-      send(request, response, 500, 'text/plain; charset=utf-8', error instanceof Error ? error.stack || error.message : String(error))
+      send(request, response, 500, 'text/plain; charset=utf-8', reportRequestError(error))
     }
   })
 
