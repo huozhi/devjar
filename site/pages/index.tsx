@@ -2,6 +2,7 @@ import { Footer } from '../components/footer'
 import { DeployDemo } from '../components/deploy-demo'
 import { Banner } from '../components/banner'
 import { ExampleGallery } from '../components/example-gallery'
+import { Analytics } from "@vercel/analytics/react"
 import '../styles.css'
 
 const title = 'Devjar — Live Playground & Static Site Export'
@@ -29,6 +30,7 @@ export default function Page() {
         <DeployDemo />
       </main>
       <Footer />
+      <Analytics />
     </>
   )
 }
