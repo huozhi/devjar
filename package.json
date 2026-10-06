@@ -67,6 +67,7 @@
     "react": "^19.0.0"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "es-module-lexer": "1.6.0",
     "oxc-minify": "0.148.0",
     "oxc-transform": "^0.144.0"

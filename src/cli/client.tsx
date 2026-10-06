@@ -1,5 +1,6 @@
 import React, { Component, type ElementType, type ReactNode } from 'react'
 import { createRoot, hydrateRoot, type Root } from 'react-dom/client'
+import { Analytics } from '@vercel/analytics/react'
 import { createHotUpdater } from './hmr'
 import type { HmrChange, RouteEntry, RouteManifest } from './protocol'
 
@@ -189,7 +190,10 @@ async function load(route: string) {
     const page = React.createElement(
       ErrorBoundary,
       { revision: renderRevision },
-      React.createElement(module.default),
+      React.createElement(React.Fragment, null,
+        React.createElement(module.default),
+        React.createElement(Analytics),
+      ),
     )
     // A navigation can finish importing before the initial route. Only hydrate
     // when the requested page matches the route that supplied the HTML.
