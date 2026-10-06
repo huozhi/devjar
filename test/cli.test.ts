@@ -379,7 +379,7 @@ export default function Page() { return <pre>{example}</pre> }`,
 })
 
 describe('dev server', () => {
-  test('reports module failures with request context and a stack in the terminal', async () => {
+  test('reports original module errors with a stack in the terminal', async () => {
     const projectRoot = await mkdtemp(join(tmpdir(), 'devjar-diagnostics-'))
     const errors = spyOn(console, 'error').mockImplementation(() => {})
     let server: Awaited<ReturnType<typeof startDevServer>> | undefined
@@ -390,7 +390,6 @@ describe('dev server', () => {
       const response = await fetch(`http://${server.host}:${server.port}/_jar/module?path=pages%2Findex.tsx`)
       expect(response.status).toBe(500)
       const message = String(errors.mock.calls[0][0])
-      expect(message).toContain('GET /_jar/module?path=pages%2Findex.tsx')
       expect(message).toContain('Unexpected token')
       expect(message).toContain('at ')
       expect(await response.text()).toContain(JSON.stringify(message))

@@ -143,7 +143,7 @@ function errorMessage(error: unknown) {
 }
 
 function showError(error: unknown) {
-  const message = `Devjar: ${location.pathname}\n${errorMessage(error)}`
+  const message = errorMessage(error)
   console.error(message)
   if (!errorRoot) return
   errorRoot.textContent = message

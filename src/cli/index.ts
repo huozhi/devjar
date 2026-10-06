@@ -386,11 +386,10 @@ function createResponder(headers: Record<string, string>) {
   }
 }
 
-function reportRequestError(request: IncomingMessage, error: unknown) {
+function reportRequestError(error: unknown) {
   const detail = error instanceof Error ? error.stack || error.message : String(error)
-  const message = `Devjar: ${request.method} ${request.url}\n${detail}`
-  console.error(message)
-  return message
+  console.error(detail)
+  return detail
 }
 
 export async function startDevServer(options: DevServerOptions) {
@@ -466,7 +465,7 @@ export async function startDevServer(options: DevServerOptions) {
           })
           send(request, response, 200, 'application/json; charset=utf-8', JSON.stringify(manifest))
         } catch (error) {
-          send(request, response, 500, 'application/json; charset=utf-8', JSON.stringify({ error: reportRequestError(request, error) }))
+          send(request, response, 500, 'application/json; charset=utf-8', JSON.stringify({ error: reportRequestError(error) }))
         }
         return
       }
@@ -496,7 +495,7 @@ export async function startDevServer(options: DevServerOptions) {
           modules.update(projectPath, compiled)
           send(request, response, 200, 'text/javascript; charset=utf-8', compiled.code)
         } catch (error) {
-          send(request, response, 500, 'text/javascript; charset=utf-8', `throw new Error(${JSON.stringify(reportRequestError(request, error))})`)
+          send(request, response, 500, 'text/javascript; charset=utf-8', `throw new Error(${JSON.stringify(reportRequestError(error))})`)
         }
         return
       }
@@ -565,7 +564,7 @@ export async function startDevServer(options: DevServerOptions) {
         ),
       )
     } catch (error) {
-      send(request, response, 500, 'text/plain; charset=utf-8', reportRequestError(request, error))
+      send(request, response, 500, 'text/plain; charset=utf-8', reportRequestError(error))
     }
   })
 
