@@ -28,20 +28,18 @@ export function createEsmShResolver(
   return (specifier: string) => {
     const name = packageName(specifier)
     const version = dependencies[name] || defaultVersions[name]
-    if (!version) return `${host}/${specifier}`
-    if (/^(?:file:|link:|workspace:|git|https?:)/.test(version)) {
+    if (version && /^(?:file:|link:|workspace:|git|https?:)/.test(version)) {
       throw new Error(`CDN dependencies cannot use ${name}@${version}`)
     }
     const subpath = specifier.slice(name.length)
-    const dev = development
-      && (name === 'react' || name === 'react-dom' || name === 'react-refresh')
     const externalizeReact = host === CDN_HOST && name !== 'react'
     const parameters = [
-      ...(dev ? ['dev'] : []),
+      ...(development ? ['dev'] : []),
       ...(externalizeReact ? ['external=react'] : []),
     ]
     const query = parameters.length ? `?${parameters.join('&')}` : ''
-    return `${host}/${name}@${encodeURIComponent(version)}${subpath}${query}`
+    const packagePath = version ? `${name}@${encodeURIComponent(version)}${subpath}` : specifier
+    return `${host}/${packagePath}${query}`
   }
 }
 

@@ -49,7 +49,7 @@ test('resolves file URLs, relative references, absolute paths and scoped subpath
     const label = await local.load(new URL(local.resolve('@test/spinner/label', 'browser', root)))
     expect(label.contents).toContain('Local spinner')
     expect(label.contents).not.toContain(': string')
-    expect(local.resolve('helper', 'browser', library)).toBe('https://esm.sh/helper@1.2.3?external=react')
+    expect(local.resolve('helper', 'browser', library)).toBe('https://esm.sh/helper@1.2.3?dev&external=react')
   }
 })
 

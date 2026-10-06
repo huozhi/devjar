@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
+import { afterAll, beforeAll, describe, expect, spyOn, test } from 'bun:test'
 import { cp, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises'
 import { createServer as createHttpServer } from 'node:http'
 import { tmpdir } from 'node:os'
@@ -285,7 +285,7 @@ export function projectComponent() { return environment }
       'https://modules.example.test/',
       true,
     )).toBe(
-      'https://modules.example.test/@tailwindcss/browser@%5E4.1.0',
+      'https://modules.example.test/@tailwindcss/browser@%5E4.1.0?dev',
     )
     expect(getTailwindBrowserUrl({}, CDN_HOST, true)).toBeUndefined()
   })
@@ -805,6 +805,8 @@ describe('static export', () => {
     })
     const address = cdn.address() as import('node:net').AddressInfo
     const projectRoot = await mkdtemp(join(tmpdir(), 'devjar-static-export-'))
+    const stdout = spyOn(process.stdout, 'write')
+    const stderr = spyOn(process.stderr, 'write')
     try {
       await mkdir(join(projectRoot, 'pages'))
       await mkdir(join(projectRoot, 'pages/guides'))
@@ -819,6 +821,8 @@ import logo from '../assets/logo.svg'
 import note from '../notes.md' with { type: 'text' }
 import { DevJar } from 'devjar'
 export default function Page() {
+  console.log('prerender stdout', process.env['NODE_ENV'])
+  console.warn('prerender stderr')
   return <>
     <title>Static title</title>
     <meta name="description" content="Static description" />
@@ -854,6 +858,8 @@ export default function Page() {
         exclude: [],
         base: '/',
       })
+      expect(stdout.mock.calls.map(call => String(call[0])).join('')).toContain('prerender stdout production')
+      expect(stderr.mock.calls.map(call => String(call[0])).join('')).toContain('prerender stderr')
       expect(result.devjarRuntime).toBe(true)
       const document = await readFile(join(result.outDir, 'index.html'), 'utf8')
       expect(document).toContain('<p>Text imported at build time</p>')
@@ -924,6 +930,8 @@ export default function Page() {
         await builtServer.close()
       }
     } finally {
+      stdout.mockRestore()
+      stderr.mockRestore()
       await new Promise<void>(resolvePromise => cdn.close(() => resolvePromise()))
       await rm(projectRoot, { recursive: true, force: true })
     }

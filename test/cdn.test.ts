@@ -23,5 +23,15 @@ test('CLI resolver pins versions and externalizes React for the import map', () 
   )
   expect(resolveModule('react/jsx-runtime')).toBe('https://esm.sh/react@19.1.0/jsx-runtime?dev')
   expect(resolveModule('react-dom/client')).toBe('https://esm.sh/react-dom@19.2.0/client?dev&external=react')
-  expect(resolveModule('@scope/pkg/subpath')).toBe('https://esm.sh/@scope/pkg@%5E2.0.0/subpath?external=react')
+  expect(resolveModule('@scope/pkg/subpath')).toBe('https://esm.sh/@scope/pkg@%5E2.0.0/subpath?dev&external=react')
+})
+
+test('CLI dependencies use the requested mode with or without pinned versions', () => {
+  for (const dependencies of [{}, { '@vercel/analytics': '1.6.1' }]) {
+    for (const development of [true, false]) {
+      const url = new URL(createEsmShResolver(dependencies, CDN_HOST, development)('@vercel/analytics/react'))
+      expect(url.searchParams.has('dev')).toBe(development)
+      expect(url.searchParams.get('external')).toBe('react')
+    }
+  }
 })

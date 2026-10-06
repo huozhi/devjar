@@ -113,9 +113,13 @@ export async function prerender(options: PrerenderOptions) {
 
     try {
       const rendererPath = fileURLToPath(new URL('./prerender-runner.mjs', import.meta.url))
-      await runFile(nodeExecutable(), ['--no-warnings', rendererPath, inputPath], {
+      const rendering = runFile(nodeExecutable(), ['--no-warnings', rendererPath, inputPath], {
         maxBuffer: 10 * 1024 * 1024,
+        env: { ...process.env, NODE_ENV: 'production' },
       })
+      rendering.child.stdout?.on('data', chunk => process.stdout.write(chunk))
+      rendering.child.stderr?.on('data', chunk => process.stderr.write(chunk))
+      await rendering
     } catch (error) {
       throw new Error(renderError(error))
     }
