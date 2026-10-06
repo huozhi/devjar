@@ -2,6 +2,7 @@
   "private": true,
   "dependencies": {
     "@sugar-high/react": "2.2.2",
+    "@vercel/analytics": "^2.0.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "sugar-high": "2.3.1"

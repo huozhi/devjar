@@ -1,5 +1,6 @@
 import { Code } from '@sugar-high/react'
 import { taffy } from '@sugar-high/react/themes'
+import { Analytics } from "@vercel/analytics/react"
 import '../styles.css'
 import '../docs.css'
 
@@ -174,6 +175,7 @@ npx devjar start`}</Code>
           </div>
         </section>
       </main>
+      <Analytics />
     </>
   )
 }
