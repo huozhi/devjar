@@ -28,8 +28,8 @@ importers:
         specifier: 4.0.521
         version: 4.0.521(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@sugar-high/react':
-        specifier: 2.2.2
-        version: 2.2.2(react@19.2.7)(sugar-high@2.3.1)
+        specifier: ^2.5.0
+        version: 2.5.0(react@19.2.7)
       '@types/node':
         specifier: ^22.10.7
         version: 22.20.0
@@ -60,9 +60,6 @@ importers:
       remotion:
         specifier: 4.0.521
         version: 4.0.521(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      sugar-high:
-        specifier: 2.3.1
-        version: 2.3.1
       typescript:
         specifier: ^7.0.2
         version: 7.0.2
@@ -1141,11 +1138,10 @@ packages:
       webpack-hot-middleware:
         optional: true
 
-  '@sugar-high/react@2.2.2':
-    resolution: {integrity: sha512-rTjAfI3Z5Bmf0czuOjZjUkssEK9SwH2oW97wBsAr0POSKOF1DoMM0FeRjaHrQHLcZcKTvv0R7xEkomkIgWL07A==}
+  '@sugar-high/react@2.5.0':
+    resolution: {integrity: sha512-F1DYkfVMvXRDXIz86JXnvZENqwWrWAF0qfFWILuFMeZmYaxqwiSIb/mw88RbixxVQRQacm7Z0F/fE4dgOS2aSQ==}
     peerDependencies:
       react: ^18.0.0 || ^19.0.0
-      sugar-high: ^2.3.1
 
   '@svgr/babel-plugin-add-jsx-attribute@8.0.0':
     resolution: {integrity: sha512-b9MIk7yhdS1pMCZM8VeNfUlSKVRhsHZNMl5O9SfaX0l0t5wjdgu4IDzGB8bpnGBBOjGST3rRFVsaaEtI4W6f7g==}
@@ -2238,8 +2234,8 @@ packages:
     peerDependencies:
       webpack: ^5.27.0
 
-  sugar-high@2.3.1:
-    resolution: {integrity: sha512-LwFbTGo9j3qYLnId35kkKufYdSil0jsmiac27MM6jTT5V62rmVM4r65XpSaiB9CSKqZUNCIrL64HZkGhVEDu9g==}
+  sugar-high@2.6.0:
+    resolution: {integrity: sha512-G2xyakJ3Zk7Ja6Cw6mnWlkekllsgHrz14T/QXWYF4qmo64Ca96qt3YHAGIjgjLoCjhs1ZjjAGcrFjwmAxFlbXA==}
 
   supports-color@8.1.1:
     resolution: {integrity: sha512-MpUEN2OodtUzxvKQl72cUF7RQ5EiHsGvSsVG0ia9c5RbWGL2CI4C7EpPS8UTBIplnlzZiNuV56w+FuNxy3ty2Q==}
@@ -3339,10 +3335,10 @@ snapshots:
       html-entities: 2.6.0
       react-refresh: 0.18.0
 
-  '@sugar-high/react@2.2.2(react@19.2.7)(sugar-high@2.3.1)':
+  '@sugar-high/react@2.5.0(react@19.2.7)':
     dependencies:
       react: 19.2.7
-      sugar-high: 2.3.1
+      sugar-high: 2.6.0
 
   '@svgr/babel-plugin-add-jsx-attribute@8.0.0(@babel/core@7.29.7)':
     dependencies:
@@ -4361,7 +4357,7 @@ snapshots:
     dependencies:
       webpack: 5.105.0(@swc/core@1.16.0(@swc/helpers@0.5.23))(esbuild@0.28.1)(postcss@8.5.28)
 
-  sugar-high@2.3.1: {}
+  sugar-high@2.6.0: {}
 
   supports-color@8.1.1:
     dependencies:

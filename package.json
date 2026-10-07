@@ -75,7 +75,7 @@
     "@playwright/test": "^1.62.1",
     "@remotion/cli": "4.0.521",
     "@remotion/transitions": "4.0.521",
-    "@sugar-high/react": "2.2.2",
+    "@sugar-high/react": "^2.5.0",
     "@types/node": "^22.10.7",
     "@types/react": "^19.0.7",
     "@types/react-dom": "^19.0.3",
@@ -86,7 +86,6 @@
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "remotion": "4.0.521",
-    "sugar-high": "2.3.1",
     "typescript": "^7.0.2"
   },
   "engines": {

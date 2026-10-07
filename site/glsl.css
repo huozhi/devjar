@@ -1,0 +1,13 @@
+.glsl-page { min-height: 100vh; padding: 72px 16px; }
+.glsl-workspace { width: min(100%, 760px); margin: 0 auto; }
+.glsl-editor-row { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 36px; }
+.glsl-editor-wrap { flex: 1; min-width: 0; border: 1px solid #dedad2; transition: border-color .15s ease; }
+.glsl-editor-wrap:focus-within { border-color: #484540; }
+.glsl-editor { overflow: visible; background: transparent !important; font: 13px/1.6 var(--font-ioskeley-mono); }
+.glsl-editor textarea { outline: none !important; }
+.glsl-share { flex: 0 0 8ch; padding: 3px 0; border: 0; background: transparent; color: #79736b; font: 11px var(--font-ioskeley-mono); text-align: right; cursor: pointer; }
+.glsl-share:hover, .glsl-share:focus-visible { color: #24221e; }
+.glsl-preview { position: relative; width: min(100%, 440px, 52dvh); aspect-ratio: 1; margin: 0 auto; }
+.glsl-preview canvas { display: block; width: 100%; height: 100%; }
+.glsl-preview pre { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; margin: 0; padding: 24px; overflow: auto; color: #8e4032; white-space: pre-wrap; font: 12px/1.5 var(--font-ioskeley-mono); }
+@media (max-width: 640px) { .glsl-page { padding: 24px 12px; } .glsl-editor-row { margin-bottom: 24px; } }
