@@ -6,6 +6,25 @@ import '../glsl.css'
 
 const example = `float i,e,R,s;vec3 q,p,d=vec3((FC.xy-.5*r)/r.y*2.5,1.);for(q.z--;i++<99.;i>56.){o.rgb+=hsv(.57,-e,e/.7e1);p=q+=d*max(e,.01)*R*.2;p=vec3(log2(R=length(p))-t*1.5,e=-p.z/R-1.3+R,atan(p.x,p.y)-t*.25)-.5;for(s=2.;s<8e2;s+=s)e+=abs(dot(sin(p.zyy*s),cos(p*s+R)))/s*.9;}`
 
+function base64Url(bytes: Uint8Array) {
+  let binary = ''
+  for (const byte of bytes) binary += String.fromCharCode(byte)
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
+
+async function compressCode(code: string) {
+  const stream = new Blob([code]).stream().pipeThrough(new CompressionStream('gzip'))
+  return base64Url(new Uint8Array(await new Response(stream).arrayBuffer()))
+}
+
+async function decompressCode(value: string) {
+  const base64 = value.replace(/-/g, '+').replace(/_/g, '/')
+  const binary = atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, '='))
+  const bytes = Uint8Array.from(binary, character => character.charCodeAt(0))
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))
+  return new Response(stream).text()
+}
+
 const vertexSource = `#version 300 es
 in vec2 position;
 void main() { gl_Position = vec4(position, 0.0, 1.0); }`
@@ -50,11 +69,21 @@ export default function GlslPage() {
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
-    const queryCode = new URLSearchParams(window.location.search).get('code')
-    if (queryCode !== null) {
+    let active = true
+    const params = new URLSearchParams(window.location.search)
+    const compressed = params.get('z')
+    const queryCode = params.get('code')
+    if (compressed !== null) {
+      decompressCode(compressed).then(value => {
+        if (active) { setCode(value); setRunningCode(value) }
+      }).catch(() => {
+        if (active) setError('Could not read this shared shader link.')
+      })
+    } else if (queryCode !== null) {
       setCode(queryCode)
       setRunningCode(queryCode)
     }
+    return () => { active = false }
   }, [])
 
   useEffect(() => {
@@ -140,9 +169,15 @@ export default function GlslPage() {
   }, [runningCode])
 
   async function copyLink() {
-    const url = new URL(window.location.href)
-    url.searchParams.set('code', code)
-    await navigator.clipboard.writeText(url.toString())
+    const rawUrl = new URL(window.location.pathname, window.location.origin)
+    rawUrl.searchParams.set('code', code)
+    let url = rawUrl.toString()
+    if (typeof CompressionStream !== 'undefined') {
+      const compressedUrl = new URL(window.location.pathname, window.location.origin)
+      compressedUrl.searchParams.set('z', await compressCode(code))
+      if (compressedUrl.toString().length < url.length) url = compressedUrl.toString()
+    }
+    await navigator.clipboard.writeText(url)
     setCopied(true)
     window.setTimeout(() => setCopied(false), 2000)
   }
