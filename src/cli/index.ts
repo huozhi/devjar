@@ -86,6 +86,15 @@ async function fileExists(path: string) {
   }
 }
 
+async function pathExists(path: string) {
+  try {
+    await stat(path)
+    return true
+  } catch {
+    return false
+  }
+}
+
 async function directoryExists(path: string) {
   try {
     return (await stat(path)).isDirectory()
@@ -576,7 +585,7 @@ export async function startDevServer(options: DevServerOptions) {
     if (!pendingFiles.size) pendingTimestamp = Date.now()
     pendingFiles.add(filename.split(sep).join('/'))
     clearTimeout(timer)
-    timer = setTimeout(() => {
+    timer = setTimeout(async () => {
       const changedFiles = [...pendingFiles]
       pendingFiles.clear()
       const timestamp = pendingTimestamp
@@ -587,6 +596,11 @@ export async function startDevServer(options: DevServerOptions) {
       ))
       const invalidation = modules.invalidate(changedFiles)
       reload ||= invalidation.reload
+      if (!reload && (routes || invalidation.invalidated)) {
+        reload = (await Promise.all(changedFiles.map(async filename => (
+          !(await pathExists(join(root, filename)))
+        )))).some(Boolean)
+      }
       if (!reload && !routes && !invalidation.invalidated) return
       revision++
       const change: HmrChange = {

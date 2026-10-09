@@ -657,6 +657,15 @@ export default function Page() { return <><img className="hero" src={icon} /><Ca
           },
         ],
       })
+
+      await rm(cardPath)
+      const deletionChange = await Promise.race([
+        readChangeEvent(reader),
+        new Promise<never>((_resolve, reject) => {
+          setTimeout(() => reject(new Error('Timed out waiting for deleted-module HMR update')), 2_000)
+        }),
+      ])
+      expect(deletionChange.reload).toBe(true)
     } finally {
       await reader?.cancel()
       await hmrServer.close()
