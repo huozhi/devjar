@@ -14,6 +14,7 @@ function preview(content: string) {
 }
 
 const textPreview = preview('<p>Welcome Home</p>')
+const jarLoadingFrames = ['jar...', 'j#r...', 'ja*...', 'j?r...', 'jar...', 'jar...', 'jar...']
 
 export function MiniPlayground() {
   const jar = useRef<HTMLIFrameElement>(null)
@@ -21,6 +22,7 @@ export function MiniPlayground() {
   const [status, setStatus] = useState<PreviewStatus>('idle')
   const [error, setError] = useState<unknown>()
   const [pressed, setPressed] = useState(false)
+  const [loadingFrame, setLoadingFrame] = useState(0)
 
   const launch = useCallback(() => {
     if (pressTimer.current) return
@@ -43,6 +45,12 @@ export function MiniPlayground() {
   }, [status, launch])
 
   useEffect(() => () => clearTimeout(pressTimer.current), [])
+
+  useEffect(() => {
+    if (status === 'ready' || error != null || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const interval = setInterval(() => setLoadingFrame(frame => (frame + 1) % jarLoadingFrames.length), 180)
+    return () => clearInterval(interval)
+  }, [status, error])
 
   return (
     <div className={`playground-showcase${status === 'ready' ? ' is-ready' : ''}`}>
@@ -68,7 +76,7 @@ export function MiniPlayground() {
       <div className="mini-jar" aria-label="Live cards in a jar" aria-busy={status !== 'ready'}>
         <DevJar ref={jar} files={jarFiles} tailwind={false} resolveModule={resolveModule}
           title="Live cards in a jar" onStatusChange={setStatus} onError={setError} />
-        {status !== 'ready' && error == null && <span className="mini-loading" role="status">Loading jar…</span>}
+        {status !== 'ready' && error == null && <span className="mini-loading" role="status" aria-label="Loading jar"><span aria-hidden="true">{jarLoadingFrames[loadingFrame]}</span></span>}
         {error != null && <span className="mini-loading" role="alert">Jar preview unavailable</span>}
       </div>
     </div>
