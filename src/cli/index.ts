@@ -86,6 +86,15 @@ async function fileExists(path: string) {
   }
 }
 
+async function pathExists(path: string) {
+  try {
+    await stat(path)
+    return true
+  } catch {
+    return false
+  }
+}
+
 async function directoryExists(path: string) {
   try {
     return (await stat(path)).isDirectory()
@@ -571,14 +580,19 @@ export async function startDevServer(options: DevServerOptions) {
   let timer: NodeJS.Timeout | undefined
   let pendingTimestamp = 0
   const pendingFiles = new Set<string>()
-  const watcher = watch(root, { recursive: true }, (_event, filename) => {
+  const pendingRenames = new Set<string>()
+  const watcher = watch(root, { recursive: true }, (event, filename) => {
     if (!filename || /(?:^|[/\\])(?:\.git|node_modules|dist)(?:[/\\]|$)/.test(filename)) return
     if (!pendingFiles.size) pendingTimestamp = Date.now()
-    pendingFiles.add(filename.split(sep).join('/'))
+    const projectPath = filename.split(sep).join('/')
+    pendingFiles.add(projectPath)
+    if (event === 'rename') pendingRenames.add(projectPath)
     clearTimeout(timer)
-    timer = setTimeout(() => {
+    timer = setTimeout(async () => {
       const changedFiles = [...pendingFiles]
       pendingFiles.clear()
+      const renamedFiles = [...pendingRenames]
+      pendingRenames.clear()
       const timestamp = pendingTimestamp
       pendingTimestamp = 0
       let reload = changedFiles.includes('package.json') || changedFiles.some(isMetadataFile)
@@ -587,6 +601,15 @@ export async function startDevServer(options: DevServerOptions) {
       ))
       const invalidation = modules.invalidate(changedFiles)
       reload ||= invalidation.reload
+      const renamedTrackedFiles = renamedFiles.filter(filename => (
+        modules.isTracked(filename)
+        || (filename.startsWith('pages/') && routeFromPagePath(filename.slice('pages/'.length)) !== undefined)
+      ))
+      if (!reload && renamedTrackedFiles.length) {
+        reload = (await Promise.all(renamedTrackedFiles.map(async filename => (
+          !(await pathExists(join(root, filename)))
+        )))).some(Boolean)
+      }
       if (!reload && !routes && !invalidation.invalidated) return
       revision++
       const change: HmrChange = {

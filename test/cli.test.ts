@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, spyOn, test } from 'bun:test'
-import { cp, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { createServer as createHttpServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
@@ -657,6 +657,27 @@ export default function Page() { return <><img className="hero" src={icon} /><Ca
           },
         ],
       })
+
+      const replacementPath = join(projectRoot, 'components/card.next.tsx')
+      await writeFile(replacementPath, `export function Card() { return <p>three</p> }`)
+      await rename(replacementPath, cardPath)
+      const replacementChange = await Promise.race([
+        readChangeEvent(reader),
+        new Promise<never>((_resolve, reject) => {
+          setTimeout(() => reject(new Error('Timed out waiting for atomic-save HMR update')), 2_000)
+        }),
+      ])
+      expect(replacementChange.reload).toBe(false)
+      expect(replacementChange.updates.map(update => update.path)).toContain('components/card.tsx')
+
+      await rm(cardPath)
+      const deletionChange = await Promise.race([
+        readChangeEvent(reader),
+        new Promise<never>((_resolve, reject) => {
+          setTimeout(() => reject(new Error('Timed out waiting for deleted-module HMR update')), 2_000)
+        }),
+      ])
+      expect(deletionChange.reload).toBe(true)
     } finally {
       await reader?.cancel()
       await hmrServer.close()

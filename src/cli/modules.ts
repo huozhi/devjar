@@ -482,6 +482,13 @@ export class DevModuleGraph {
     devModuleUrl(projectPath, this.versions.get(projectPath) || 0, this.base)
   )
 
+  isTracked(projectPath: string) {
+    return this.modules.has(projectPath)
+      || this.modules.has(projectPath + textModuleSuffix)
+      || Boolean(this.importers.get(projectPath)?.size)
+      || Boolean(this.importers.get(projectPath + textModuleSuffix)?.size)
+  }
+
   update(projectPath: string, compiled: CompiledProjectModule) {
     const previous = this.modules.get(projectPath)
     for (const dependency of previous?.dependencies || []) {
