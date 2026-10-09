@@ -2,7 +2,6 @@ import { Codesandbox } from './codesandbox'
 import { demoFiles, demoContentPresets, demoContentJson } from '../lib/demo-files'
 import { drumFiles, shuffleDrumPattern } from '../lib/examples/drums'
 import { applyShaderSettings, shaderFiles, shaderSettings, shuffleShaderSettings } from '../lib/examples/shader'
-import { JarPlayground } from './jar-playground'
 import './example-gallery.css'
 
 const contentScroll = { intervalMs: undefined, file: 'content.json', values: demoContentPresets.map(demoContentJson) }
@@ -40,10 +39,6 @@ export function ExampleGallery() {
             </div>
           </section>
         ))}
-        <section id="jar" className="example-row" aria-label="Cards in a jar">
-          <h3 className="example-row-heading">Cards in a jar · React Three Fiber</h3>
-          <JarPlayground />
-        </section>
       </section>
     </>
   )

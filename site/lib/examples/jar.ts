@@ -229,6 +229,8 @@ export const jarFiles = {
     const burst = useRef(0)
     const [visible, setVisible] = useState(true)
     const [reduced, setReduced] = useState(false)
+    const [userMotion, setUserMotion] = useState(false)
+    const motionTimer = useRef(null)
     useEffect(() => {
       const media = matchMedia('(prefers-reduced-motion: reduce)')
       const update = () => setReduced(media.matches)
@@ -241,37 +243,45 @@ export const jarFiles = {
     }, [])
     function toss() {
       burst.current += 1
+      if (reduced) {
+        setUserMotion(true)
+        clearTimeout(motionTimer.current)
+        motionTimer.current = setTimeout(() => setUserMotion(false), 1800)
+      }
     }
+    useEffect(() => () => clearTimeout(motionTimer.current), [])
+    useEffect(() => {
+      function onMessage(event) {
+        if (event.source === window.parent && event.data?.type === 'devjar-jar-toss') toss()
+      }
+      window.addEventListener('message', onMessage)
+      return () => window.removeEventListener('message', onMessage)
+    }, [reduced])
     return <main>
       <div className="scene" role="button" tabIndex={0} aria-label="Toss the cards"
         onClick={toss} onKeyDown={event => {
           if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toss() }
         }}>
-        <Canvas camera={{ position: [0.55, 0.65, 4.6], fov: 36 }} dpr={[1, 1.5]} frameloop={visible && !reduced ? 'always' : 'demand'} fallback={<p>WebGL is needed to view the glass jar.</p>}>
-          <color attach="background" args={['#f3eee6']} />
+        <Canvas camera={{ position: [0.55, 0.65, 4.6], fov: 36 }} dpr={[1, 1.5]} gl={{ alpha: true }} frameloop={visible && (!reduced || userMotion) ? 'always' : 'demand'} fallback={<p>WebGL is needed to view the glass jar.</p>}>
           <ambientLight intensity={0.9} />
           <directionalLight position={[3, 5, 4]} intensity={1.8} color="#fff4e2" />
           <pointLight position={[-3, 1, 2]} intensity={3} color="#ffd9a8" />
           <StudioLight />
-          <Jar moving={!reduced} burst={burst} />
+          <Jar moving={!reduced || userMotion} burst={burst} />
           <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.96, 0]}>
             <circleGeometry args={[1.2, 64]} /><meshBasicMaterial color="#a99b88" transparent opacity={0.16} />
           </mesh>
         </Canvas>
       </div>
-      <footer><span>Click to toss the cards</span></footer>
     </main>
   }
   `,
   'styles.css': source`\
   body { -webkit-user-select: none; user-select: none; }
   * { box-sizing: border-box; }
-  body { margin: 0; background: #f3eee6; color: #786b5c; font: 11px ui-monospace, monospace; }
-  main { height: 360px; position: relative; }
+  body { margin: 0; background: transparent; color: #786b5c; font: 11px ui-monospace, monospace; }
+  main { height: 100vh; position: relative; }
   .scene { height: 100%; cursor: pointer; }
   .scene:focus-visible { outline: 2px solid #a27d55; outline-offset: -4px; }
-  footer { position: absolute; left: 22px; right: 22px; display: flex; align-items: center; justify-content: space-between; gap: 12px; z-index: 1; pointer-events: none; }
-  footer { bottom: 20px; justify-content: flex-end; font-size: 9px; }
-  @media (max-width: 480px) { main { height: 360px; } footer { left: 14px; right: 14px; } footer { font-size: 8px; } }
   `,
 }

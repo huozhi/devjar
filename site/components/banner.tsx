@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { MiniPlayground } from './mini-playground'
 
 const tabs = [
   { id: 'prompt', label: 'Prompt', text: 'Build a website with Devjar. Follow https://devjar.vercel.app/llms.txt' },
@@ -47,8 +48,8 @@ export function Banner() {
         </a>
       </nav>
       <h1>devjar</h1>
-      <p className="intro-copy">Live Playground &amp; Static Site Export</p>
-      <p className="intro-agents">Designed for agents. Zero config. No node_modules required.</p>
+      <p className="intro-copy">Live Playground &amp; Static Site Builder</p>
+      <p className="intro-agents">Designed for agents. Zero config. No npm install. CDN powered.</p>
       <div className="intro-command">
         <div className="intro-command-tabs" role="tablist" aria-label="Get started">
           {tabs.map((tab, index) => <button key={tab.id} ref={node => { buttons.current[index] = node }}
@@ -74,6 +75,8 @@ export function Banner() {
         </button>
         <span className="intro-command-status" role="status">{copyError ? 'Select the text to copy it.' : copied ? 'Copied' : ''}</span>
       </div>
+      <h2 className="mini-playground-title">React Live Playground</h2>
+      <MiniPlayground />
     </section>
   )
 }

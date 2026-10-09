@@ -21,10 +21,13 @@ export function DeployDemo() {
     <section ref={section} className="deploy-section" aria-labelledby="deploy-title">
       <div className="deploy-heading">
         <div>
-          <p className="deploy-eyebrow">FROM LOCALHOST TO LIVE</p>
-          <h2 id="deploy-title">Made it? Ship it.</h2>
+          <h2 id="deploy-title">Static Site Builder</h2>
           <p>Build a static site. Deploy it anywhere.</p>
         </div>
+      </div>
+      <div className="deploy-build-snippet">
+        <span>From your project folder</span>
+        <code>npx devjar build</code>
       </div>
       <div className={`deploy-terminal${started ? ' is-playing' : ''}`}>
         <div className="deploy-terminal-body">

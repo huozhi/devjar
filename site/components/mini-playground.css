@@ -1,0 +1,28 @@
+.mini-playground-title { margin: 36px 0 16px; font-size: clamp(28px, 4vw, 38px); font-weight: 500; letter-spacing: -.045em; }
+.playground-showcase { display: flex; align-items: center; gap: 32px; }
+.mini-playground { display: grid; grid-template-columns: 1.5fr 1fr; flex: 0 1 480px; width: min(480px, 100%); height: 112px; overflow: hidden; border: 1px solid #dedbd3; border-radius: 7px; background: #fffdf9; }
+.mini-editor, .mini-browser { min-width: 0; }
+.mini-editor { border-right: 1px solid #e6e1d9; background: #f5f2eb; }
+.mini-file { height: 24px; padding: 5px 10px; border-bottom: 1px solid #e6e1d9; color: #8b857b; font: 10px var(--font-ioskeley-mono); }
+.mini-code { padding: 5px 8px; overflow: hidden; color: #55564f; font: 10px/1.5 var(--font-ioskeley-mono); white-space: pre; }
+.mini-purple { color: #8b62a3; }
+.mini-blue { color: #4b7b9d; }
+.mini-changing-line, .mini-browser { display: grid; }
+.mini-changing-line > span, .mini-browser > * { grid-area: 1 / 1; }
+.mini-button-code, .mini-launch { opacity: 0; visibility: hidden; }
+.is-ready .mini-text-code, .is-ready .mini-text-preview { animation: mini-text 5s ease-in-out infinite; }
+.is-ready .mini-button-code, .is-ready .mini-launch { animation: mini-button 5s ease-in-out infinite; }
+.mini-browser iframe { display: block; width: 100%; height: 100%; border: 0; pointer-events: none; }
+.mini-launch { z-index: 1; align-self: center; justify-self: center; padding: 9px 15px; border: 1px solid #33372c; border-radius: 24px; background: #292d24; color: #f7f4e9; font: 12px system-ui, sans-serif; cursor: pointer; transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease; }
+.mini-launch:hover { background: #424a36; }
+.mini-launch.is-pressed { transform: translateY(3px) scale(.9); background: #171a15; box-shadow: inset 0 3px 7px #0008; }
+.mini-launch:disabled { cursor: wait; }
+.mini-launch:focus-visible { outline: 2px solid #a16a46; outline-offset: 3px; }
+.mini-jar { position: relative; flex: 0 0 300px; height: 260px; }
+.mini-jar iframe { display: block; width: 100%; height: 100%; border: 0; background: transparent; }
+.mini-loading { position: absolute; inset: 0; display: grid; place-items: center; background: #f8f6f1c9; color: #827c71; font: 10px var(--font-ioskeley-mono); pointer-events: none; }
+@keyframes mini-text { 0%, 38%, 100% { opacity: 1; visibility: visible; } 48%, 90% { opacity: 0; visibility: hidden; } }
+@keyframes mini-button { 0%, 38%, 100% { opacity: 0; visibility: hidden; } 48%, 90% { opacity: 1; visibility: visible; } }
+@media (max-width: 760px) { .playground-showcase { flex-wrap: wrap; gap: 16px; } .mini-playground { flex-basis: 480px; } .mini-jar { flex-basis: 300px; } }
+@media (max-width: 480px) { .mini-playground { grid-template-columns: 1.4fr 1fr; height: 104px; } .mini-code { padding: 5px; font-size: 8px; } }
+@media (prefers-reduced-motion: reduce) { .is-ready .mini-text-code, .is-ready .mini-text-preview { display: none; } .is-ready .mini-button-code, .is-ready .mini-launch { animation: none; opacity: 1; visibility: visible; } .mini-launch { transition: none; } }
