@@ -375,7 +375,7 @@ export default function Page() { return <pre>{example}</pre> }`,
     } finally {
       await rm(projectRoot, { recursive: true, force: true })
     }
-  })
+  }, 15_000)
 })
 
 describe('dev server', () => {

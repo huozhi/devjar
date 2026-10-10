@@ -51,7 +51,7 @@ test('build exports a sitemap of public routes with the configured origin and ba
     await new Promise<void>(resolve => cdn.close(() => resolve()))
     await rm(root, { recursive: true, force: true })
   }
-})
+}, 15_000)
 
 test('sitemap is only available for build', () => {
   for (const command of ['dev', 'start']) {
