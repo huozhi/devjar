@@ -375,7 +375,7 @@ export default function Page() { return <pre>{example}</pre> }`,
     } finally {
       await rm(projectRoot, { recursive: true, force: true })
     }
-  }, 15_000)
+  })
 })
 
 describe('dev server', () => {
@@ -977,5 +977,5 @@ export default function Page() {
       await new Promise<void>(resolvePromise => cdn.close(() => resolvePromise()))
       await rm(projectRoot, { recursive: true, force: true })
     }
-  })
+  }, 15_000)
 })
