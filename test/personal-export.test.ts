@@ -67,4 +67,4 @@ test('personal example exports saved JSON edits without its playground', async (
     cdn.stop(true)
     await rm(root, { recursive: true, force: true })
   }
-}, 15_000)
+})

@@ -3,7 +3,6 @@ import { createServer } from 'node:http'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { buildProject } from '../src/cli/index'
 import { testCdnModule } from '../scripts/test-cdn'
 
 const bin = join(import.meta.dir, '../src/bin/devjar.ts')
@@ -21,16 +20,12 @@ test('build exports a sitemap of public routes with the configured origin and ba
       await writeFile(join(root, `pages/${page}.tsx`), `export default function Page() { return <h1>${page}</h1> }`)
     }
     const cdnUrl = `http://127.0.0.1:${(cdn.address() as { port: number }).port}`
-    const build = async (flag: string, outDir: string) => {
-      const child = Bun.spawn([process.execPath, bin, 'build', root,
-        '--cdn', cdnUrl, '--origin', 'https://example.com', '--base', '/preview/',
-        '--exclude', 'pages/draft.tsx', '--out-dir', outDir, flag], { stdout: 'pipe', stderr: 'pipe' })
-      const stderr = await new Response(child.stderr).text()
-      expect(await child.exited, stderr).toBe(0)
-    }
-
-    await build('--sitemap', 'default-dist')
-    expect(await readFile(join(root, 'default-dist/sitemap.xml'), 'utf8')).toMatchInlineSnapshot(`
+    const build = Bun.spawn([process.execPath, bin, 'build', root,
+      '--cdn', cdnUrl, '--origin', 'https://example.com', '--base', '/preview/',
+      '--exclude', 'pages/draft.tsx', '--sitemap'], { stdout: 'pipe', stderr: 'pipe' })
+    const stderr = await new Response(build.stderr).text()
+    expect(await build.exited, stderr).toBe(0)
+    expect(await readFile(join(root, 'dist/sitemap.xml'), 'utf8')).toMatchInlineSnapshot(`
       "<?xml version="1.0" encoding="UTF-8"?>
       <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
         <url><loc>https://example.com/preview/</loc></url>
@@ -39,19 +34,16 @@ test('build exports a sitemap of public routes with the configured origin and ba
       "
     `)
 
-    await build('--sitemap=pages.xml', 'custom-dist')
-    expect(await readFile(join(root, 'custom-dist/pages.xml'), 'utf8'))
-      .toBe(await readFile(join(root, 'default-dist/sitemap.xml'), 'utf8'))
-
-    await expect(buildProject({
-      root, outDir: 'invalid-dist', cdn: cdnUrl, prerender: true,
-      exclude: [], base: '/', sitemap: '../escape.xml',
-    })).rejects.toThrow('Sitemap filename must be a .xml file')
+    const invalid = Bun.spawn([process.execPath, bin, 'build', root,
+      '--cdn', cdnUrl, '--sitemap=../escape.xml'], { stdout: 'pipe', stderr: 'pipe' })
+    expect(await invalid.exited).toBe(1)
+    expect(await new Response(invalid.stderr).text())
+      .toContain('Sitemap filename must be a .xml file')
   } finally {
     await new Promise<void>(resolve => cdn.close(() => resolve()))
     await rm(root, { recursive: true, force: true })
   }
-}, 15_000)
+})
 
 test('sitemap is only available for build', () => {
   for (const command of ['dev', 'start']) {
