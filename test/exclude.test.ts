@@ -29,7 +29,7 @@ test('build exclusions remove routes and unused runtime while keeping shared imp
     await writeFile(join(root, 'pages/404.tsx'), `export default function Missing() { return <h1>Missing</h1> }`)
     const address = cdn.address() as { port: number }
     const options = { root, outDir: 'dist', cdn: `http://127.0.0.1:${address.port}`, prerender: true, base: '/resume/', exclude: ['pages/playground.tsx', './pages/drafts/'] }
-    const result = await buildProject(options)
+    const result = await buildProject({ ...options, origin: 'https://example.com', sitemap: 'sitemap.xml' })
     expect(result.routes.sort()).toEqual(['/', '/404', '/drafts-public'])
     expect(result.devjarRuntime).toBe(false)
     const manifest = JSON.parse(await readFile(join(result.outDir, 'manifest.json'), 'utf8'))
@@ -37,6 +37,9 @@ test('build exclusions remove routes and unused runtime while keeping shared imp
     expect(Object.keys(manifest.routes).sort()).toEqual(result.routes)
     expect(runtimeManifest.routes).toEqual(manifest.routes)
     expect(manifest.notFound.page).toBe('pages/404.tsx')
+    expect(await readFile(join(result.outDir, 'sitemap.xml'), 'utf8')).toContain('<loc>https://example.com/resume/drafts-public/</loc>')
+    expect(await readFile(join(result.outDir, 'sitemap.xml'), 'utf8')).toContain('<loc>https://example.com/resume/</loc>')
+    expect(await readFile(join(result.outDir, 'sitemap.xml'), 'utf8')).not.toContain('/404/')
     expect(await readFile(join(result.outDir, 'index.html'), 'utf8')).toContain('<h1>A shared title from a private helper</h1>')
     const output = await readdir(result.outDir, { recursive: true })
     expect(output.some(path => path.endsWith('.wasm'))).toBe(false)
@@ -56,12 +59,24 @@ test('build exclusions remove routes and unused runtime while keeping shared imp
 
     // Exercise repeated flags through the CLI, including exclusion of the 404.
     const child = Bun.spawn([process.execPath, bin, 'build', root, '--cdn', options.cdn, '--out-dir', 'cli-dist',
+      '--origin', 'https://example.com', '--sitemap=pages.xml',
       '--exclude', 'pages/playground.tsx', '--exclude', 'pages/drafts', '--exclude', 'pages/404.tsx'], { stdout: 'pipe', stderr: 'pipe' })
     const stderr = await new Response(child.stderr).text()
     expect(await child.exited, stderr).toBe(0)
     const cliManifest = JSON.parse(await readFile(join(root, 'cli-dist/manifest.json'), 'utf8'))
     expect(Object.keys(cliManifest.routes).sort()).toEqual(['/', '/drafts-public'])
     expect(cliManifest.notFound).toBeUndefined()
+    expect(await readFile(join(root, 'cli-dist/pages.xml'), 'utf8')).toContain('<loc>https://example.com/</loc>')
+
+    const defaultSitemap = Bun.spawn([process.execPath, bin, 'build', root, '--cdn', options.cdn,
+      '--out-dir', 'default-sitemap-dist', '--origin', 'https://example.com', '--sitemap',
+      '--exclude', 'pages/playground.tsx', '--exclude', 'pages/drafts'], { stdout: 'pipe', stderr: 'pipe' })
+    expect(await defaultSitemap.exited, await new Response(defaultSitemap.stderr).text()).toBe(0)
+    expect(await readFile(join(root, 'default-sitemap-dist/sitemap.xml'), 'utf8'))
+      .toContain('<loc>https://example.com/</loc>')
+
+    await expect(buildProject({ ...options, sitemap: '../escape.xml' }))
+      .rejects.toThrow('Sitemap filename must be a .xml file')
 
     await writeFile(join(result.outDir, 'keep.txt'), 'Previous build')
     for (const [exclude, message] of [
@@ -87,6 +102,14 @@ test('exclude is build-only and requires a value', () => {
   const missing = Bun.spawnSync([process.execPath, bin, 'build', '--exclude'])
   expect(missing.exitCode).toBe(1)
   expect(missing.stderr.toString()).toContain('Missing value for --exclude')
+})
+
+test('sitemap is build-only and validates its output filename', () => {
+  for (const command of ['dev', 'start']) {
+    const result = Bun.spawnSync([process.execPath, bin, command, '--sitemap'])
+    expect(result.exitCode).toBe(1)
+    expect(result.stderr.toString()).toContain('--sitemap is only available for build')
+  }
 })
 
 

@@ -28,6 +28,7 @@ Options:
   --cdn <url>      ESM-compatible module CDN (dev and build)
   --base <path>    Public base path (dev and build; default: /)
   --origin <url>   Absolute origin for metadata URLs (build; default: Vercel URL or http://localhost:3000)
+  --sitemap[=<filename>] Export a sitemap (build; default filename: sitemap.xml)
   --exclude <path> Exclude a page file or directory from the build (repeatable)
   --host <host>    Host to listen on (dev and start; default: localhost)
   --port <port>    Port to listen on (dev and start; default: 3000)
@@ -122,6 +123,7 @@ async function run() {
   let cdn: string | undefined
   let base: string | undefined
   let origin: string | undefined
+  let sitemap: string | undefined
   let outDir: string | undefined
   const exclude: string[] = []
 
@@ -132,6 +134,8 @@ async function run() {
     else if (arg === '--cdn') cdn = valueAfter(args, index++)
     else if (arg === '--base') base = valueAfter(args, index++)
     else if (arg === '--origin') origin = valueAfter(args, index++)
+    else if (arg === '--sitemap') sitemap = 'sitemap.xml'
+    else if (arg.startsWith('--sitemap=')) sitemap = arg.slice('--sitemap='.length)
     else if (arg === '--exclude') exclude.push(valueAfter(args, index++))
     else if (arg === '--out-dir' || arg === '-o') outDir = valueAfter(args, index++)
     else if (arg.startsWith('-')) throw new Error(`Unknown option: ${arg}`)
@@ -146,6 +150,7 @@ async function run() {
     throw new Error('build does not accept --host or --port')
   }
   if (command !== 'build' && origin) throw new Error('--origin is only available for build')
+  if (command !== 'build' && sitemap !== undefined) throw new Error('--sitemap is only available for build')
   if (command === 'start' && (cdn || base)) {
     throw new Error('start does not accept --cdn or --base; configure these when building')
   }
@@ -161,6 +166,7 @@ async function run() {
       exclude,
       base: base || '/',
       origin,
+      sitemap,
     })
     const deploymentRoot = vercelOutputRoot(process.cwd())
     if (deploymentRoot) await writeVercelOutput(result.outDir, deploymentRoot)
