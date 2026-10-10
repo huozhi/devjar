@@ -58,6 +58,7 @@ export type BuildOptions = {
   exclude: string[]
   base: string
   origin?: string
+  sitemap?: string
 }
 
 export type StartServerOptions = {
@@ -920,6 +921,10 @@ async function buildProjectWithLocalPackages(options: BuildOptions, localPackage
   const root = await realpath(resolve(options.root))
   const base = normalizeBase(options.base)
   const metadataBaseOrigin = metadataOrigin(options.origin)
+  if (options.sitemap !== undefined && (!/^[^/\\]+\.xml$/.test(options.sitemap)
+    || options.sitemap === '.' || options.sitemap === '..')) {
+    throw new Error('Sitemap filename must be a .xml file in the build output root')
+  }
   const outDir = resolve(root, options.outDir)
   const outputBoundary = await existingDirectory(outDir)
   if (outDir === root || !isInside(root, outDir) || !isInside(root, outputBoundary)) {
@@ -1027,6 +1032,16 @@ async function buildProjectWithLocalPackages(options: BuildOptions, localPackage
       runtimeUrl,
       devjarRuntime,
     })
+  }
+  if (options.sitemap !== undefined) {
+    const locations = Object.keys(manifest.routes)
+      .filter(route => route !== '/404')
+      .sort()
+      .map(route => {
+        const location = `${metadataBaseOrigin}${withBase(base, route === '/' ? '/' : `${route}/`)}`
+        return `  <url><loc>${location.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</loc></url>`
+      })
+    await writeFile(join(outDir, options.sitemap), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${locations.join('\n')}\n</urlset>\n`)
   }
   await vendored.write(join(outDir, '_jar/vendor'), base)
   const modulesRoot = join(outDir, '_jar/modules')
