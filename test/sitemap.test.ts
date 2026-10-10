@@ -30,12 +30,14 @@ test('build exports a sitemap of public routes with the configured origin and ba
     }
 
     await build('--sitemap', 'default-dist')
-    expect(await readFile(join(root, 'default-dist/sitemap.xml'), 'utf8')).toBe(`<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://example.com/preview/</loc></url>
-  <url><loc>https://example.com/preview/guides/about/</loc></url>
-</urlset>
-`)
+    expect(await readFile(join(root, 'default-dist/sitemap.xml'), 'utf8')).toMatchInlineSnapshot(`
+      "<?xml version="1.0" encoding="UTF-8"?>
+      <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+        <url><loc>https://example.com/preview/</loc></url>
+        <url><loc>https://example.com/preview/guides/about/</loc></url>
+      </urlset>
+      "
+    `)
 
     await build('--sitemap=pages.xml', 'custom-dist')
     expect(await readFile(join(root, 'custom-dist/pages.xml'), 'utf8'))
