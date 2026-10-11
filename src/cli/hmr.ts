@@ -1,4 +1,5 @@
 import type { HmrChange, HmrUpdate } from './protocol'
+import { reloadPreservingScroll } from './scroll'
 
 type ModuleExports = Record<string, unknown>
 
@@ -91,7 +92,7 @@ export function createHotUpdater(options: HotUpdaterOptions) {
   async function apply(change: HmrChange) {
     const start = performance.now()
     if (change.reload) {
-      location.reload()
+      reloadPreservingScroll()
       return
     }
     if (change.routes) await options.reloadRoutes(change.revision)
@@ -104,12 +105,15 @@ export function createHotUpdater(options: HotUpdaterOptions) {
       if (update.type === 'refresh') refreshUpdates.push(update)
     }
     if (refreshUpdates.some(update => !acceptsRefresh(update.path))) {
-      location.reload()
+      reloadPreservingScroll()
       return
     }
     if (!refreshUpdates.length) return
 
+    const x = scrollX
+    const y = scrollY
     refreshRuntime.performReactRefresh()
+    requestAnimationFrame(() => requestAnimationFrame(() => scrollTo(x, y)))
     options.onRefresh({
       duration: performance.now() - start,
       totalDuration: Date.now() - change.timestamp,

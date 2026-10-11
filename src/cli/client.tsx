@@ -2,6 +2,7 @@ import React, { Component, type ElementType, type ErrorInfo, type ReactNode } fr
 import { createRoot, hydrateRoot, type Root } from 'react-dom/client'
 import { createHotUpdater } from './hmr'
 import type { HmrChange, RouteEntry, RouteManifest } from './protocol'
+import { restoreScroll } from './scroll'
 
 performance.mark('devjar:client-start')
 
@@ -282,6 +283,7 @@ async function start() {
   })
 
   await load(routeFromPathname(location.pathname))
+  restoreScroll()
   if (hotUpdater) {
     const events = new EventSource(withBase('/_jar/events'))
     events.addEventListener('change', event => {
