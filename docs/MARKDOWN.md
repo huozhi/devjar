@@ -21,24 +21,26 @@ Navigation to and from React pages uses a full document load.
 ## Themes
 
 ```sh
-npx devjar dev --theme book
-npx devjar build --theme book
+npx devjar dev --theme editorial
+npx devjar build --theme editorial
 npx devjar start
 ```
 
 | Theme | Style |
 | --- | --- |
-| `paper` (default) | Centered title, serif text, compact scholarly layout |
-| `academic` | Structured sections, green accent, table of contents for multiple H2 headings |
-| `lecture` | Sans-serif text, blue accent, prominent sections and callouts |
-| `book` | Warm paper colors, larger serif text, italic section headings and an offset desktop column |
+| `studio` (default) | Neutral sans-serif product typography, inspired by Geist and Radix |
+| `primer` | README-style headings, tables, and code, inspired by GitHub Primer |
+| `editorial` | Warm paper, generous serif typography, and expressive article layout |
+| `academic` | Upstream Tufte CSS with local ET Book fonts and scholarly article typography |
 
 Pages load the shared typography stylesheet and only the selected theme CSS.
 Exports include only that theme alongside shared and print styles.
 
-These are Devjar themes inspired by print and article typography. Each includes
+Studio, Primer, and Editorial are Devjar themes inspired by product and article typography.
+Academic uses [Tufte CSS](https://github.com/edwardtufte/tufte-css), with its
+fonts and MIT license included locally. Each includes
 responsive tables and code blocks, system dark mode, keyboard focus styles,
-and print styles. Fonts come from the visitor's system.
+and print styles. The first three use system fonts; Academic uses bundled fonts.
 
 ## Metadata
 

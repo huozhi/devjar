@@ -1,0 +1,28 @@
+/* Expressive article typography with warm paper and generous whitespace. */
+:where(:root) {
+  --md-bg: #fffff8;
+  --md-text: #27251f;
+  --md-muted: #79766d;
+  --md-accent: #735331;
+  --md-surface: #f3f1e7;
+  --md-border: #dedbce;
+  --md-content-width: 62ch;
+}
+:where(body) { font-size: 19px; }
+:where(h1) { font-size: clamp(2.6rem, 6vw, 4rem); font-weight: 400; }
+:where(h2) { font-style: italic; font-weight: 400; }
+:where(a) { color: var(--md-accent); }
+:where(blockquote) { border: 0; font-style: italic; }
+@media (min-width: 1100px) {
+  :where(.devjar-markdown) { margin-left: max(8vw, calc((100vw - 1000px) / 2)); margin-right: 0; }
+}
+@media (prefers-color-scheme: dark) {
+  :where(:root) {
+    --md-bg: #1b1a17;
+    --md-text: #e7e3d7;
+    --md-muted: #b1ac9e;
+    --md-accent: #d7b58f;
+    --md-surface: #27251f;
+    --md-border: #413d32;
+  }
+}

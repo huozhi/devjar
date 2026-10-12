@@ -1,7 +1,9 @@
-import { cp } from 'node:fs/promises'
+import { cp, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 
 const root = join(import.meta.dir, '..')
+
+await rm(join(root, 'dist/markdown-styles'), { recursive: true, force: true })
 
 await Promise.all([
   cp(join(root, 'src/cli/markdown-styles'), join(root, 'dist/markdown-styles'), { recursive: true }),

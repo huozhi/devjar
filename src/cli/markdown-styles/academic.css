@@ -1,19 +1,37 @@
-:where([data-md-theme="academic"]) {
-  --md-bg: #fafbf9;
-  --md-accent: #256058;
-  --md-content-width: 74ch;
-}
-:where([data-md-theme="academic"] h2) {
-  border-bottom: 1px solid var(--md-border);
-  padding-bottom: .5rem;
-}
-:where([data-md-theme="academic"] h1) {
-  font-weight: 600;
-}
+/* Official Tufte CSS and local ET Book fonts; see tufte/README.md. */
+@import url('./tufte/tufte.css');
 
+/* Keep Tufte typography while exposing Devjar's customization variables. */
+:where(:root) {
+  --md-bg: #fffff8;
+  --md-text: #111;
+  --md-accent: var(--md-text);
+  --md-font-body: et-book, Palatino, Georgia, 'Songti SC', serif;
+  --md-content-width: 66ch;
+}
+body {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  font-family: var(--md-font-body);
+  background: var(--md-bg);
+  color: var(--md-text);
+}
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--md-font-heading);
+  color: var(--md-text);
+}
+a:link, a:visited { color: var(--md-accent); }
+pre > code { width: auto; margin-left: 0; }
+:where(.devjar-markdown) { padding: 2rem 1.5rem 4rem; }
+:where(.md-byline) { font-size: 1rem; }
 @media (prefers-color-scheme: dark) {
-  :where([data-md-theme="academic"]) {
-    --md-bg: #181c1b;
-    --md-accent: #8cc4b5;
-  }
+  :where(:root) { --md-bg: #151515; --md-text: #ddd; }
+}
+@media (max-width: 760px) {
+  body { width: 100%; padding: 0; }
+}
+@media print {
+  body { background: white; color: black; }
 }

@@ -161,8 +161,8 @@ A website made from Markdown. Read [more](./about.md).
 ```
 
 ```sh
-npx devjar dev --theme book
-npx devjar build --theme book
+npx devjar dev --theme editorial
+npx devjar build --theme editorial
 ```
 
 Markdown pages include styled HTML with no React or hydration scripts.
@@ -210,7 +210,7 @@ npx devjar [command] [root] [options]
 | `--port <port>` | `dev`, `start` | `3000` |
 | `--cdn <url>` | `dev`, `build` | `https://esm.sh` |
 | `--exclude <path>` | `build` | Page file or directory to omit; repeatable |
-| `--theme <name>` | `dev`, `build` | Markdown theme: `paper` (default), `academic`, `lecture`, or `book` |
+| `--theme <name>` | `dev`, `build` | Markdown theme: `studio` (default), `primer`, `editorial`, or `academic` |
 | `--base <path>` | `dev`, `build` | `/`; deployment subdirectory |
 | `--origin <url>` | `build` | Vercel production URL, or `http://localhost:3000`; absolute origin for social image URLs |
 | `--sitemap[=<filename>]` | `build` | Export a sitemap using `--origin`; defaults to `sitemap.xml` |

@@ -511,7 +511,7 @@ export async function startDevServer(options: DevServerOptions) {
       }
       if (requestPath.startsWith('/_jar/markdown/')) {
         if (!await serveFile(request, response, markdownStylesRoot(), requestPath.slice('/_jar/markdown/'.length),
-          new Set(['.css']), noStore)) send(request, response, 404, 'text/plain', 'Not found')
+          new Set(['.css', '.woff2', '.woff', '.ttf', '.eot', '.svg']), noStore)) send(request, response, 404, 'text/plain', 'Not found')
         return
       }
       if (requestPath === '/_jar/runtime.js') {

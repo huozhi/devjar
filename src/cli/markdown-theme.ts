@@ -2,13 +2,13 @@ import { cp, mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-export const markdownThemes = ['paper', 'academic', 'lecture', 'book'] as const
+export const markdownThemes = ['studio', 'primer', 'editorial', 'academic'] as const
 export type MarkdownTheme = typeof markdownThemes[number]
 
 export function markdownTheme(value: string | undefined): MarkdownTheme {
-  if (value === undefined) return 'paper'
+  if (value === undefined) return 'studio'
   if (!(markdownThemes as readonly string[]).includes(value)) {
-    throw new Error(`Unknown Markdown theme: ${value}. Choose paper, academic, lecture, or book.`)
+    throw new Error(`Unknown Markdown theme: ${value}. Choose studio, primer, editorial, or academic.`)
   }
   return value as MarkdownTheme
 }
@@ -22,4 +22,7 @@ export async function copyMarkdownStyles(destination: string, theme: MarkdownThe
   await Promise.all(['base.css', `${theme}.css`, 'print.css'].map(filename => (
     cp(join(markdownStylesRoot(), filename), join(destination, filename))
   )))
+  if (theme === 'academic') {
+    await cp(join(markdownStylesRoot(), 'tufte'), join(destination, 'tufte'), { recursive: true })
+  }
 }

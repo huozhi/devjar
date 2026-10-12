@@ -44,7 +44,10 @@ const transformAssets = JSON.parse(
   readFileSync(join(root, 'dist/transform-assets.json'), 'utf8'),
 ) as Record<string, string>
 const required = [
-  ...['base', 'paper', 'academic', 'lecture', 'book', 'print'].map(name => `dist/markdown-styles/${name}.css`),
+  ...['base', 'studio', 'primer', 'editorial', 'academic', 'print'].map(name => `dist/markdown-styles/${name}.css`),
+  'dist/markdown-styles/tufte/tufte.css',
+  'dist/markdown-styles/tufte/LICENSE',
+  'dist/markdown-styles/tufte/et-book/et-book-roman-line-figures/et-book-roman-line-figures.woff',
   'dist/bin.js',
   'dist/client.js',
   'dist/http-loader.mjs',
