@@ -23,7 +23,7 @@ import type { HmrChange, RouteManifest } from './protocol'
 import { discover, isInside, loadRouteManifest, manifest as createManifest, routeFromCliPage } from './routes'
 import type { ManifestOptions } from './routes'
 import { renderMarkdown, markdownDocument, type MarkdownPage } from './markdown'
-import { markdownTheme } from './markdown-theme'
+import { markdownTheme, markdownStylesRoot, copyMarkdownStyles } from './markdown-theme'
 export { loadRouteManifest } from './routes'
 import {
   normalizeBase,
@@ -309,7 +309,8 @@ async function serveResponseFile(
   cacheControl: string,
   headers: Record<string, string>,
 ) {
-  const path = resolve(root, `.${normalize('/' + requestPath)}`)
+  let path = resolve(root, `.${normalize('/' + requestPath)}`)
+  if (!allowed && await directoryExists(path)) path = join(path, 'index.html')
   const extension = extname(path).toLowerCase()
   if (!isInside(root, path) || (allowed && !allowed.has(extension))) return false
   if (!(await fileExists(path))) return false
@@ -480,6 +481,11 @@ export async function startDevServer(options: DevServerOptions) {
           new Set(staticAssetExtensions),
           noStore,
         )) send(request, response, 404, 'text/plain', 'Not found')
+        return
+      }
+      if (requestPath.startsWith('/_jar/markdown/')) {
+        if (!await serveFile(request, response, markdownStylesRoot(), requestPath.slice('/_jar/markdown/'.length),
+          new Set(['.css']), noStore)) send(request, response, 404, 'text/plain', 'Not found')
         return
       }
       if (requestPath === '/_jar/runtime.js') {
@@ -944,6 +950,7 @@ async function buildWithPackages(options: BuildOptions, localPackages: LocalPack
     await cp(join(root, filename), join(outDir, filename))
   }
   await writeFile(join(outDir, 'manifest.json'), JSON.stringify(manifest))
+  if (markdownPages.size) await copyMarkdownStyles(join(outDir, '_jar/markdown'), theme)
   const runtimeAssets = await copyRuntimeAssets(join(outDir, '_jar'), devjarRuntime)
   const runtimeUrl = runtimeAssets.runtimeAsset
     ? withBase(base, `/_jar/${runtimeAssets.runtimeAsset}`)

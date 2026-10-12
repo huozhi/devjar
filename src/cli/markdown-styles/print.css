@@ -1,0 +1,24 @@
+@media print {
+  :where(:root) {
+    color-scheme: light;
+    --md-bg: white;
+    --md-text: black;
+    --md-muted: #444;
+    --md-surface: #f5f5f5;
+    --md-border: #ccc;
+  }
+  :where(.devjar-markdown) {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+  :where(.md-home, .md-toc) {
+    display: none;
+  }
+  :where(pre, blockquote, table, img) {
+    break-inside: avoid;
+  }
+  :where(h1, h2, h3) {
+    break-after: avoid;
+  }
+}

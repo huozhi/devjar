@@ -6,7 +6,7 @@ import { parse as parseYaml } from 'yaml'
 import { routeFromCliPage, isInside } from './routes'
 import { withBase } from '../shared/project'
 import { compileProjectModule, isStaticAsset } from './modules'
-import { markdownStyles, type MarkdownTheme } from './markdown-theme'
+import { type MarkdownTheme } from './markdown-theme'
 
 export function escapeHtml(value: string) {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -121,7 +121,7 @@ async function renderPage(options: MarkdownOptions): Promise<MarkdownPage> {
   const content = headings.some(heading => heading.depth === 1)
     ? body.replace(/(<\/h1>)/, match => match + bylineMarkup)
     : `<h1>${escapeHtml(title)}</h1>${bylineMarkup}${body}`
-  let styles = markdownStyles
+  let styles = ''
   let hasCustomStyles = false
   try { hasCustomStyles = (await stat(resolve(options.root, 'markdown.css'))).isFile() }
   catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error }
@@ -140,6 +140,10 @@ async function renderPage(options: MarkdownOptions): Promise<MarkdownPage> {
 export function markdownDocument(page: MarkdownPage, options: {
   base: string, theme: MarkdownTheme, liveReload: boolean, metadataHead: string,
 }) {
+  const themeStyles = ['base.css', `${options.theme}.css`, 'print.css'].map(filename => (
+    `<link rel="stylesheet" href="${withBase(options.base, '/_jar/markdown/' + filename)}"${filename === 'print.css' ? ' media="print"' : ''}>`
+  )).join('')
+  const customStyles = page.styles ? `<style>${page.styles.replace(/<\/style/gi, '<\\/style')}</style>` : ''
   const reload = options.liveReload ? `<script>const events = new EventSource(${JSON.stringify(withBase(options.base, '/_jar/events'))}); events.addEventListener('change', () => location.reload());</script>` : ''
-  return `<!doctype html><html lang="${escapeHtml(page.lang)}" data-md-theme="${options.theme}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(page.title)}</title>${page.description ? `<meta name="description" content="${escapeHtml(page.description)}">` : ''}${options.metadataHead}<style>${page.styles.replace(/<\/style/gi, '<\\/style')}</style></head><body>${page.markup}${reload}</body></html>`
+  return `<!doctype html><html lang="${escapeHtml(page.lang)}" data-md-theme="${options.theme}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(page.title)}</title>${page.description ? `<meta name="description" content="${escapeHtml(page.description)}">` : ''}${options.metadataHead}${themeStyles}${customStyles}</head><body>${page.markup}${reload}</body></html>`
 }

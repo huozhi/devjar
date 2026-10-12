@@ -4,6 +4,7 @@ import { join } from 'node:path'
 const root = join(import.meta.dir, '..')
 
 await Promise.all([
+  cp(join(root, 'src/cli/markdown-styles'), join(root, 'dist/markdown-styles'), { recursive: true }),
   cp(join(root, 'src/cli/http-loader.mjs'), join(root, 'dist/http-loader.mjs')),
   cp(join(root, 'src/cli/prerender-runner.mjs'), join(root, 'dist/prerender-runner.mjs')),
   cp(join(root, 'src/cli/tailwind-runner.mjs'), join(root, 'dist/tailwind-runner.mjs')),

@@ -33,6 +33,9 @@ npx devjar start
 | `lecture` | Sans-serif text, blue accent, prominent sections and callouts |
 | `book` | Warm paper colors, larger serif text, italic section headings and an offset desktop column |
 
+Pages load the shared typography stylesheet and only the selected theme CSS.
+Exports include only that theme alongside shared and print styles.
+
 These are Devjar themes inspired by print and article typography. Each includes
 responsive tables and code blocks, system dark mode, keyboard focus styles,
 and print styles. Fonts come from the visitor's system.

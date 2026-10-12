@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { mkdtemp, mkdir, readFile, realpath, rm, writeFile, symlink } from 'node:fs/promises'
+import { mkdtemp, mkdir, readFile, readdir, realpath, rm, writeFile, symlink } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { renderMarkdown, markdownDocument } from '../src/cli/markdown'
@@ -70,6 +70,10 @@ describe('Markdown pages', () => {
         expect(page.markup.includes('aria-label="Table of contents"')).toBe(theme === 'academic')
         const html = markdownDocument(page, { base: '/preview/', theme, liveReload: false, metadataHead: '' })
         expect(html).toContain(`data-md-theme="${theme}"`)
+        expect(html).toContain(`/_jar/markdown/${theme}.css`)
+        for (const other of markdownThemes.filter(value => value !== theme)) {
+          expect(html).not.toContain(`/_jar/markdown/${other}.css`)
+        }
         expect(html).toContain('<meta name="description" content="Notes on observation">')
         expect(html).not.toContain('<script')
       }
@@ -122,18 +126,24 @@ describe('Markdown pages', () => {
     let dev: Awaited<ReturnType<typeof startDevServer>> | undefined
     let built: Awaited<ReturnType<typeof startBuiltServer>> | undefined
     try {
+      await mkdir(join(root, 'public/reading'), { recursive: true })
+      await writeFile(join(root, 'public/reading/index.html'), '<h1>Reading guide</h1>')
       const result = await buildProject({ root, outDir: 'dist', cdn: 'http://127.0.0.1:1',
         prerender: true, exclude: [], base: '/preview/', theme: 'book', sitemap: 'sitemap.xml' })
       const html = await readFile(join(result.outDir, 'index.html'), 'utf8')
       expect(html).toContain('<h1 id="a-study-of-light">')
       expect(html).not.toContain('<script')
+      expect((await readdir(join(result.outDir, '_jar/markdown'))).sort()).toEqual(['base.css', 'book.css', 'print.css'])
       expect(html).toMatch(/\/preview\/_jar\/assets\/plot-[a-f0-9]+\.svg/)
       expect(await readFile(join(result.outDir, 'sitemap.xml'), 'utf8')).toContain('/preview/notes/')
       built = await startBuiltServer({ root: result.outDir, host: '127.0.0.1', port: 0 })
       expect((await fetch(`http://127.0.0.1:${built.port}/preview/missing`)).status).toBe(404)
+      expect(await (await fetch(`http://127.0.0.1:${built.port}/preview/reading/`)).text()).toContain('Reading guide')
       dev = await startDevServer({ root, host: '127.0.0.1', port: 0, cdn: undefined, base: '/preview/', theme: 'lecture' })
       const origin = `http://127.0.0.1:${dev.port}`
+      expect(await (await fetch(origin + '/preview/reading/')).text()).toContain('Reading guide')
       const document = await (await fetch(origin + '/preview/')).text()
+      expect((await fetch(origin + '/preview/_jar/markdown/lecture.css')).status).toBe(200)
       expect(document).toContain('data-md-theme="lecture"')
       expect(document).toContain('EventSource("/preview/_jar/events")')
       const asset = document.match(/src="([^\"]+plot\.svg[^\"]*)"/)![1].replace(/&amp;/g, '&')

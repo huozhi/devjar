@@ -1,0 +1,19 @@
+:where([data-md-theme="academic"]) {
+  --md-bg: #fafbf9;
+  --md-accent: #256058;
+  --md-content-width: 74ch;
+}
+:where([data-md-theme="academic"] h2) {
+  border-bottom: 1px solid var(--md-border);
+  padding-bottom: .5rem;
+}
+:where([data-md-theme="academic"] h1) {
+  font-weight: 600;
+}
+
+@media (prefers-color-scheme: dark) {
+  :where([data-md-theme="academic"]) {
+    --md-bg: #181c1b;
+    --md-accent: #8cc4b5;
+  }
+}
