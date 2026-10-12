@@ -114,7 +114,7 @@ export default function Page() {
   await writeFile(join(projectRoot, 'pages/docs/start.tsx'), `export default function Page() {
   return <><title>Package docs</title><main><h1>Docs</h1><a href="/">Home</a></main></>
 }`)
-  await writeFile(join(projectRoot, 'pages/article.md'), '# Article\n\n[Home](/)\n')
+  await writeFile(join(projectRoot, 'pages/article.md'), '# Article\n\n[Home](/)\n\nEnergy is $E = mc^2$.\n')
   await writeFile(join(projectRoot, 'markdown.css'), ':root { --md-accent: rgb(120, 40, 90); }')
   await writeFile(join(projectRoot, 'pages/404.tsx'), `export default function Page() {
   return <><title>Package missing</title><main><h1>Custom 404</h1><a href="/">Home</a></main></>
@@ -122,7 +122,7 @@ export default function Page() {
 
   await run('npm', ['install', '--ignore-scripts', tarball], projectRoot)
   const devjar = join(projectRoot, 'node_modules', '.bin', executable('devjar'))
-  await run(devjar, ['build', '--base', '/preview/', '--theme', 'academic'], projectRoot)
+  await run(devjar, ['build', '--base', '/preview/', '--theme', 'academic', '--math'], projectRoot)
   const builtRuntimeFiles = await readdir(join(projectRoot, 'dist/_jar'))
   assert(!builtRuntimeFiles.includes('runtime.js'))
   assert(!builtRuntimeFiles.includes('transform-assets.json'))
@@ -185,7 +185,10 @@ export default function Page() {
   await page.waitForURL(`${baseUrl}article`)
   await assertPage(page, 'Article', 'Article')
   assert.equal(await page.locator('script').count(), 0)
+  assert.equal(await page.locator('.katex').count(), 1)
   await page.evaluate(() => document.fonts.ready)
+  assert(await page.evaluate(() => performance.getEntriesByType('resource').some(entry => entry.name.includes('/_jar/math/fonts/'))))
+  assert.deepEqual(externalRequests, [])
   assert.equal(await page.locator('html').getAttribute('data-md-theme'), 'academic')
   assert.equal(await page.locator('.devjar-markdown a').last().evaluate(element => getComputedStyle(element).color), 'rgb(120, 40, 90)')
   await page.locator('.md-home').click()

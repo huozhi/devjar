@@ -20,6 +20,7 @@ export type MarkdownOptions = {
   base: string
   theme: MarkdownTheme
   liveReload: boolean
+  math: boolean
   assetUrl: (path: string, contents: Buffer) => string
 }
 
@@ -30,6 +31,7 @@ export type MarkdownPage = {
   markup: string
   styles: string
   assets: Map<string, Buffer>
+  hasMath: boolean
 }
 
 export async function renderMarkdown(options: MarkdownOptions): Promise<MarkdownPage> {
@@ -59,6 +61,12 @@ async function renderPage(options: MarkdownOptions): Promise<MarkdownPage> {
   const headingIds = new Map<string, number>()
   const rewritten = new WeakSet<object>()
   const parser = new Marked(markedFootnote({ description: 'Notes' }))
+  let hasMath = false
+  if (options.math) {
+    const { default: markedKatex } = await import('marked-katex-extension')
+    parser.use(markedKatex({ throwOnError: true, trust: false, output: 'htmlAndMathml',
+      nonStandard: true, maxSize: 20, maxExpand: 1000 }))
+  }
   parser.use({
     async: true,
     renderer: {
@@ -75,6 +83,7 @@ async function renderPage(options: MarkdownOptions): Promise<MarkdownPage> {
       table(token) { return `<div class="md-table">${Renderer.prototype.table.call(this, token)}</div>` },
     },
     async walkTokens(token) {
+      if (token.type === 'inlineKatex' || token.type === 'blockKatex') hasMath = true
       if (token.type !== 'link' && token.type !== 'image') return
       if (rewritten.has(token)) return
       rewritten.add(token)
@@ -122,6 +131,7 @@ async function renderPage(options: MarkdownOptions): Promise<MarkdownPage> {
     ? body.replace(/(<\/h1>)/, match => match + bylineMarkup)
     : `<h1>${escapeHtml(title)}</h1>${bylineMarkup}${body}`
   let styles = ''
+  if (hasMath) styles += '\n:where(.katex-display) { overflow-x: auto; overflow-y: hidden; padding-block: .5rem; }'
   let hasCustomStyles = false
   try { hasCustomStyles = (await stat(resolve(options.root, 'markdown.css'))).isFile() }
   catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error }
@@ -134,16 +144,17 @@ async function renderPage(options: MarkdownOptions): Promise<MarkdownPage> {
     styles += '\n' + compiled.style
     for (const path of compiled.dependencies) assets.set(path, await readFile(resolve(options.root, path)))
   }
-  return { title, description, lang: String(metadata.lang || 'en'), markup: `<main class="devjar-markdown">${home}${content}</main>`, styles, assets }
+  return { title, description, lang: String(metadata.lang || 'en'), markup: `<main class="devjar-markdown">${home}${content}</main>`, styles, assets, hasMath }
 }
 
 export function markdownDocument(page: MarkdownPage, options: {
   base: string, theme: MarkdownTheme, liveReload: boolean, metadataHead: string,
 }) {
+  const math = page.hasMath ? `<link rel="stylesheet" href="${withBase(options.base, '/_jar/math/katex.min.css')}">` : ''
   const themeStyles = ['base.css', `${options.theme}.css`, 'print.css'].map(filename => (
     `<link rel="stylesheet" href="${withBase(options.base, '/_jar/markdown/' + filename)}"${filename === 'print.css' ? ' media="print"' : ''}>`
   )).join('')
   const customStyles = page.styles ? `<style>${page.styles.replace(/<\/style/gi, '<\\/style')}</style>` : ''
   const reload = options.liveReload ? `<script>const events = new EventSource(${JSON.stringify(withBase(options.base, '/_jar/events'))}); events.addEventListener('change', () => location.reload());</script>` : ''
-  return `<!doctype html><html lang="${escapeHtml(page.lang)}" data-md-theme="${options.theme}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(page.title)}</title>${page.description ? `<meta name="description" content="${escapeHtml(page.description)}">` : ''}${options.metadataHead}${themeStyles}${customStyles}</head><body>${page.markup}${reload}</body></html>`
+  return `<!doctype html><html lang="${escapeHtml(page.lang)}" data-md-theme="${options.theme}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(page.title)}</title>${page.description ? `<meta name="description" content="${escapeHtml(page.description)}">` : ''}${options.metadataHead}${math}${themeStyles}${customStyles}</head><body>${page.markup}${reload}</body></html>`
 }

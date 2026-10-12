@@ -68,8 +68,10 @@
   },
   "dependencies": {
     "es-module-lexer": "1.6.0",
+    "katex": "^0.18.7",
     "marked": "^18.1.0",
     "marked-footnote": "^1.4.0",
+    "marked-katex-extension": "^5.1.13",
     "oxc-minify": "0.148.0",
     "oxc-transform": "^0.144.0",
     "yaml": "^2.9.1"

@@ -24,6 +24,7 @@ import { discover, isInside, loadRouteManifest, manifest as createManifest, rout
 import type { ManifestOptions } from './routes'
 import { renderMarkdown, markdownDocument, type MarkdownPage } from './markdown'
 import { markdownTheme, markdownStylesRoot, copyMarkdownStyles } from './markdown-theme'
+import { copyMathAssets, mathAssetsRoot } from './math'
 export { loadRouteManifest } from './routes'
 import {
   normalizeBase,
@@ -52,6 +53,7 @@ export type DevServerOptions = {
   cdn: string | undefined
   base: string
   theme?: string
+  math?: boolean
 }
 
 export type BuildOptions = {
@@ -64,6 +66,7 @@ export type BuildOptions = {
   origin?: string
   sitemap?: string
   theme?: string
+  math?: boolean
 }
 
 export type StartServerOptions = {
@@ -509,6 +512,11 @@ export async function startDevServer(options: DevServerOptions) {
         )) send(request, response, 404, 'text/plain', 'Not found')
         return
       }
+      if (options.math && requestPath.startsWith('/_jar/math/')) {
+        if (!await serveFile(request, response, mathAssetsRoot(), requestPath.slice('/_jar/math/'.length),
+          new Set(['.css', '.woff2', '.woff', '.ttf']), noStore)) send(request, response, 404, 'text/plain', 'Not found')
+        return
+      }
       if (requestPath.startsWith('/_jar/markdown/')) {
         if (!await serveFile(request, response, markdownStylesRoot(), requestPath.slice('/_jar/markdown/'.length),
           new Set(['.css']), noStore)) send(request, response, 404, 'text/plain', 'Not found')
@@ -541,7 +549,7 @@ export async function startDevServer(options: DevServerOptions) {
       const page = pages.routes.get(route) || pages.notFound
       if (page?.endsWith('.md')) {
         const rendered = await renderMarkdown({ root, page, routes: pages.routes, base, theme,
-          liveReload: true, assetUrl: (path, contents) => devAssetUrl(path, contents, base) })
+          liveReload: true, math: options.math || false, assetUrl: (path, contents) => devAssetUrl(path, contents, base) })
         for (const path of rendered.assets.keys()) markdownAssets.add(path)
         send(request, response, pages.routes.has(route) ? 200 : 404, 'text/html; charset=utf-8',
           markdownDocument(rendered, { base, theme, liveReload: true, metadataHead: metadataTags(metadataFiles, base, 'http://localhost:3000') }))
@@ -896,7 +904,7 @@ async function buildWithPackages(options: BuildOptions, localPackages: LocalPack
   const markdownPages = new Map<string, MarkdownPage>()
   for (const [route, page] of discovered.routes) {
     if (page.endsWith('.md')) markdownPages.set(route, await renderMarkdown({
-      root, page, routes: discovered.routes, base, theme, liveReload: false,
+      root, page, routes: discovered.routes, base, theme, liveReload: false, math: options.math || false,
       assetUrl: (path, contents) => builtAssetUrl(path, contents, base),
     }))
   }
@@ -979,6 +987,9 @@ async function buildWithPackages(options: BuildOptions, localPackages: LocalPack
     await cp(join(root, filename), join(outDir, filename))
   }
   await writeFile(join(outDir, 'manifest.json'), JSON.stringify(manifest))
+  if ([...markdownPages.values()].some(page => page.hasMath)) {
+    await copyMathAssets(join(outDir, '_jar/math'))
+  }
   if (markdownPages.size) await copyMarkdownStyles(join(outDir, '_jar/markdown'), theme)
   const runtimeAssets = await copyRuntimeAssets(join(outDir, '_jar'), devjarRuntime)
   const runtimeUrl = runtimeAssets.runtimeAsset

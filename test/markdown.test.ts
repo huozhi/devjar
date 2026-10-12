@@ -46,10 +46,10 @@ const value = 12
   return root
 }
 
-async function render(root: string, theme: string) {
+async function render(root: string, theme: string, math: boolean) {
   const routes = (await discover(root, [])).routes
   return renderMarkdown({ root, page: routes.get('/')!, routes, base: '/preview/',
-    theme: markdownTheme(theme), liveReload: false, assetUrl: path => '/preview/assets/' + path })
+    theme: markdownTheme(theme), liveReload: false, math, assetUrl: path => '/preview/assets/' + path })
 }
 
 describe('Markdown pages', () => {
@@ -58,7 +58,7 @@ describe('Markdown pages', () => {
     try {
       await writeFile(join(root, 'markdown.css'), ':root { --md-accent: purple; }')
       for (const theme of markdownThemes) {
-        const page = await render(root, theme)
+        const page = await render(root, theme, false)
         expect(page.title).toBe('A study of light')
         expect(page.markup).toContain('href="/preview/notes/#experiment"')
         expect(page.markup).toContain('Ada Chen · 2026-10-13')
@@ -95,12 +95,12 @@ describe('Markdown pages', () => {
         ['![Escape](../../../outside.svg)', 'Reference escapes the project'],
       ]) {
         await writeFile(join(root, 'pages/index.md'), source)
-        await expect(render(root, 'minimal')).rejects.toThrow(error)
+        await expect(render(root, 'minimal', false)).rejects.toThrow(error)
       }
       await writeFile(join(outside, 'plot.svg'), '<svg/>')
       await symlink(join(outside, 'plot.svg'), join(root, 'assets/escape.svg'))
       await writeFile(join(root, 'pages/index.md'), '![Escape](../assets/escape.svg)')
-      await expect(render(root, 'minimal')).rejects.toThrow('Reference escapes the project')
+      await expect(render(root, 'minimal', false)).rejects.toThrow('Reference escapes the project')
       expect(() => markdownTheme('missing')).toThrow('Unknown Markdown theme')
     } finally {
       await rm(root, { recursive: true, force: true })
@@ -112,7 +112,7 @@ describe('Markdown pages', () => {
     const root = await fixture()
     try {
       await writeFile(join(root, 'pages/index.md'), `---\ntitle: '<script>alert(1)</script>'\n---\n<script>alert(1)</script>\n\n[Bad](javascript:alert)\n\n![Bad](data:text/html,test)`)
-      const page = await render(root, 'editorial')
+      const page = await render(root, 'editorial', false)
       const html = markdownDocument(page, { base: '/', theme: 'editorial', liveReload: false, metadataHead: '' })
       expect(html).not.toContain('<script>')
       expect(html).not.toContain('javascript:')
@@ -156,4 +156,73 @@ describe('Markdown pages', () => {
       await rm(root, { recursive: true, force: true })
     }
   })
+  test('renders opt-in math while preserving code, escaped dollars and plain Markdown', async () => {
+    const root = await fixture()
+    try {
+      await writeFile(join(root, 'pages/index.md'), [
+        '# Equations', '', 'Energy is $E = mc^2$.', '', '$$',
+        String.raw`\int_0^1 x^2\,dx = \frac{1}{3}`, '$$', '',
+        '中文$x^2$也可以。', '', 'Inline code: `$literal$`.', '', '```tex', '$unrendered$', '```', '',
+        String.raw`The price is \$5.`,
+      ].join('\n'))
+      const page = await render(root, 'minimal', true)
+      expect(page.hasMath).toBe(true)
+      expect(page.markup).toContain('class="katex"')
+      expect(page.markup).toContain('<math')
+      expect(page.markup).toContain('katex-display')
+      expect(page.markup).toContain('中文<span class="katex"')
+      expect(page.markup).toContain('也可以。')
+      expect(page.markup).toContain('$literal$</code>')
+      expect(page.markup).toContain('$unrendered$')
+      expect(page.markup).toContain('The price is $5.')
+      expect(markdownDocument(page, { base: '/preview/', theme: 'minimal', liveReload: false, metadataHead: '' }))
+        .toContain('href="/preview/_jar/math/katex.min.css"')
+      const plain = await render(root, 'minimal', false)
+      expect(plain.hasMath).toBe(false)
+      expect(plain.markup).toContain('$E = mc^2$')
+      expect(plain.markup).not.toContain('class="katex"')
+      await writeFile(join(root, 'pages/index.md'), '# No formulas')
+      expect((await render(root, 'minimal', true)).hasMath).toBe(false)
+      await writeFile(join(root, 'pages/index.md'), String.raw`$\unknowncommand{x}$`)
+      await expect(render(root, 'minimal', true)).rejects.toThrow('Unable to render pages/index.md')
+      await writeFile(join(root, 'pages/index.md'), String.raw`$\href{javascript:alert(1)}{click}$`)
+      expect((await render(root, 'minimal', true)).markup).not.toContain('href="javascript:')
+    } finally { await rm(root, { recursive: true, force: true }) }
+  })
+
+  test('serves and exports local math styles and fonts only for sites with formulas', async () => {
+    const root = await fixture()
+    let dev: Awaited<ReturnType<typeof startDevServer>> | undefined
+    let built: Awaited<ReturnType<typeof startBuiltServer>> | undefined
+    try {
+      await writeFile(join(root, 'pages/index.md'), '# Math\n\n$x^2$\n')
+      const result = await buildProject({ root, outDir: 'dist', cdn: 'http://127.0.0.1:1',
+        prerender: true, exclude: [], base: '/preview/', math: true })
+      const html = await readFile(join(result.outDir, 'index.html'), 'utf8')
+      expect(html).toContain('class="katex"')
+      expect(html).not.toContain('<script')
+      built = await startBuiltServer({ root: result.outDir, host: '127.0.0.1', port: 0 })
+      dev = await startDevServer({ root, host: '127.0.0.1', port: 0, cdn: undefined, base: '/preview/', math: true })
+      for (const port of [built.port, dev.port]) {
+        const origin = `http://127.0.0.1:${port}/preview`
+        const document = await (await fetch(origin + '/')).text()
+        expect(document).toContain('class="katex"')
+        const css = await fetch(origin + '/_jar/math/katex.min.css')
+        expect(css.status).toBe(200)
+        expect(css.headers.get('content-type')).toContain('text/css')
+        const font = (await css.text()).match(/url\((fonts\/[^)]+\.woff2)\)/)![1]
+        const response = await fetch(origin + '/_jar/math/' + font)
+        expect(response.status).toBe(200)
+        expect((await response.arrayBuffer()).byteLength).toBeGreaterThan(100)
+      }
+      const plain = await buildProject({ root, outDir: 'plain', cdn: 'http://127.0.0.1:1',
+        prerender: true, exclude: [], base: '/', math: false })
+      await expect(readFile(join(plain.outDir, '_jar/math/katex.min.css'))).rejects.toThrow()
+    } finally {
+      await dev?.close()
+      await built?.close()
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
 })
