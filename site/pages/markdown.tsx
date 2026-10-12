@@ -10,20 +10,30 @@ const themes = [
 ] as const
 
 function PageFragment({ theme }: { theme: typeof themes[number] }) {
-  const observer = useRef<ResizeObserver | undefined>(undefined)
-  useEffect(() => () => observer.current?.disconnect(), [])
-  return <section className="markdown-fragment" aria-label={`${theme.name} theme`}>
-    <div className="markdown-fragment-label"><span>{theme.name}</span><span>{theme.kind}</span></div>
-    <iframe title={`${theme.name} page fragment`} src={`/markdown-previews/${theme.id}/`} scrolling="no" onLoad={event => {
-      const frame = event.currentTarget
+  const frameRef = useRef<HTMLIFrameElement | null>(null)
+  useEffect(() => {
+    const frame = frameRef.current
+    if (!frame) return
+    let observer: ResizeObserver | undefined
+    const observe = () => {
       const body = frame.contentDocument?.body
       if (!body) return
-      observer.current?.disconnect()
-      const resize = () => { frame.style.height = `${Math.ceil(body.getBoundingClientRect().height)}px` }
-      observer.current = new ResizeObserver(resize)
-      observer.current.observe(body)
+      observer?.disconnect()
+      const resize = () => {
+        const height = Math.ceil(body.getBoundingClientRect().height)
+        if (height > 0) frame.style.height = `${height + frame.offsetHeight - frame.clientHeight}px`
+      }
+      observer = new ResizeObserver(resize)
+      observer.observe(body)
       resize()
-    }} />
+    }
+    frame.addEventListener('load', observe)
+    observe()
+    return () => { frame.removeEventListener('load', observe); observer?.disconnect() }
+  }, [])
+  return <section className="markdown-fragment" aria-label={`${theme.name} theme`}>
+    <div className="markdown-fragment-label"><span>{theme.name}</span><span>{theme.kind}</span></div>
+    <iframe ref={frameRef} title={`${theme.name} page fragment`} src={`/markdown-previews/${theme.id}/`} scrolling="no" />
   </section>
 }
 
