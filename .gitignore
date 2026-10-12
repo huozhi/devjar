@@ -9,3 +9,5 @@ error.log
 video/out/
 
 /src/client/generated/
+
+/site/public/markdown-previews/
