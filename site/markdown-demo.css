@@ -1,47 +1,44 @@
-.markdown-demo { max-width: 1100px; margin: 0 auto; padding: 30px 32px 80px; color: #292d24; }
-.markdown-demo-nav { display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
-.markdown-demo-nav a { text-decoration: none; }
-.markdown-demo-home { font: 22px var(--font-ioskeley-mono); letter-spacing: -.05em; }
-.markdown-demo-heading { padding: 80px 0 42px; max-width: 630px; }
-.markdown-demo-eyebrow { text-transform: uppercase; letter-spacing: .13em; font: 10px var(--font-ioskeley-mono); color: #77796f; }
-.markdown-demo-heading h1 { font: 500 clamp(42px, 7vw, 72px)/1.04 Georgia, serif; letter-spacing: -.045em; margin: 22px 0; }
-.markdown-demo-heading p { max-width: 470px; color: #73766c; font-size: 15px; line-height: 1.75; }
-.markdown-theme-options { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-.markdown-theme-option { padding: 19px 18px 17px; min-height: 160px; text-align: left; border: 1px solid #dfded5; border-radius: 7px; background: #fffdf9; cursor: pointer; color: #292d24; }
-.markdown-theme-option:hover { border-color: #aaa99b; }
-.markdown-theme-option[aria-pressed="true"] { border-color: #586349; box-shadow: 0 0 0 1px #586349; background: #f3f5ed; }
-.markdown-theme-label { display: flex; justify-content: space-between; align-items: center; font: 11px var(--font-ioskeley-mono); }
-.markdown-theme-dot { width: 6px; height: 6px; border-radius: 50%; }
-.markdown-theme-sample { display: block; margin: 23px 0 15px; font: 24px/1.15 Georgia, serif; letter-spacing: -.035em; }
-.theme-paper .markdown-theme-sample { text-align: center; font-size: 22px; }
-.theme-academic .markdown-theme-sample { font-weight: 600; }
-.theme-lecture .markdown-theme-sample { font-family: system-ui, sans-serif; font-size: 21px; font-weight: 700; }
-.theme-book .markdown-theme-sample { font-style: italic; }
-.markdown-theme-kind { color: #86867b; font-size: 11px; }
-.markdown-demo-preview { border: 1px solid #dfded5; border-radius: 9px; overflow: hidden; margin-top: 28px; background: #fff; box-shadow: 0 10px 35px #3f392c06; }
-.markdown-preview-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 15px 20px; border-bottom: 1px solid #e7e5dd; background: #faf9f5; font-size: 12px; }
-.markdown-preview-toolbar strong { font-weight: 500; }
-.markdown-preview-toolbar span { margin-left: 12px; color: #838579; }
-.markdown-preview-toolbar a { text-decoration: none; flex-shrink: 0; font-size: 11px; }
-.markdown-demo-preview iframe { display: block; width: 100%; height: 750px; border: 0; }
-.markdown-demo-caption { display: flex; justify-content: space-between; gap: 20px; align-items: center; margin-top: 18px; color: #87877b; font-size: 12px; }
-.markdown-demo-caption p { margin: 0; }
-.markdown-demo-caption code { font: 11px var(--font-ioskeley-mono); color: #5c6353; }
-.markdown-demo-customize { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; padding-top: 64px; margin-top: 55px; border-top: 1px solid #e1ded4; }
-.markdown-demo-customize h2 { font: 400 30px/1.2 Georgia, serif; letter-spacing: -.03em; margin: 16px 0; }
-.markdown-demo-customize p { font-size: 13px; line-height: 1.8; color: #7b7f70; }
-.markdown-demo-customize pre { margin: 0; padding: 22px; border: 1px solid #e2dfd5; background: #f1eee6; border-radius: 6px; overflow-x: auto; font: 12px/1.8 var(--font-ioskeley-mono); }
-.markdown-demo :focus-visible { outline: 2px solid #586349; outline-offset: 4px; }
-@media (max-width: 800px) {
-  .markdown-theme-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .markdown-preview-toolbar span { display: block; margin: 5px 0 0; line-height: 1.5; }
-  .markdown-demo-caption { align-items: flex-start; flex-direction: column; gap: 10px; }
+.markdown-demo {
+  position: relative;
+  width: min(1440px, 100%);
+  margin: 0 auto;
+  padding: 110px 32px 80px;
+  color: #292d24;
 }
-@media (max-width: 540px) {
-  .markdown-demo { padding: 24px 18px 48px; }
-  .markdown-demo-heading { padding-top: 55px; }
-  .markdown-theme-option { padding: 14px; min-height: 150px; }
-  .markdown-theme-sample { font-size: 22px; }
-  .markdown-demo-preview iframe { height: 650px; }
-  .markdown-demo-customize { grid-template-columns: 1fr; gap: 20px; padding-top: 40px; margin-top: 40px; }
+.markdown-fragments {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 48px 32px;
+}
+.markdown-fragment-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 2px 13px;
+  color: #828477;
+  font-size: 11px;
+}
+.markdown-fragment-label span:first-child {
+  color: #4f5846;
+  font-family: var(--font-ioskeley-mono);
+}
+.markdown-fragment iframe {
+  display: block;
+  width: 100%;
+  height: 650px;
+  border: 1px solid #e2dfd5;
+  border-radius: 3px;
+  background: #fff;
+  box-shadow: 0 4px 22px #3f392c06;
+}
+.markdown-demo :focus-visible { outline: 2px solid #586349; outline-offset: 4px; }
+@media (max-width: 900px) {
+  .markdown-demo { padding-inline: 16px; }
+  .markdown-fragments { gap: 36px 20px; }
+}
+@media (max-width: 640px) {
+  .markdown-demo { padding: 92px 16px 48px; }
+  .markdown-fragments { grid-template-columns: 1fr; gap: 36px; }
 }
