@@ -68,8 +68,11 @@
   },
   "dependencies": {
     "es-module-lexer": "1.6.0",
+    "marked": "^18.1.0",
+    "marked-footnote": "^1.4.0",
     "oxc-minify": "0.148.0",
-    "oxc-transform": "^0.144.0"
+    "oxc-transform": "^0.144.0",
+    "yaml": "^2.9.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",

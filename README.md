@@ -142,11 +142,34 @@ pages/
 └── 404.tsx           → unmatched routes
 ```
 
-Each page default-exports a React component. Import shared components explicitly;
+React pages default-export a component. Markdown files such as `pages/index.md`
+and `pages/about.md` render directly as static pages; see [Markdown pages](./docs/MARKDOWN.md). Import shared components explicitly;
 packages load from the CDN. Configure the CLI with flags.
 Underscore-prefixed files and folders (such as `pages/_helpers.tsx` or
 `pages/_drafts/`) are not routes in dev, builds, or embedded previews.
 They remain importable; `_layout.tsx` has no automatic layout behavior.
+
+<details>
+<summary>Write a website in Markdown</summary>
+
+Create `pages/index.md`:
+
+```md
+# My notes
+
+A website made from Markdown. Read [more](./about.md).
+```
+
+```sh
+npx devjar dev --theme book
+npx devjar build --theme book
+```
+
+Markdown pages include styled HTML with no React or hydration scripts.
+Use optional YAML frontmatter for metadata and a root `markdown.css` to customize
+fonts, colors, and layout. See [Markdown pages](./docs/MARKDOWN.md).
+
+</details>
 
 <details>
 <summary>Pin dependency versions</summary>
@@ -187,6 +210,7 @@ npx devjar [command] [root] [options]
 | `--port <port>` | `dev`, `start` | `3000` |
 | `--cdn <url>` | `dev`, `build` | `https://esm.sh` |
 | `--exclude <path>` | `build` | Page file or directory to omit; repeatable |
+| `--theme <name>` | `dev`, `build` | Markdown theme: `paper` (default), `academic`, `lecture`, or `book` |
 | `--base <path>` | `dev`, `build` | `/`; deployment subdirectory |
 | `--origin <url>` | `build` | Vercel production URL, or `http://localhost:3000`; absolute origin for social image URLs |
 | `--sitemap[=<filename>]` | `build` | Export a sitemap using `--origin`; defaults to `sitemap.xml` |
@@ -394,6 +418,7 @@ npx devjar dev examples/basic
 
 | Example | What it shows |
 | --- | --- |
+| [Markdown](./examples/markdown) | Four themes, metadata, and footnotes |
 | [Basic](./examples/basic) | Minimal pages |
 | [Dashboard](./examples/dashboard) | Navigation, Tailwind, and static data |
 | [SWR](./examples/swr) | Optimistic updates, rollback, and simulated subscriptions |

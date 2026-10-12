@@ -20,13 +20,14 @@ import {
   usesDevjarRuntime,
 } from './modules'
 import type { HmrChange, RouteManifest } from './protocol'
-import { discover, isInside, loadRouteManifest, manifest as createManifest } from './routes'
+import { discover, isInside, loadRouteManifest, manifest as createManifest, routeFromCliPage } from './routes'
 import type { ManifestOptions } from './routes'
+import { renderMarkdown, markdownDocument, type MarkdownPage } from './markdown'
+import { markdownTheme } from './markdown-theme'
 export { loadRouteManifest } from './routes'
 import {
   normalizeBase,
   normalizeRoute,
-  routeFromPagePath,
   withBase,
   withoutBase,
 } from '../shared/project'
@@ -50,6 +51,7 @@ export type DevServerOptions = {
   port: number
   cdn: string | undefined
   base: string
+  theme?: string
 }
 
 export type BuildOptions = {
@@ -61,6 +63,7 @@ export type BuildOptions = {
   base: string
   origin?: string
   sitemap?: string
+  theme?: string
 }
 
 export type StartServerOptions = {
@@ -175,6 +178,16 @@ type HtmlOptions = {
   styles: string
 }
 
+function metadataTags(files: string[], base: string, origin: string) {
+  return `<meta name="twitter:card" content="summary_large_image">${files.map(filename => {
+    const url = withBase(base, `/${filename}`)
+    const absoluteUrl = `${origin}${url}`
+    return filename.startsWith('icon.')
+      ? `<link rel="icon" href="${url}" type="${contentTypes[extname(filename)]}">`
+      : `<meta property="og:image" content="${absoluteUrl}"><meta name="twitter:image" content="${absoluteUrl}">`
+  }).join('')}`
+}
+
 function html(options: HtmlOptions) {
   const imports = {
     react: options.resolveModule('react'),
@@ -215,13 +228,7 @@ await import(${JSON.stringify(options.clientUrl)})
   const staticStyles = options.styles
     ? `<style data-devjar-static>${options.styles.replace(/<\/style/gi, '<\\/style')}</style>`
     : ''
-  const metadataHead = `<meta name="twitter:card" content="summary_large_image">${options.metadataFiles.map(filename => {
-    const url = withBase(options.base, `/${filename}`)
-    const absoluteUrl = `${options.metadataOrigin}${url}`
-    return filename.startsWith('icon.')
-      ? `<link rel="icon" href="${url}" type="${contentTypes[extname(filename)]}">`
-      : `<meta property="og:image" content="${absoluteUrl}"><meta name="twitter:image" content="${absoluteUrl}">`
-  }).join('')}`
+  const metadataHead = metadataTags(options.metadataFiles, options.base, options.metadataOrigin)
   const documentHead = /<title(?:\s|>)/i.test(options.head)
     ? options.head
     : `<title data-devjar-default>Devjar</title>${options.head}`
@@ -364,7 +371,9 @@ export async function startDevServer(options: DevServerOptions) {
   const host = options.host
   const port = options.port
   const base = normalizeBase(options.base)
+  const theme = markdownTheme(options.theme)
   const events = new Set<ServerResponse>()
+  const markdownAssets = new Set<string>()
   const assetsRoot = await runtimeRoot()
   const devjarDependencies = await readDevjarDependencies(assetsRoot)
   const modules = new DevModuleGraph(base)
@@ -387,12 +396,7 @@ export async function startDevServer(options: DevServerOptions) {
     },
   })
 
-  if (!(await fileExists(join(root, 'pages/index.tsx')))
-    && !(await fileExists(join(root, 'pages/index.ts')))
-    && !(await fileExists(join(root, 'pages/index.jsx')))
-    && !(await fileExists(join(root, 'pages/index.js')))) {
-    throw new Error(`No index page found in ${join(root, 'pages')}.\nCreate pages/index.tsx (or .ts, .jsx, .js), or pass your project directory to devjar dev.`)
-  }
+  await discover(root, [])
 
   const server = createServer(async (request, response) => {
     try {
@@ -500,6 +504,17 @@ export async function startDevServer(options: DevServerOptions) {
       if (metadataFiles.includes(requestPath.slice(1))
         && await serveFile(request, response, root, requestPath.slice(1), undefined, noStore)) return
       if (await serveFile(request, response, join(root, 'public'), requestPath.slice(1), undefined, noStore)) return
+      const pages = await discover(root, [])
+      const route = normalizeRoute(requestPath)
+      const page = pages.routes.get(route) || pages.notFound
+      if (page?.endsWith('.md')) {
+        const rendered = await renderMarkdown({ root, page, routes: pages.routes, base, theme,
+          liveReload: true, assetUrl: (path, contents) => devAssetUrl(path, contents, base) })
+        for (const path of rendered.assets.keys()) markdownAssets.add(path)
+        send(request, response, pages.routes.has(route) ? 200 : 404, 'text/html; charset=utf-8',
+          markdownDocument(rendered, { base, theme, liveReload: true, metadataHead: metadataTags(metadataFiles, base, 'http://localhost:3000') }))
+        return
+      }
       const packageJson = await readPackage(root)
       const dependencies = packageDependencies(packageJson)
       const cdn = resolveCdn(options.cdn)
@@ -553,15 +568,15 @@ export async function startDevServer(options: DevServerOptions) {
       pendingRenames.clear()
       const timestamp = pendingTimestamp
       pendingTimestamp = 0
-      let reload = changedFiles.includes('package.json') || changedFiles.some(isMetadataFile)
+      let reload = changedFiles.includes('markdown.css') || changedFiles.some(path => path.endsWith('.md') || markdownAssets.has(path)) || changedFiles.includes('package.json') || changedFiles.some(isMetadataFile)
       const routes = changedFiles.some(filename => (
-        filename.startsWith('pages/') && routeFromPagePath(filename.slice('pages/'.length)) !== undefined
+        filename.startsWith('pages/') && routeFromCliPage(filename.slice('pages/'.length)) !== undefined
       ))
       const invalidation = modules.invalidate(changedFiles)
       reload ||= invalidation.reload
       const renamedTrackedFiles = renamedFiles.filter(filename => (
         modules.isTracked(filename)
-        || (filename.startsWith('pages/') && routeFromPagePath(filename.slice('pages/'.length)) !== undefined)
+        || (filename.startsWith('pages/') && routeFromCliPage(filename.slice('pages/'.length)) !== undefined)
       ))
       if (!reload && renamedTrackedFiles.length) {
         reload = (await Promise.all(renamedTrackedFiles.map(async filename => (
@@ -825,6 +840,7 @@ export async function buildProject(options: BuildOptions) {
 async function buildWithPackages(options: BuildOptions, localPackages: LocalPackages) {
   const root = await realpath(resolve(options.root))
   const base = normalizeBase(options.base)
+  const theme = markdownTheme(options.theme)
   const metadataBaseOrigin = metadataOrigin(options.origin)
   if (options.sitemap !== undefined && (!/^[^/\\]+\.xml$/.test(options.sitemap)
     || options.sitemap === '.' || options.sitemap === '..')) {
@@ -841,8 +857,16 @@ async function buildWithPackages(options: BuildOptions, localPackages: LocalPack
   const runtime = await runtimeRoot()
   const cdn = resolveCdn(options.cdn)
   const discovered = await discover(root, options.exclude)
+  const reactRoutes = new Map([...discovered.routes].filter(([, page]) => !page.endsWith('.md')))
+  const markdownPages = new Map<string, MarkdownPage>()
+  for (const [route, page] of discovered.routes) {
+    if (page.endsWith('.md')) markdownPages.set(route, await renderMarkdown({
+      root, page, routes: discovered.routes, base, theme, liveReload: false,
+      assetUrl: (path, contents) => builtAssetUrl(path, contents, base),
+    }))
+  }
   const projectPaths = new Set<string>()
-  for (const page of discovered.routes.values()) {
+  for (const page of reactRoutes.values()) {
     const files = await collectProjectFiles(root, page)
     for (const projectPath of files) projectPaths.add(projectPath)
   }
@@ -856,8 +880,8 @@ async function buildWithPackages(options: BuildOptions, localPackages: LocalPack
     ...devjarDependencies,
   }, cdn, false)
   const packageImports = await collectPackageImports(root, projectPaths)
-  const htmlImports = ['react', 'react-dom', 'react/jsx-runtime', 'react-dom/client']
-  const tailwindBuildUrls = getTailwindBuildUrls(dependencies, cdn)
+  const htmlImports = reactRoutes.size ? ['react', 'react-dom', 'react/jsx-runtime', 'react-dom/client'] : []
+  const tailwindBuildUrls = reactRoutes.size ? getTailwindBuildUrls(dependencies, cdn) : undefined
   const sourceUrls = new Set([
     ...htmlImports.map(resolveSourceModule),
     ...[...packageImports].map(resolveSourceModule),
@@ -886,10 +910,10 @@ async function buildWithPackages(options: BuildOptions, localPackages: LocalPack
     base,
     moduleUrl: projectPath => builtModuleUrl(projectPath, base),
   })
-  const renderedRoutes = options.prerender
+  const renderedRoutes = options.prerender && reactRoutes.size
     ? await prerender({
         root,
-        routes: discovered.routes,
+        routes: reactRoutes,
         dependencies,
         devjarDependencies,
         cdn,
@@ -897,7 +921,7 @@ async function buildWithPackages(options: BuildOptions, localPackages: LocalPack
         runtimeModulePath: join(runtime, 'index.js'),
         resolveModule: specifier => localPackages.resolve(specifier, 'server', root),
       })
-    : Object.fromEntries([...discovered.routes.keys()].map(route => (
+    : Object.fromEntries([...reactRoutes.keys()].map(route => (
         [route, { head: '', markup: '', styles: '' }]
       )))
   const tailwindCss = tailwindBuildUrls
@@ -925,6 +949,14 @@ async function buildWithPackages(options: BuildOptions, localPackages: LocalPack
     ? withBase(base, `/_jar/${runtimeAssets.runtimeAsset}`)
     : withBase(base, '/_jar/runtime.js')
   for (const route of Object.keys(manifest.routes)) {
+    const markdown = markdownPages.get(route)
+    if (markdown) {
+      const path = routeHtmlPath(outDir, route)
+      await mkdir(dirname(path), { recursive: true })
+      await writeFile(path, markdownDocument(markdown, { base, theme, liveReload: false,
+        metadataHead: metadataTags(metadataFiles, base, metadataBaseOrigin) }))
+      continue
+    }
     await writeRouteHtml(outDir, route, renderedRoutes[route], {
       metadataFiles,
       metadataOrigin: metadataBaseOrigin,
@@ -953,6 +985,11 @@ async function buildWithPackages(options: BuildOptions, localPackages: LocalPack
   const projectAssetsRoot = join(outDir, '_jar/assets')
   await mkdir(modulesRoot, { recursive: true })
   await mkdir(projectAssetsRoot, { recursive: true })
+  for (const page of markdownPages.values()) {
+    for (const [path, contents] of page.assets) {
+      await writeFile(join(projectAssetsRoot, staticAssetName(path, contents)), contents)
+    }
+  }
   if (tailwindCss) {
     await writeFile(join(projectAssetsRoot, staticAssetName('tailwind.css', tailwindCss)), tailwindCss)
   }
