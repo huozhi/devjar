@@ -3,10 +3,10 @@ import '../styles.css'
 import '../markdown-demo.css'
 
 const themes = [
-  { id: 'paper', name: 'Paper', kind: 'Research paper' },
-  { id: 'academic', name: 'Academic', kind: 'Research notebook' },
-  { id: 'lecture', name: 'Lecture', kind: 'Classroom handout' },
-  { id: 'book', name: 'Book', kind: 'Collected essays' },
+  { id: 'studio', name: 'Studio', kind: 'Product notes' },
+  { id: 'primer', name: 'Primer', kind: 'Project documentation' },
+  { id: 'editorial', name: 'Editorial', kind: 'Collected essays' },
+  { id: 'academic', name: 'Academic', kind: 'Tufte CSS · Research essay' },
 ] as const
 
 function PageFragment({ theme }: { theme: typeof themes[number] }) {
@@ -40,7 +40,7 @@ function PageFragment({ theme }: { theme: typeof themes[number] }) {
 export default function MarkdownDemo() {
   return <>
     <title>Markdown themes — Devjar</title>
-    <meta name="description" content="Four Markdown reading styles for research papers, academic notes, classroom handouts, and collected essays." />
+    <meta name="description" content="Four Markdown reading styles for product notes, project documentation, collected essays, and Tufte-style research essays." />
     <main className="markdown-demo">
       <nav className="intro-links" aria-label="Page navigation">
         <a className="intro-docs" href="/">Home</a>

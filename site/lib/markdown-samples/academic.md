@@ -1,24 +1,24 @@
 ---
-title: Field Notes on Urban Ecology
-author: Research notebook · Entry 024
+title: On the Persistence of Small Signals
+author: Ada Chen · Department of Natural Sciences
+date: October 2026
 ---
 
-# Field Notes on Urban Ecology
+# On the Persistence of Small Signals
 
-A working record of the small ecosystems that grow between buildings.
+## Abstract
 
-## Observation
+Weak signals often survive repeated observation. This paper examines how a modest change in measurement conditions can reveal patterns that a single reading would overlook.
 
-Moss follows the shaded edge of the courtyard. After rain, its boundary becomes easier to distinguish from the surrounding stone.
+## 1. Method
 
-> A useful record describes the conditions as carefully as it describes the result.
+We observed twelve samples at regular intervals, holding temperature and exposure constant. Each measurement was repeated three times.
 
-## Interpretation
+| Condition | Samples | Mean response |
+| --- | ---: | ---: |
+| Morning light | 12 | 0.42 |
+| Evening light | 12 | 0.61 |
 
-The pattern suggests that exposure matters more than the age of the surface. Compare the north-facing wall with the recently repaired steps.
+## 2. Discussion
 
-## Next visit
-
-- Photograph the same area at noon.
-- Record how long the surface stays damp.
-- Look for changes after a dry week.
+The difference is consistent across trials. Further work should distinguish changes in the signal from changes in the instrument itself.
