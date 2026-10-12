@@ -1,6 +1,6 @@
 ---
 title: A small collection of equations
-description: Enable --math when developing or exporting this notebook.
+description: An integral, a matrix, and a few ideas in mathematical form.
 ---
 
 # A small collection of equations
