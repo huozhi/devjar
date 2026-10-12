@@ -361,6 +361,32 @@ function createResponder(headers: Record<string, string>) {
   }
 }
 
+// End connections once their responses finish during shutdown, including
+// runtimes that do not automatically reap newly idle keep-alive connections.
+function trackServerShutdown(server: ReturnType<typeof createServer>) {
+  let closing = false
+  const pending = new Map<IncomingMessage['socket'], number>()
+  server.on('connection', socket => {
+    pending.set(socket, 0)
+    socket.once('close', () => pending.delete(socket))
+  })
+  server.prependListener('request', (request, response) => {
+    const socket = request.socket
+    pending.set(socket, (pending.get(socket) || 0) + 1)
+    response.once('finish', () => {
+      const remaining = (pending.get(socket) || 1) - 1
+      pending.set(socket, remaining)
+      if (closing && remaining === 0) socket.end()
+    })
+  })
+  return () => {
+    closing = true
+    for (const [socket, count] of pending) {
+      if (count === 0) socket.end()
+    }
+  }
+}
+
 function reportRequestError(error: unknown) {
   const detail = error instanceof Error ? error.stack || error.message : String(error)
   console.error(detail)
@@ -556,6 +582,8 @@ export async function startDevServer(options: DevServerOptions) {
     }
   })
 
+  const beginClose = trackServerShutdown(server)
+
   let timer: NodeJS.Timeout | undefined
   let pendingTimestamp = 0
   const pendingFiles = new Set<string>()
@@ -633,6 +661,7 @@ export async function startDevServer(options: DevServerOptions) {
         if (error && (error as NodeJS.ErrnoException).code !== 'ERR_SERVER_NOT_RUNNING') reject(error)
         else resolvePromise()
       })
+      beginClose()
       server.closeIdleConnections()
     })
     return closePromise
@@ -1094,6 +1123,8 @@ export async function startBuiltServer(options: StartServerOptions) {
     }
   })
 
+  const beginClose = trackServerShutdown(server)
+
   await new Promise<void>((resolvePromise, reject) => {
     server.once('error', reject)
     server.listen(port, host, resolvePromise)
@@ -1110,6 +1141,7 @@ export async function startBuiltServer(options: StartServerOptions) {
         if (error && (error as NodeJS.ErrnoException).code !== 'ERR_SERVER_NOT_RUNNING') reject(error)
         else resolvePromise()
       })
+      beginClose()
       server.closeIdleConnections()
     })
     return closePromise
