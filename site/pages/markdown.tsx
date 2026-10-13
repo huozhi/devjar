@@ -6,13 +6,13 @@ const themes = [
   { id: 'studio', name: 'Studio', kind: 'A quieter workspace', description: 'Clean sans-serif type, clear hierarchy, and generous space. A natural fit for product notes and small websites.', detail: 'Neutral colors · Spacious headings · Simple callouts' },
   { id: 'primer', name: 'Primer', kind: 'Familiar from the first line', description: 'The rhythm of a good README: compact sections, crisp tables, and code that is easy to scan. Made for project documentation.', detail: 'Section dividers · Code blocks · Structured tables' },
   { id: 'editorial', name: 'Editorial', kind: 'Give the words some room', description: 'Warm paper, expressive serif type, and a relaxed reading pace. For stories, essays, and things worth lingering over.', detail: 'Large serif type · Warm colors · Italic headings' },
-  { id: 'academic', name: 'Academic', kind: 'A thoughtful page', description: 'Tufte CSS brings ET Book type and the character of a printed essay to the web. Well suited to research notes and careful explanations.', detail: 'Tufte CSS · Local ET Book fonts · Scholarly typography' },
+  { id: 'academic', name: 'Academic', kind: 'A thoughtful page', description: 'A centered title, restrained serif type, and compact sections give research notes the structure of a clear, readable paper.', detail: 'Centered titles · System serif fonts · Compact sections' },
 ] as const
 
 export default function MarkdownDemo() {
   return <>
     <title>Markdown themes — Devjar</title>
-    <meta name="description" content="Four Markdown reading styles for product notes, project documentation, essays, and Tufte-style research notes." />
+    <meta name="description" content="Four Markdown reading styles for product notes, project documentation, essays, and scholarly research notes." />
     <main className="markdown-demo">
       <nav className="intro-links" aria-label="Page navigation">
         <a className="intro-docs" href="/">Home</a>
