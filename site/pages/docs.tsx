@@ -25,9 +25,7 @@ export default function Docs() {
             <HomeLink />
             <SiteNav active="docs" />
           </div>
-          <span className="docs-eyebrow">THE FIELD GUIDE / 01</span>
           <h1>Documentation</h1>
-          <p className="section-intro">Start with a live playground or a folder of pages.</p>
           <nav className="docs-contents" aria-label="On this page">
             <a href="#browser-only">Browser-only runtime</a>
             <a href="#live-code">Live code APIs</a>

@@ -22,6 +22,11 @@
 - Extend the existing home for a topic instead of adding another top-level README section for every feature. When moving documentation, update links and remove stale or duplicate guidance.
 - For documentation-only changes, check links, Markdown structure, and examples against the current API. Do not add tests for prose changes.
 
+## Site design
+
+- Do not place small labels, section numbers, or eyebrow copy above or below page titles or section headings. Put useful explanations in the page body instead.
+- Use the home page's sans-serif typography for docs page headings and body text so the site feels consistent.
+
 ## TypeScript and API design
 
 - Avoid optional parameters and default arguments when callers can pass values explicitly.

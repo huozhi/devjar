@@ -14,25 +14,13 @@
 .docs-header a { text-decoration: none; }
 .docs-header a:hover { color: #171717; }
 
-.docs-eyebrow {
-  display: block;
-  margin-top: 104px;
-  color: #8a8d80;
-  font: 11px/1.4 var(--font-ioskeley-mono);
-  letter-spacing: .11em;
-}
-
 .docs-header h1 {
-  margin: 12px 0 16px;
+  margin: 104px 0 16px;
   color: #292d24;
-  font: 400 clamp(48px, 7vw, 76px)/1.04 Georgia, serif;
-  letter-spacing: -.055em;
-}
-
-.docs-header > .section-intro {
-  color: #777b6e;
-  font-size: 17px;
-  line-height: 1.65;
+  font-size: clamp(48px, 7vw, 76px);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -.07em;
 }
 
 .docs-header .docs-contents {
@@ -66,8 +54,10 @@
 .docs-page .usage-content h2 {
   margin-bottom: 16px;
   color: #292d24;
-  font: 400 clamp(29px, 4vw, 38px)/1.2 Georgia, serif;
-  letter-spacing: -.035em;
+  font-size: clamp(29px, 4vw, 38px);
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -.045em;
 }
 
 .docs-page .section { border-color: #e2dfd5; }
@@ -144,7 +134,7 @@
 @media (max-width: 640px) {
   .docs-page { padding: 20px 16px 0; }
   .docs-topbar { gap: 12px; }
-  .docs-eyebrow { margin-top: 72px; }
+  .docs-header h1 { margin-top: 72px; }
   .docs-header .docs-contents { margin-top: 36px; }
   .docs-page .usage-section { padding: 44px 0; }
 }
