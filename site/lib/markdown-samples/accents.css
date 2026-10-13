@@ -1,0 +1,45 @@
+/* Shared neutral ink; a single muted accent is reserved for links. */
+:root {
+  color-scheme: light;
+  --md-bg: #fdfcf9;
+  --md-text: #30312f;
+  --md-muted: #7a7b76;
+  --md-accent: #596956;
+  --md-surface: #f2f2ee;
+  --md-border: #ddded7;
+}
+:root[data-md-theme="github"] { --md-bg: #fff; --md-accent: #526778; }
+:root[data-md-theme="editorial"] { --md-accent: #806450; --md-content-width: 58ch; }
+:root[data-md-theme="academic"] { --md-bg: #fff; --md-accent: #526778; }
+.devjar-markdown > p:has(> a:first-child) {
+  font: 12px/1.8 system-ui, sans-serif;
+  margin-block: 1.5rem 2.5rem;
+  color: var(--md-border);
+}
+.devjar-markdown > p:has(> a:first-child) a { text-decoration: none; }
+.devjar-markdown > p:has(> a:first-child) a:hover { text-decoration: underline; text-underline-offset: 4px; }
+.devjar-markdown h1 { text-wrap: balance; }
+.devjar-markdown blockquote { color: var(--md-text); }
+.devjar-markdown th { background: var(--md-surface); }
+[data-md-theme="minimal"] .devjar-markdown blockquote { border-left: 1px solid var(--md-border); padding-left: 1.25rem; }
+[data-md-theme="editorial"] .devjar-markdown blockquote { font-size: 1.25em; line-height: 1.55; margin-block: 2rem; }
+[data-md-theme="academic"] .devjar-markdown > p:has(> a:first-child) { text-align: center; }
+
+/* Keep the reading frame stable between short and long pages. */
+html { scrollbar-gutter: stable; }
+body { min-height: 100vh; }
+.devjar-markdown > .md-home { display: none; }
+.devjar-markdown { box-sizing: border-box; width: 100%; padding-top: 40px; }
+.devjar-markdown h1 {
+  font-size: clamp(2rem, 5vw, 3rem);
+  line-height: 1.1;
+  min-height: 2.2em;
+  margin: 0;
+}
+.devjar-markdown > p:has(> a:first-child) { min-height: 22px; margin: 20px 0 36px; }
+[data-md-theme="academic"] .devjar-markdown h1 { font-size: clamp(2rem, 4vw, 2.5rem); }
+@view-transition { navigation: auto; }
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: .12s; }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+}

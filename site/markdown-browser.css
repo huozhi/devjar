@@ -1,0 +1,57 @@
+.example-backdrop { position: fixed; inset: 0; z-index: 50; border: 0; background: #18201dcc; cursor: zoom-out; }
+.example-browser {
+  position: fixed;
+  z-index: 51;
+  inset: 3.5vh 3vw;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 30px 100px #0b181b44;
+}
+.example-browser.is-fullscreen { inset: 0; box-shadow: none; }
+.example-browser-topbar {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 22px;
+  background: #f3f2ee;
+  color: #292d24;
+}
+.example-window-controls { display: flex; align-items: center; gap: 9px; }
+.example-window-controls button, .example-window-controls span { display: block; width: 12px; height: 12px; border: 0; border-radius: 50%; padding: 0; background: #afb4ae; }
+.example-window-controls button { cursor: pointer; }
+.example-window-controls button:hover { background: #777e78; }
+.example-browser-expand { display: grid; place-items: center; width: 32px; height: 32px; margin-left: auto; border: 0; padding: 5px; background: transparent; color: #69736c; cursor: pointer; }
+.example-browser-expand:hover { color: #292d24; }
+.example-browser-expand svg { width: 19px; height: 19px; }
+.example-browser-content { flex: 1; min-width: 0; min-height: 0; overflow: hidden; background: #fdfcf9; }
+.example-browser-content iframe { display: block; width: 100%; height: 100%; border: 0; }
+::view-transition-old(example-browser), ::view-transition-new(example-browser) { animation-duration: .42s; animation-timing-function: cubic-bezier(.2,.8,.2,1); }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(example-browser), ::view-transition-new(example-browser) { animation-duration: .01ms; }
+}
+@media (max-width: 650px) {
+  .example-browser { inset: 0; }
+  .example-browser-topbar { padding-inline: 14px; }
+  .example-window-controls { display: none; }
+}
+
+
+.example-browser :focus-visible { outline: 2px solid #586349; outline-offset: -2px; }
+
+.example-browser-body { display: grid; grid-template-columns: clamp(64px, var(--sidebar-width), calc(100% - 188px)) 8px minmax(0, 1fr); flex: 1; min-height: 0; }
+.example-browser-sidebar { min-width: 0; overflow: auto; padding: 16px 6px; background: #f7f7f5; }
+.example-browser-sidebar [data-sh-file-tree] { background: transparent; font-size: 12px; }
+.example-browser-divider { position: relative; cursor: col-resize; touch-action: none; background: #f7f7f5; }
+.example-browser-divider::after { content: ''; position: absolute; left: 3px; top: 0; bottom: 0; width: 1px; background: #ddded7; }
+.example-browser-divider:hover::after, .is-resizing .example-browser-divider::after { background: #969c91; }
+.example-browser-body.is-resizing { user-select: none; cursor: col-resize; }
+.example-browser-body.is-resizing iframe { pointer-events: none; }
+
+@media (max-width: 650px) {
+  .example-browser-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: clamp(64px, var(--sidebar-width), calc(100% - 188px)) 8px minmax(0, 1fr); }
+  .example-browser-sidebar { min-height: 0; padding: 8px 14px; }
+  .example-browser-divider, .example-browser-body.is-resizing { cursor: row-resize; }
+  .example-browser-divider::after { left: 0; right: 0; top: 3px; bottom: auto; width: auto; height: 1px; }
+}
