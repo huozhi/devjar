@@ -165,8 +165,49 @@ npx devjar start`}</Code>
               <p>
                 Deploy the generated files at the domain root or use <code>--base</code> for a subdirectory.
               </p>
-
             </div>
+
+            <details id="cli-reference" className="section docs-details">
+              <summary>Detailed CLI reference: sitemap and options</summary>
+              <p>Run <code>npx devjar [command] [root] [options]</code>. The project root defaults to the current directory. Running without arguments shows help.</p>
+              <div className="docs-table-wrap">
+                <table>
+                  <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+                  <tbody>
+                    <tr><td><code>dev [root]</code></td><td>Serve source pages with live updates.</td></tr>
+                    <tr><td><code>build [root]</code></td><td>Export the site to <code>dist/</code>.</td></tr>
+                    <tr><td><code>start [root]</code></td><td>Serve an existing build.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <h3>Sitemap</h3>
+              <p>Pass <code>--sitemap</code> to <code>build</code> to write <code>sitemap.xml</code> in the output directory. Set <code>--origin</code> to your public site URL; use <code>--base</code> when deploying under a subdirectory.</p>
+              <div className="code-block" aria-label="Sitemap build example">
+                <Code theme={taffy.light} lang="bash" controls={false} fontSize={13}>{`npx devjar build --origin https://example.com --sitemap
+npx devjar build --origin https://example.com --base /blog/ --sitemap=site-map.xml`}</Code>
+              </div>
+              <p>The sitemap includes built page routes, excluding <code>404</code> and pages omitted with <code>--exclude</code>. The filename must be an <code>.xml</code> file in the output directory root. Without <code>--origin</code>, the build uses the Vercel production URL when available, or <code>http://localhost:3000</code>.</p>
+              <h3>Options</h3>
+              <div className="docs-table-wrap">
+                <table>
+                  <thead><tr><th>Option</th><th>Commands</th><th>Default and purpose</th></tr></thead>
+                  <tbody>
+                    <tr><td><code>--host &lt;host&gt;</code></td><td>dev, start</td><td><code>localhost</code>; use <code>0.0.0.0</code> for network access.</td></tr>
+                    <tr><td><code>--port &lt;port&gt;</code>, <code>-p</code></td><td>dev, start</td><td><code>3000</code>; port to listen on.</td></tr>
+                    <tr><td><code>--cdn &lt;url&gt;</code></td><td>dev, build</td><td><code>https://esm.sh</code>; ESM module CDN.</td></tr>
+                    <tr><td><code>--exclude &lt;path&gt;</code></td><td>build</td><td>Omit a page file or directory; repeat the option for multiple paths.</td></tr>
+                    <tr><td><code>--math</code></td><td>dev, build</td><td>Render LaTeX math in Markdown pages.</td></tr>
+                    <tr><td><code>--theme &lt;name&gt;</code></td><td>dev, build</td><td><code>minimal</code>, <code>github</code>, <code>editorial</code>, or <code>academic</code>; defaults to <code>minimal</code>.</td></tr>
+                    <tr><td><code>--base &lt;path&gt;</code></td><td>dev, build</td><td><code>/</code>; public path for subdirectory deployment.</td></tr>
+                    <tr><td><code>--origin &lt;url&gt;</code></td><td>build</td><td>Absolute origin for metadata and sitemap URLs; defaults to the Vercel production URL or <code>http://localhost:3000</code>.</td></tr>
+                    <tr><td><code>--sitemap[=&lt;filename&gt;]</code></td><td>build</td><td>Write a sitemap; default filename <code>sitemap.xml</code>.</td></tr>
+                    <tr><td><code>-o</code>, <code>--out-dir &lt;directory&gt;</code></td><td>build, start</td><td><code>dist</code>; output directory inside the project.</td></tr>
+                    <tr><td><code>-h</code>, <code>--help</code></td><td>all</td><td>Show help.</td></tr>
+                    <tr><td><code>-v</code>, <code>--version</code></td><td>all</td><td>Show the installed version.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </details>
           </div>
         </section>
       </main>
