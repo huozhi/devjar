@@ -5,7 +5,7 @@ export function Footer() {
       <footer className="page-footer">
         <nav className="site-footer" aria-label="Footer links">
           <div className="footer-links">
-            <a href="/">Examples</a>
+            <a href="/markdown">Markdown</a>
             <a href="/docs">Docs</a>
             <a href="/llms.txt">Agent reference</a>
           </div>

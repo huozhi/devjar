@@ -13,7 +13,8 @@ for (const theme of markdownThemes) {
   const project = await mkdtemp(join(tmpdir(), 'devjar-reading-fragment-'))
   try {
     await mkdir(join(project, 'pages'))
-    await cp(join(root, 'site/lib/markdown-samples', `${theme}.md`), join(project, 'pages/index.md'))
+    await cp(join(root, 'site/lib/markdown-samples', theme), join(project, 'pages'), { recursive: true })
+    await cp(join(root, 'site/lib/markdown-samples/accents.css'), join(project, 'markdown.css'))
     const result = await buildProject({
       root: project, outDir: 'dist', cdn: undefined, prerender: true, exclude: [],
       base: `/markdown-previews/${theme}/`, theme, math: true,
