@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { GitHubLink } from './github-link'
+import { SiteNav } from './site-nav'
 import { MiniPlayground } from './mini-playground'
 
 const tabs = [
@@ -39,14 +39,7 @@ export function Banner() {
 
   return (
     <section className="intro-section">
-      <nav className="intro-links" aria-label="Project links">
-        <a className="intro-docs" href="/markdown">Markdown</a>
-        <a className="intro-docs" href="/docs">Docs</a>
-        <GitHubLink />
-        <a href="https://x.com/huozhi" target="_blank" rel="noopener noreferrer" aria-label="X" title="X">
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.9 2H22l-6.77 7.74L23.2 22h-6.24l-4.89-7.4L5.6 22H2.47l7.99-9.14L.8 2h6.4l4.42 6.76L18.9 2Zm-1.1 18h1.73L6.26 3.9H4.4L17.8 20Z" /></svg>
-        </a>
-      </nav>
+      <SiteNav active={undefined} />
       <h1>devjar</h1>
       <p className="intro-copy">Live Playground &amp; Static Site Builder</p>
       <p className="intro-agents">Designed for agents. Zero config. No npm install. CDN powered.</p>

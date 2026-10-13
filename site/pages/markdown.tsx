@@ -1,4 +1,6 @@
-import { GitHubLink } from '../components/github-link'
+import { Footer } from '../components/footer'
+import { HomeLink } from '../components/home-link'
+import { SiteNav } from '../components/site-nav'
 import '../styles.css'
 import '../markdown-demo.css'
 
@@ -14,11 +16,8 @@ export default function MarkdownDemo() {
     <title>Markdown themes — Devjar</title>
     <meta name="description" content="Four Markdown reading styles for product notes, project documentation, essays, and scholarly research notes." />
     <main className="markdown-demo">
-      <nav className="intro-links" aria-label="Page navigation">
-        <a className="intro-docs" href="/">Home</a>
-        <a className="intro-docs" href="/docs">Docs</a>
-        <GitHubLink />
-      </nav>
+      <HomeLink />
+      <SiteNav active="markdown" />
       <div className="markdown-fragments">{themes.map(theme => <section key={theme.id} className="markdown-example" aria-labelledby={`theme-${theme.id}`}>
         <iframe className="markdown-fragment-preview" title={`${theme.name} page fragment`} src={`/markdown-previews/${theme.id}/`} />
         <div className="markdown-fragment-intro">
@@ -27,5 +26,6 @@ export default function MarkdownDemo() {
         </div>
       </section>)}</div>
     </main>
+    <Footer />
   </>
 }
