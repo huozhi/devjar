@@ -63,9 +63,8 @@ async function renderPage(options: MarkdownOptions): Promise<MarkdownPage> {
   const parser = new Marked(markedFootnote({ description: 'Notes' }))
   let hasMath = false
   if (options.math) {
-    const { default: markedKatex } = await import('marked-katex-extension')
-    parser.use(markedKatex({ throwOnError: true, trust: false, output: 'htmlAndMathml',
-      nonStandard: true, maxSize: 20, maxExpand: 1000 }))
+    const { markdownMath } = await import('./markdown-math')
+    parser.use(markdownMath())
   }
   parser.use({
     async: true,

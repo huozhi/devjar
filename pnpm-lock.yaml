@@ -12,17 +12,14 @@ importers:
         specifier: 1.6.0
         version: 1.6.0
       katex:
-        specifier: ^0.18.7
-        version: 0.18.7
+        specifier: ^0.19.0
+        version: 0.19.0
       marked:
         specifier: ^18.1.0
         version: 18.1.0
       marked-footnote:
         specifier: ^1.4.0
         version: 1.4.0(marked@18.1.0)
-      marked-katex-extension:
-        specifier: ^5.1.13
-        version: 5.1.13(katex@0.18.7)(marked@18.1.0)
       oxc-minify:
         specifier: 0.148.0
         version: 0.148.0
@@ -1926,8 +1923,8 @@ packages:
     engines: {node: '>=6'}
     hasBin: true
 
-  katex@0.18.7:
-    resolution: {integrity: sha512-h+UCwkZ+4Jz8WQ7MLGfj7UVFrRCizGb912fwF4luGdYsC5paYG1vx+jy+KRcC/XkpjGva/P7nAWuxNnPzRvzHw==}
+  katex@0.19.0:
+    resolution: {integrity: sha512-v6Tznz3zJ7u3niRCoDTsumM2+HA2XXcCu+WAacCeHD2z3p9A9Ks987o5FzfTGBN0e8A0vjEgIDvLbICrXpdw/Q==}
     hasBin: true
 
   kiwi-schema@0.5.0:
@@ -1962,12 +1959,6 @@ packages:
     resolution: {integrity: sha512-fZTxAhI1TcLEs5UOjCfYfTHpyKGaWQevbxaGTEA68B51l7i87SctPFtHETYqPkEN0ka5opvy4Dy1l/yXVC+hmg==}
     peerDependencies:
       marked: '>=7.0.0'
-
-  marked-katex-extension@5.1.13:
-    resolution: {integrity: sha512-+6gVygGg5at9g+YsuIQZk7XcAc6Pg1P0grEJKEWvF7DAwceZ7ZIvU0fhQe6auUqSbnPmSjJxZuICdSCdbGaFRw==}
-    peerDependencies:
-      katex: '>=0.16 <0.19'
-      marked: '>=4 <19'
 
   marked@18.1.0:
     resolution: {integrity: sha512-PamYXWWWg2nboG3oX5Ffzpy3EFZROqZJK9hSlMmUnekp7TxPs5DcT95vwd46m73/exfKCRVMtgXoPMI4FEJL6w==}
@@ -4050,7 +4041,7 @@ snapshots:
 
   json5@2.2.3: {}
 
-  katex@0.18.7:
+  katex@0.19.0:
     dependencies:
       commander: 15.0.0
 
@@ -4080,11 +4071,6 @@ snapshots:
 
   marked-footnote@1.4.0(marked@18.1.0):
     dependencies:
-      marked: 18.1.0
-
-  marked-katex-extension@5.1.13(katex@0.18.7)(marked@18.1.0):
-    dependencies:
-      katex: 0.18.7
       marked: 18.1.0
 
   marked@18.1.0: {}
