@@ -127,7 +127,7 @@ function importRoute(entry: RouteEntry) {
 
 function preloadRoute(route: string) {
   const entry = getRouteEntry(route)
-  if (!entry || routeModules.has(entry.module)) return
+  if (!entry || entry.page.endsWith('.md') || routeModules.has(entry.module)) return
   const preload = document.createElement('link')
   preload.rel = 'modulepreload'
   preload.href = entry.module
@@ -251,6 +251,10 @@ function navigate(event: MouseEvent) {
     && route.url.hash) return
 
   event.preventDefault()
+  if (getRouteEntry(route.route)?.page.endsWith('.md')) {
+    location.assign(pathname + route.url.search + route.url.hash)
+    return
+  }
   history.pushState(null, '', pathname + route.url.search + route.url.hash)
   void load(route.route).catch(() => {})
 }

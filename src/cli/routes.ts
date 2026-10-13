@@ -3,6 +3,12 @@ import { extname, join, relative, resolve, sep } from 'node:path'
 import { routeFromPagePath, sourceExtensions } from '../shared/project'
 import type { RouteEntry, RouteManifest } from './protocol'
 
+export const pageExtensions = [...sourceExtensions, '.md']
+
+export function routeFromCliPage(path: string) {
+  return routeFromPagePath(path.endsWith('.md') ? path.slice(0, -3) + '.tsx' : path)
+}
+
 export type ManifestOptions = {
   liveReload: boolean
   revision: number
@@ -47,7 +53,7 @@ export async function discover(root: string, exclude: string[]) {
       const path = join(directory, entry.name)
       if (entry.name.startsWith('_') || isExcluded(path)) continue
       if (entry.isDirectory()) await visit(path)
-      else if (entry.isFile() && sourceExtensions.includes(extname(entry.name))) files.push(path)
+      else if (entry.isFile() && pageExtensions.includes(extname(entry.name))) files.push(path)
     }
   }
   if (!isExcluded(pagesRoot)) await visit(pagesRoot)
@@ -57,7 +63,7 @@ export async function discover(root: string, exclude: string[]) {
   for (const path of files.sort()) {
     const pagePath = relative(pagesRoot, path).split(sep).join('/')
     if (pagePath.slice(0, -extname(pagePath).length) === '404') notFound = path
-    const route = routeFromPagePath(pagePath)
+    const route = routeFromCliPage(pagePath)
     if (!route) continue
     if (routes.has(route)) {
       throw new Error(`Multiple pages resolve to ${route}: ${relative(root, routes.get(route)!)} and ${relative(root, path)}`)
@@ -66,7 +72,7 @@ export async function discover(root: string, exclude: string[]) {
   }
 
   if (!routes.has('/')) {
-    throw new Error(`No index page found in ${pagesRoot}.\nCreate pages/index.tsx (or .ts, .jsx, .js) to define the home page.`)
+    throw new Error(`No index page found in ${pagesRoot}.\nCreate pages/index.tsx (or .md, .ts, .jsx, .js) to define the home page.`)
   }
   return { routes, notFound }
 }

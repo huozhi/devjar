@@ -1,0 +1,19 @@
+/* Devjar's compact paper layout, using only system fonts. */
+:where(:root) {
+  --md-bg: #fff;
+  --md-text: #252a31;
+  --md-muted: #737b86;
+  --md-accent: #465e7b;
+  --md-font-body: Georgia, 'Times New Roman', 'Songti SC', serif;
+  --md-content-width: 72ch;
+}
+:where(body) { font-size: 18px; line-height: 1.75; }
+:where(h1) { text-align: center; font-size: clamp(2.1rem, 4vw, 2.8rem); font-weight: 600; letter-spacing: -.02em; }
+:where(h2) { font-size: 1.45rem; font-weight: 600; margin-top: 2rem; }
+:where(h3) { font-size: 1.15rem; font-weight: 600; }
+:where(.md-byline) { text-align: center; font-size: .8rem; letter-spacing: .025em; }
+:where(th, td) { padding: .5rem .8rem; }
+:where(.devjar-markdown) { padding: 2.5rem 1.5rem 4rem; }
+@media (prefers-color-scheme: dark) {
+  :where(:root) { --md-bg: #1b1e23; --md-text: #e0e4eb; --md-muted: #a0a9b5; --md-accent: #a9bfdc; }
+}

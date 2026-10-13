@@ -17,7 +17,7 @@ function style(code: number, value: string) {
 function help() {
   console.log(`devjar [command] [root] [options]
 
-Turn a folder of React pages into a prototype.
+Build a static website from React or Markdown pages.
 
 Commands:
   dev      Start a development server
@@ -25,6 +25,7 @@ Commands:
   start    Serve the production build from <root>/dist
 
 Options:
+  --theme <name>  Markdown theme: minimal, github, editorial, academic (dev and build; default: minimal)
   --cdn <url>      ESM-compatible module CDN (dev and build)
   --base <path>    Public base path (dev and build; default: /)
   --origin <url>   Absolute origin for metadata URLs (build; default: Vercel URL or http://localhost:3000)
@@ -124,6 +125,7 @@ async function run() {
   let base: string | undefined
   let origin: string | undefined
   let sitemap: string | undefined
+  let theme: string | undefined
   let outDir: string | undefined
   const exclude: string[] = []
 
@@ -132,6 +134,7 @@ async function run() {
     if (arg === '--host') host = valueAfter(args, index++)
     else if (arg === '--port' || arg === '-p') port = Number(valueAfter(args, index++))
     else if (arg === '--cdn') cdn = valueAfter(args, index++)
+    else if (arg === '--theme') theme = valueAfter(args, index++)
     else if (arg === '--base') base = valueAfter(args, index++)
     else if (arg === '--origin') origin = valueAfter(args, index++)
     else if (arg === '--sitemap') sitemap = 'sitemap.xml'
@@ -151,6 +154,7 @@ async function run() {
   }
   if (command !== 'build' && origin) throw new Error('--origin is only available for build')
   if (command !== 'build' && sitemap !== undefined) throw new Error('--sitemap is only available for build')
+  if (command === 'start' && theme !== undefined) throw new Error('--theme is only available for dev and build')
   if (command === 'start' && (cdn || base)) {
     throw new Error('start does not accept --cdn or --base; configure these when building')
   }
@@ -167,6 +171,7 @@ async function run() {
       base: base || '/',
       origin,
       sitemap,
+      theme,
     })
     const deploymentRoot = vercelOutputRoot(process.cwd())
     if (deploymentRoot) await writeVercelOutput(result.outDir, deploymentRoot)
@@ -192,6 +197,7 @@ async function run() {
         port: port ?? 3000,
         cdn,
         base: base || '/',
+        theme,
       })
   const browserHost = server.host === '0.0.0.0' || server.host === '::'
     ? 'localhost'

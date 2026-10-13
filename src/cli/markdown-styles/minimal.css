@@ -1,0 +1,22 @@
+/* Spacious sans-serif reading with very little decoration. */
+:where(:root) {
+  --md-font-body: system-ui, 'PingFang SC', 'Noto Sans CJK SC', sans-serif;
+  --md-bg: #fdfdfb;
+  --md-text: #313330;
+  --md-muted: #888b84;
+  --md-accent: #313330;
+  --md-surface: #fdfdfb;
+  --md-border: #e9eae5;
+  --md-radius: 0;
+  --md-content-width: 62ch;
+}
+:where(body) { font-size: 18px; line-height: 1.85; font-weight: 400; }
+:where(h1) { font-size: clamp(2.8rem, 6vw, 4rem); font-weight: 350; line-height: 1.07; letter-spacing: -.055em; margin-bottom: 2rem; }
+:where(h2, h3) { font-size: 1.15rem; font-weight: 500; letter-spacing: -.02em; margin-top: 3rem; }
+:where(p, ul, ol) { margin-block: 1.6rem; }
+:where(blockquote) { border: 0; padding-inline: 0; color: var(--md-muted); }
+:where(pre) { border: 0; padding-inline: 0; }
+:where(.md-description) { font-size: 1rem; }
+@media (prefers-color-scheme: dark) {
+  :where(:root) { --md-bg: #1d1f1c; --md-text: #dedfd9; --md-accent: #dedfd9; --md-muted: #a0a397; --md-surface: #1d1f1c; --md-border: #34372f; }
+}

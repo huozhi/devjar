@@ -45,13 +45,13 @@
     "build:cli-assets": "bun scripts/build-cli-assets.ts",
     "build:worker": "bun scripts/build-workers.ts",
     "prepublishOnly": "pnpm run build",
-    "build:website": "pnpm run build && node ./dist/bin.js build site",
+    "build:website": "pnpm run build && bun scripts/build-markdown-demo.ts && node ./dist/bin.js build site",
     "start": "node ./dist/bin.js start site/dist",
     "dev": "pnpm run build && (pnpm run dev:lib & pnpm run dev:client & pnpm run dev:worker & pnpm run dev:site & wait)",
     "dev:lib": "bunchee --watch --no-clean",
     "dev:client": "bun scripts/build-client.ts --watch",
     "dev:worker": "bun --watch scripts/build-workers.ts",
-    "dev:site": "node ./dist/bin.js dev site",
+    "dev:site": "bun scripts/build-markdown-demo.ts && node ./dist/bin.js dev site",
     "dev:cli": "node ./dist/bin.js dev examples/dashboard",
     "demo:build": "node ./dist/bin.js build examples/dashboard",
     "demo:start": "node ./dist/bin.js start examples/dashboard/dist",
@@ -68,8 +68,11 @@
   },
   "dependencies": {
     "es-module-lexer": "1.6.0",
+    "marked": "^18.1.0",
+    "marked-footnote": "^1.4.0",
     "oxc-minify": "0.148.0",
-    "oxc-transform": "^0.144.0"
+    "oxc-transform": "^0.144.0",
+    "yaml": "^2.9.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",

@@ -109,18 +109,20 @@ try {
   await writeFile(join(projectRoot, 'assets/logo.svg'), '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><circle cx="4" cy="4" r="4" /></svg>')
   await writeFile(join(projectRoot, 'pages/index.tsx'), `import logo from '../assets/logo.svg'
 export default function Page() {
-  return <><title>Package home</title><main><h1>Home</h1><img src={logo} alt="Logo" /><a href="/docs/start">Docs</a></main></>
+  return <><title>Package home</title><main><h1>Home</h1><img src={logo} alt="Logo" /><a href="/docs/start">Docs</a><a href="/article">Article</a></main></>
 }`)
   await writeFile(join(projectRoot, 'pages/docs/start.tsx'), `export default function Page() {
   return <><title>Package docs</title><main><h1>Docs</h1><a href="/">Home</a></main></>
 }`)
+  await writeFile(join(projectRoot, 'pages/article.md'), '# Article\n\n[Home](/)\n')
+  await writeFile(join(projectRoot, 'markdown.css'), ':root { --md-accent: rgb(120, 40, 90); }')
   await writeFile(join(projectRoot, 'pages/404.tsx'), `export default function Page() {
   return <><title>Package missing</title><main><h1>Custom 404</h1><a href="/">Home</a></main></>
 }`)
 
   await run('npm', ['install', '--ignore-scripts', tarball], projectRoot)
   const devjar = join(projectRoot, 'node_modules', '.bin', executable('devjar'))
-  await run(devjar, ['build', '--base', '/preview/'], projectRoot)
+  await run(devjar, ['build', '--base', '/preview/', '--theme', 'academic'], projectRoot)
   const builtRuntimeFiles = await readdir(join(projectRoot, 'dist/_jar'))
   assert(!builtRuntimeFiles.includes('runtime.js'))
   assert(!builtRuntimeFiles.includes('transform-assets.json'))
@@ -177,6 +179,18 @@ export default function Page() {
   assert.equal(logoResponse.status(), 200)
   assert.match(logoResponse.headers()['content-type'], /image\/svg\+xml/)
   assert.equal(logoResponse.headers()['cache-control'], 'public, max-age=31536000, immutable')
+
+  // Markdown uses a document navigation and needs no React runtime.
+  await page.locator('a[href="/article"]').click()
+  await page.waitForURL(`${baseUrl}article`)
+  await assertPage(page, 'Article', 'Article')
+  assert.equal(await page.locator('script').count(), 0)
+  await page.evaluate(() => document.fonts.ready)
+  assert.equal(await page.locator('html').getAttribute('data-md-theme'), 'academic')
+  assert.equal(await page.locator('.devjar-markdown a').last().evaluate(element => getComputedStyle(element).color), 'rgb(120, 40, 90)')
+  await page.locator('.md-home').click()
+  await page.waitForURL(baseUrl)
+  await assertPage(page, 'Home', 'Package home')
 
   const homeRenderCount = await page.evaluate('globalThis.__devjarRenderCount') as number
   await page.locator('a[href="/docs/start"]').click()

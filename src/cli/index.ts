@@ -20,13 +20,14 @@ import {
   usesDevjarRuntime,
 } from './modules'
 import type { HmrChange, RouteManifest } from './protocol'
-import { discover, isInside, loadRouteManifest, manifest as createManifest } from './routes'
+import { discover, isInside, loadRouteManifest, manifest as createManifest, routeFromCliPage } from './routes'
 import type { ManifestOptions } from './routes'
+import { renderMarkdown, markdownDocument, type MarkdownPage } from './markdown'
+import { markdownTheme, markdownStylesRoot, copyMarkdownStyles } from './markdown-theme'
 export { loadRouteManifest } from './routes'
 import {
   normalizeBase,
   normalizeRoute,
-  routeFromPagePath,
   withBase,
   withoutBase,
 } from '../shared/project'
@@ -50,6 +51,7 @@ export type DevServerOptions = {
   port: number
   cdn: string | undefined
   base: string
+  theme?: string
 }
 
 export type BuildOptions = {
@@ -61,6 +63,7 @@ export type BuildOptions = {
   base: string
   origin?: string
   sitemap?: string
+  theme?: string
 }
 
 export type StartServerOptions = {
@@ -175,6 +178,16 @@ type HtmlOptions = {
   styles: string
 }
 
+function metadataTags(files: string[], base: string, origin: string) {
+  return `<meta name="twitter:card" content="summary_large_image">${files.map(filename => {
+    const url = withBase(base, `/${filename}`)
+    const absoluteUrl = `${origin}${url}`
+    return filename.startsWith('icon.')
+      ? `<link rel="icon" href="${url}" type="${contentTypes[extname(filename)]}">`
+      : `<meta property="og:image" content="${absoluteUrl}"><meta name="twitter:image" content="${absoluteUrl}">`
+  }).join('')}`
+}
+
 function html(options: HtmlOptions) {
   const imports = {
     react: options.resolveModule('react'),
@@ -215,13 +228,7 @@ await import(${JSON.stringify(options.clientUrl)})
   const staticStyles = options.styles
     ? `<style data-devjar-static>${options.styles.replace(/<\/style/gi, '<\\/style')}</style>`
     : ''
-  const metadataHead = `<meta name="twitter:card" content="summary_large_image">${options.metadataFiles.map(filename => {
-    const url = withBase(options.base, `/${filename}`)
-    const absoluteUrl = `${options.metadataOrigin}${url}`
-    return filename.startsWith('icon.')
-      ? `<link rel="icon" href="${url}" type="${contentTypes[extname(filename)]}">`
-      : `<meta property="og:image" content="${absoluteUrl}"><meta name="twitter:image" content="${absoluteUrl}">`
-  }).join('')}`
+  const metadataHead = metadataTags(options.metadataFiles, options.base, options.metadataOrigin)
   const documentHead = /<title(?:\s|>)/i.test(options.head)
     ? options.head
     : `<title data-devjar-default>Devjar</title>${options.head}`
@@ -302,7 +309,8 @@ async function serveResponseFile(
   cacheControl: string,
   headers: Record<string, string>,
 ) {
-  const path = resolve(root, `.${normalize('/' + requestPath)}`)
+  let path = resolve(root, `.${normalize('/' + requestPath)}`)
+  if (!allowed && await directoryExists(path)) path = join(path, 'index.html')
   const extension = extname(path).toLowerCase()
   if (!isInside(root, path) || (allowed && !allowed.has(extension))) return false
   if (!(await fileExists(path))) return false
@@ -353,6 +361,32 @@ function createResponder(headers: Record<string, string>) {
   }
 }
 
+// End connections once their responses finish during shutdown, including
+// runtimes that do not automatically reap newly idle keep-alive connections.
+function trackServerShutdown(server: ReturnType<typeof createServer>) {
+  let closing = false
+  const pending = new Map<IncomingMessage['socket'], number>()
+  server.on('connection', socket => {
+    pending.set(socket, 0)
+    socket.once('close', () => pending.delete(socket))
+  })
+  server.prependListener('request', (request, response) => {
+    const socket = request.socket
+    pending.set(socket, (pending.get(socket) || 0) + 1)
+    response.once('finish', () => {
+      const remaining = (pending.get(socket) || 1) - 1
+      pending.set(socket, remaining)
+      if (closing && remaining === 0) socket.end()
+    })
+  })
+  return () => {
+    closing = true
+    for (const [socket, count] of pending) {
+      if (count === 0) socket.end()
+    }
+  }
+}
+
 function reportRequestError(error: unknown) {
   const detail = error instanceof Error ? error.stack || error.message : String(error)
   console.error(detail)
@@ -364,7 +398,9 @@ export async function startDevServer(options: DevServerOptions) {
   const host = options.host
   const port = options.port
   const base = normalizeBase(options.base)
+  const theme = markdownTheme(options.theme)
   const events = new Set<ServerResponse>()
+  const markdownAssets = new Set<string>()
   const assetsRoot = await runtimeRoot()
   const devjarDependencies = await readDevjarDependencies(assetsRoot)
   const modules = new DevModuleGraph(base)
@@ -387,12 +423,7 @@ export async function startDevServer(options: DevServerOptions) {
     },
   })
 
-  if (!(await fileExists(join(root, 'pages/index.tsx')))
-    && !(await fileExists(join(root, 'pages/index.ts')))
-    && !(await fileExists(join(root, 'pages/index.jsx')))
-    && !(await fileExists(join(root, 'pages/index.js')))) {
-    throw new Error(`No index page found in ${join(root, 'pages')}.\nCreate pages/index.tsx (or .ts, .jsx, .js), or pass your project directory to devjar dev.`)
-  }
+  await discover(root, [])
 
   const server = createServer(async (request, response) => {
     try {
@@ -478,6 +509,11 @@ export async function startDevServer(options: DevServerOptions) {
         )) send(request, response, 404, 'text/plain', 'Not found')
         return
       }
+      if (requestPath.startsWith('/_jar/markdown/')) {
+        if (!await serveFile(request, response, markdownStylesRoot(), requestPath.slice('/_jar/markdown/'.length),
+          new Set(['.css']), noStore)) send(request, response, 404, 'text/plain', 'Not found')
+        return
+      }
       if (requestPath === '/_jar/runtime.js') {
         if (!await serveFile(request, response, assetsRoot, 'index.js', undefined, noStore)) send(request, response, 500, 'text/plain', 'Devjar runtime is missing')
         return
@@ -500,6 +536,17 @@ export async function startDevServer(options: DevServerOptions) {
       if (metadataFiles.includes(requestPath.slice(1))
         && await serveFile(request, response, root, requestPath.slice(1), undefined, noStore)) return
       if (await serveFile(request, response, join(root, 'public'), requestPath.slice(1), undefined, noStore)) return
+      const pages = await discover(root, [])
+      const route = normalizeRoute(requestPath)
+      const page = pages.routes.get(route) || pages.notFound
+      if (page?.endsWith('.md')) {
+        const rendered = await renderMarkdown({ root, page, routes: pages.routes, base, theme,
+          liveReload: true, assetUrl: (path, contents) => devAssetUrl(path, contents, base) })
+        for (const path of rendered.assets.keys()) markdownAssets.add(path)
+        send(request, response, pages.routes.has(route) ? 200 : 404, 'text/html; charset=utf-8',
+          markdownDocument(rendered, { base, theme, liveReload: true, metadataHead: metadataTags(metadataFiles, base, 'http://localhost:3000') }))
+        return
+      }
       const packageJson = await readPackage(root)
       const dependencies = packageDependencies(packageJson)
       const cdn = resolveCdn(options.cdn)
@@ -535,6 +582,8 @@ export async function startDevServer(options: DevServerOptions) {
     }
   })
 
+  const beginClose = trackServerShutdown(server)
+
   let timer: NodeJS.Timeout | undefined
   let pendingTimestamp = 0
   const pendingFiles = new Set<string>()
@@ -553,15 +602,15 @@ export async function startDevServer(options: DevServerOptions) {
       pendingRenames.clear()
       const timestamp = pendingTimestamp
       pendingTimestamp = 0
-      let reload = changedFiles.includes('package.json') || changedFiles.some(isMetadataFile)
+      let reload = changedFiles.includes('markdown.css') || changedFiles.some(path => path.endsWith('.md') || markdownAssets.has(path)) || changedFiles.includes('package.json') || changedFiles.some(isMetadataFile)
       const routes = changedFiles.some(filename => (
-        filename.startsWith('pages/') && routeFromPagePath(filename.slice('pages/'.length)) !== undefined
+        filename.startsWith('pages/') && routeFromCliPage(filename.slice('pages/'.length)) !== undefined
       ))
       const invalidation = modules.invalidate(changedFiles)
       reload ||= invalidation.reload
       const renamedTrackedFiles = renamedFiles.filter(filename => (
         modules.isTracked(filename)
-        || (filename.startsWith('pages/') && routeFromPagePath(filename.slice('pages/'.length)) !== undefined)
+        || (filename.startsWith('pages/') && routeFromCliPage(filename.slice('pages/'.length)) !== undefined)
       ))
       if (!reload && renamedTrackedFiles.length) {
         reload = (await Promise.all(renamedTrackedFiles.map(async filename => (
@@ -612,6 +661,7 @@ export async function startDevServer(options: DevServerOptions) {
         if (error && (error as NodeJS.ErrnoException).code !== 'ERR_SERVER_NOT_RUNNING') reject(error)
         else resolvePromise()
       })
+      beginClose()
       server.closeIdleConnections()
     })
     return closePromise
@@ -825,6 +875,7 @@ export async function buildProject(options: BuildOptions) {
 async function buildWithPackages(options: BuildOptions, localPackages: LocalPackages) {
   const root = await realpath(resolve(options.root))
   const base = normalizeBase(options.base)
+  const theme = markdownTheme(options.theme)
   const metadataBaseOrigin = metadataOrigin(options.origin)
   if (options.sitemap !== undefined && (!/^[^/\\]+\.xml$/.test(options.sitemap)
     || options.sitemap === '.' || options.sitemap === '..')) {
@@ -841,8 +892,16 @@ async function buildWithPackages(options: BuildOptions, localPackages: LocalPack
   const runtime = await runtimeRoot()
   const cdn = resolveCdn(options.cdn)
   const discovered = await discover(root, options.exclude)
+  const reactRoutes = new Map([...discovered.routes].filter(([, page]) => !page.endsWith('.md')))
+  const markdownPages = new Map<string, MarkdownPage>()
+  for (const [route, page] of discovered.routes) {
+    if (page.endsWith('.md')) markdownPages.set(route, await renderMarkdown({
+      root, page, routes: discovered.routes, base, theme, liveReload: false,
+      assetUrl: (path, contents) => builtAssetUrl(path, contents, base),
+    }))
+  }
   const projectPaths = new Set<string>()
-  for (const page of discovered.routes.values()) {
+  for (const page of reactRoutes.values()) {
     const files = await collectProjectFiles(root, page)
     for (const projectPath of files) projectPaths.add(projectPath)
   }
@@ -856,8 +915,8 @@ async function buildWithPackages(options: BuildOptions, localPackages: LocalPack
     ...devjarDependencies,
   }, cdn, false)
   const packageImports = await collectPackageImports(root, projectPaths)
-  const htmlImports = ['react', 'react-dom', 'react/jsx-runtime', 'react-dom/client']
-  const tailwindBuildUrls = getTailwindBuildUrls(dependencies, cdn)
+  const htmlImports = reactRoutes.size ? ['react', 'react-dom', 'react/jsx-runtime', 'react-dom/client'] : []
+  const tailwindBuildUrls = reactRoutes.size ? getTailwindBuildUrls(dependencies, cdn) : undefined
   const sourceUrls = new Set([
     ...htmlImports.map(resolveSourceModule),
     ...[...packageImports].map(resolveSourceModule),
@@ -886,10 +945,10 @@ async function buildWithPackages(options: BuildOptions, localPackages: LocalPack
     base,
     moduleUrl: projectPath => builtModuleUrl(projectPath, base),
   })
-  const renderedRoutes = options.prerender
+  const renderedRoutes = options.prerender && reactRoutes.size
     ? await prerender({
         root,
-        routes: discovered.routes,
+        routes: reactRoutes,
         dependencies,
         devjarDependencies,
         cdn,
@@ -897,7 +956,7 @@ async function buildWithPackages(options: BuildOptions, localPackages: LocalPack
         runtimeModulePath: join(runtime, 'index.js'),
         resolveModule: specifier => localPackages.resolve(specifier, 'server', root),
       })
-    : Object.fromEntries([...discovered.routes.keys()].map(route => (
+    : Object.fromEntries([...reactRoutes.keys()].map(route => (
         [route, { head: '', markup: '', styles: '' }]
       )))
   const tailwindCss = tailwindBuildUrls
@@ -920,11 +979,20 @@ async function buildWithPackages(options: BuildOptions, localPackages: LocalPack
     await cp(join(root, filename), join(outDir, filename))
   }
   await writeFile(join(outDir, 'manifest.json'), JSON.stringify(manifest))
+  if (markdownPages.size) await copyMarkdownStyles(join(outDir, '_jar/markdown'), theme)
   const runtimeAssets = await copyRuntimeAssets(join(outDir, '_jar'), devjarRuntime)
   const runtimeUrl = runtimeAssets.runtimeAsset
     ? withBase(base, `/_jar/${runtimeAssets.runtimeAsset}`)
     : withBase(base, '/_jar/runtime.js')
   for (const route of Object.keys(manifest.routes)) {
+    const markdown = markdownPages.get(route)
+    if (markdown) {
+      const path = routeHtmlPath(outDir, route)
+      await mkdir(dirname(path), { recursive: true })
+      await writeFile(path, markdownDocument(markdown, { base, theme, liveReload: false,
+        metadataHead: metadataTags(metadataFiles, base, metadataBaseOrigin) }))
+      continue
+    }
     await writeRouteHtml(outDir, route, renderedRoutes[route], {
       metadataFiles,
       metadataOrigin: metadataBaseOrigin,
@@ -953,6 +1021,11 @@ async function buildWithPackages(options: BuildOptions, localPackages: LocalPack
   const projectAssetsRoot = join(outDir, '_jar/assets')
   await mkdir(modulesRoot, { recursive: true })
   await mkdir(projectAssetsRoot, { recursive: true })
+  for (const page of markdownPages.values()) {
+    for (const [path, contents] of page.assets) {
+      await writeFile(join(projectAssetsRoot, staticAssetName(path, contents)), contents)
+    }
+  }
   if (tailwindCss) {
     await writeFile(join(projectAssetsRoot, staticAssetName('tailwind.css', tailwindCss)), tailwindCss)
   }
@@ -1050,6 +1123,8 @@ export async function startBuiltServer(options: StartServerOptions) {
     }
   })
 
+  const beginClose = trackServerShutdown(server)
+
   await new Promise<void>((resolvePromise, reject) => {
     server.once('error', reject)
     server.listen(port, host, resolvePromise)
@@ -1066,6 +1141,7 @@ export async function startBuiltServer(options: StartServerOptions) {
         if (error && (error as NodeJS.ErrnoException).code !== 'ERR_SERVER_NOT_RUNNING') reject(error)
         else resolvePromise()
       })
+      beginClose()
       server.closeIdleConnections()
     })
     return closePromise
