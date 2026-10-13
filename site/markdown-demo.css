@@ -25,10 +25,8 @@
   box-shadow: 0 4px 22px #3f392c06;
 }
 .markdown-fragment-intro { max-width: 320px; justify-self: center; }
-.markdown-fragment-kind { color: #8a887c; font: 10px var(--font-ioskeley-mono); }
-.markdown-fragment-intro h2 { font: 400 38px/1.1 Georgia, serif; letter-spacing: -.04em; margin: 15px 0 18px; }
+.markdown-fragment-intro h2 { font: 400 38px/1.1 Georgia, serif; letter-spacing: -.04em; margin: 0 0 18px; }
 .markdown-fragment-intro p { color: #777b6e; font-size: 14px; line-height: 1.8; margin: 0 0 22px; }
-.markdown-fragment-detail { display: block; color: #8a887c; font-size: 11px; line-height: 1.8; }
 .markdown-demo :focus-visible { outline: 2px solid #586349; outline-offset: 4px; }
 @media (max-width: 900px) {
   .markdown-demo { padding-inline: 16px; }
