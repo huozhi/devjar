@@ -1,6 +1,6 @@
 # Devjar
 
-> Live React playgrounds and zero-config static site export. Use the DevJar component for embedded previews, or the CLI to develop and publish a folder of React pages.
+> Live React playgrounds and zero-config static site export. Use the DevJar component for embedded previews, or the CLI to develop and publish Markdown or React pages.
 
 ## References
 
@@ -9,6 +9,7 @@
 - [Migrate from Sandpack or React Live](https://github.com/huozhi/devjar/blob/main/docs/MIGRATION.md)
 - [README](https://github.com/huozhi/devjar/blob/main/README.md)
 - [Detailed API reference](https://github.com/huozhi/devjar/blob/main/docs/API.md)
+- [Markdown pages and themes](https://github.com/huozhi/devjar/blob/main/docs/MARKDOWN.md)
 - [Personal site: playground to static export](https://github.com/huozhi/devjar/tree/main/examples/personal)
 - [Minimal website](https://github.com/huozhi/devjar/tree/main/examples/basic)
 - [Dashboard](https://github.com/huozhi/devjar/tree/main/examples/dashboard)
@@ -18,7 +19,37 @@
 
 - Embed editable code in an app or documentation: install devjar, import DevJar, and pass files as strings.
 - Advanced API for owning an iframe: import useDevJar and use its ref, load(files), and error.
-- Build a website: create pages/index.tsx and run npx devjar dev. No configuration file is required.
+- Build a content site: create pages/index.md and run npx devjar dev. Markdown pages need no React runtime.
+- Build an interactive React site: create pages/index.tsx and run npx devjar dev. No configuration file is required.
+
+## Markdown sites
+
+Put Markdown files in pages/. For example, pages/index.md is / and
+pages/notes/index.md is /notes. Link between pages with relative .md links.
+React and Markdown pages can share a project, but routes must be unique.
+
+```md
+---
+title: Field notes
+description: Short observations
+---
+
+# Field notes
+
+Short observations.
+```
+
+Run npx devjar dev --theme editorial for a live preview, then
+npx devjar build --theme editorial to export to dist/. Choose minimal (the
+default), github, editorial, or academic for the whole build. Frontmatter
+does not select a per-page theme. Add a root markdown.css to customize the
+theme, or pass --math to render LaTeX formulas. Markdown builds produce
+complete HTML without React or hydration scripts.
+
+To host independently themed mini-sites under separate paths, build each
+project with its own --theme and --base /examples/<name>/, then place each
+output at that path. See the Markdown reference for metadata, links, assets,
+custom styles, and math details.
 
 ## Live code APIs
 
@@ -94,12 +125,14 @@ configuration file or a devjar field in package.json. User settings are CLI flag
 ## Files and imports
 
 - pages/index.tsx -> /
+- pages/index.md -> /
 - pages/about.tsx -> /about
+- pages/about.md -> /about
 - pages/blog/index.tsx -> /blog
-- pages/404.tsx -> custom not-found page
+- pages/404.tsx or pages/404.md -> custom not-found page
 - Underscore-prefixed files and folders inside pages/ are private: they are not routes in dev, builds, or embedded previews, but remain importable.
-- Every page default-exports a React component. Shared components are explicitly imported; there is no automatic layout convention.
-- JavaScript, TypeScript, JSX, and TSX are supported. Use relative imports for local modules and CSS.
+- React pages default-export a component. Shared components are explicitly imported; there is no automatic layout convention.
+- React pages support JavaScript, TypeScript, JSX, and TSX. Use relative imports for local modules and CSS.
 - JSON imports provide a default export. JSON must be valid (double quotes; no comments or trailing commas).
 - Any local file can be imported as a string: import text from './notes.md' with { type: 'text' }.
 - Text imports work in the live runtime and CLI. They are explicit; shader extensions have no special behavior.
@@ -130,6 +163,6 @@ edited content.json back to disk, build, and preview the exported result.
 
 This reference tracks the main branch. Check the README and installed CLI's
 --help for the version in use; main may include features not yet published.
-Devjar is a React static-site builder and live-code runtime, not a full-stack
+Devjar is a Markdown and React static-site builder and live-code runtime, not a full-stack
 framework. Do not assume server actions, dynamic server routes, or automatic
 layouts. Never put secrets in preview files, browser code, or exported assets.
