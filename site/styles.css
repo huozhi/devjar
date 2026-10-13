@@ -164,7 +164,6 @@ footer {
 
 .intro-section {
   position: relative;
-  width: min(1440px, 100%);
   margin: 0;
   padding: 100px 32px 64px;
   color: #171717;
