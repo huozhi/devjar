@@ -1,37 +1,19 @@
-/* Official Tufte CSS and local ET Book fonts; see tufte/README.md. */
-@import url('./tufte/tufte.css');
-
-/* Keep Tufte typography while exposing Devjar's customization variables. */
+/* Devjar's compact paper layout, using only system fonts. */
 :where(:root) {
-  --md-bg: #fffff8;
-  --md-text: #111;
-  --md-accent: var(--md-text);
-  --md-font-body: et-book, Palatino, Georgia, 'Songti SC', serif;
-  --md-content-width: 66ch;
+  --md-bg: #fff;
+  --md-text: #252a31;
+  --md-muted: #737b86;
+  --md-accent: #465e7b;
+  --md-font-body: Georgia, 'Times New Roman', 'Songti SC', serif;
+  --md-content-width: 72ch;
 }
-body {
-  width: 100%;
-  max-width: none;
-  margin: 0;
-  padding: 0;
-  font-family: var(--md-font-body);
-  background: var(--md-bg);
-  color: var(--md-text);
-}
-h1, h2, h3, h4, h5, h6 {
-  font-family: var(--md-font-heading);
-  color: var(--md-text);
-}
-a:link, a:visited { color: var(--md-accent); }
-pre > code { width: auto; margin-left: 0; }
-:where(.devjar-markdown) { padding: 2rem 1.5rem 4rem; }
-:where(.md-byline) { font-size: 1rem; }
+:where(body) { font-size: 18px; line-height: 1.75; }
+:where(h1) { text-align: center; font-size: clamp(2.1rem, 4vw, 2.8rem); font-weight: 600; letter-spacing: -.02em; }
+:where(h2) { font-size: 1.45rem; font-weight: 600; margin-top: 2rem; }
+:where(h3) { font-size: 1.15rem; font-weight: 600; }
+:where(.md-byline) { text-align: center; font-size: .8rem; letter-spacing: .025em; }
+:where(th, td) { padding: .5rem .8rem; }
+:where(.devjar-markdown) { padding: 2.5rem 1.5rem 4rem; }
 @media (prefers-color-scheme: dark) {
-  :where(:root) { --md-bg: #151515; --md-text: #ddd; }
-}
-@media (max-width: 760px) {
-  body { width: 100%; padding: 0; }
-}
-@media print {
-  body { background: white; color: black; }
+  :where(:root) { --md-bg: #1b1e23; --md-text: #e0e4eb; --md-muted: #a0a9b5; --md-accent: #a9bfdc; }
 }

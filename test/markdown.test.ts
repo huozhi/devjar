@@ -80,23 +80,6 @@ describe('Markdown pages', () => {
     } finally { await rm(root, { recursive: true, force: true }) }
   })
 
-  test('Academic exports its Tufte stylesheet and local fonts', async () => {
-    const root = await fixture()
-    let server: Awaited<ReturnType<typeof startBuiltServer>> | undefined
-    try {
-      const result = await buildProject({ root, outDir: 'dist', cdn: 'http://127.0.0.1:1',
-        prerender: true, exclude: [], base: '/preview/', theme: 'academic' })
-      const html = await readFile(join(result.outDir, 'index.html'), 'utf8')
-      expect(await readFile(join(result.outDir, '_jar/markdown/academic.css'), 'utf8')).toContain("@import url('./tufte/tufte.css')")
-      expect(await readFile(join(result.outDir, '_jar/markdown/tufte/LICENSE'), 'utf8')).toContain('MIT License')
-      server = await startBuiltServer({ root: result.outDir, host: '127.0.0.1', port: 0 })
-      const response = await fetch(`http://127.0.0.1:${server.port}/preview/_jar/markdown/tufte/et-book/et-book-roman-line-figures/et-book-roman-line-figures.woff`)
-      expect(response.status).toBe(200)
-      expect(response.headers.get('content-type')).toBe('font/woff')
-      expect((await response.arrayBuffer()).byteLength).toBeGreaterThan(1000)
-    } finally { await server?.close(); await rm(root, { recursive: true, force: true }) }
-  })
-
   test('reports conflicting routes, invalid metadata and broken or escaping references', async () => {
     const root = await fixture()
     const outside = await mkdtemp(join(tmpdir(), 'devjar-markdown-outside-'))

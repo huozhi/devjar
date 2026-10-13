@@ -22,7 +22,4 @@ export async function copyMarkdownStyles(destination: string, theme: MarkdownThe
   await Promise.all(['base.css', `${theme}.css`, 'print.css'].map(filename => (
     cp(join(markdownStylesRoot(), filename), join(destination, filename))
   )))
-  if (theme === 'academic') {
-    await cp(join(markdownStylesRoot(), 'tufte'), join(destination, 'tufte'), { recursive: true })
-  }
 }

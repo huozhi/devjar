@@ -31,16 +31,15 @@ npx devjar start
 | `studio` (default) | Neutral sans-serif product typography, inspired by Geist and Radix |
 | `primer` | README-style headings, tables, and code, inspired by GitHub Primer |
 | `editorial` | Warm paper, generous serif typography, and expressive article layout |
-| `academic` | Upstream Tufte CSS with local ET Book fonts and scholarly article typography |
+| `academic` | Compact paper layout with a centered title, system serif fonts, and restrained section headings |
 
 Pages load the shared typography stylesheet and only the selected theme CSS.
 Exports include only that theme alongside shared and print styles.
 
-Studio, Primer, and Editorial are Devjar themes inspired by product and article typography.
-Academic uses [Tufte CSS](https://github.com/edwardtufte/tufte-css), with its
-fonts and MIT license included locally. Each includes
+These are lightweight Devjar themes inspired by product and article typography.
+Academic uses an independently written paper layout. Each includes
 responsive tables and code blocks, system dark mode, keyboard focus styles,
-and print styles. The first three use system fonts; Academic uses bundled fonts.
+and print styles. All four use system fonts; no theme font files or external stylesheet packages are needed.
 
 ## Metadata
 

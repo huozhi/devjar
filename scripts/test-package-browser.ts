@@ -186,7 +186,6 @@ export default function Page() {
   await assertPage(page, 'Article', 'Article')
   assert.equal(await page.locator('script').count(), 0)
   await page.evaluate(() => document.fonts.ready)
-  assert(await page.evaluate(() => performance.getEntriesByType('resource').some(entry => entry.name.includes('/tufte/et-book/'))))
   assert.equal(await page.locator('html').getAttribute('data-md-theme'), 'academic')
   assert.equal(await page.locator('.devjar-markdown a').last().evaluate(element => getComputedStyle(element).color), 'rgb(120, 40, 90)')
   await page.locator('.md-home').click()
