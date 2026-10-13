@@ -26,16 +26,19 @@
 }
 .markdown-fragment-intro { max-width: 320px; justify-self: start; }
 .markdown-demo > .home-link { position: absolute; top: 28px; left: 32px; }
+.markdown-demo > .site-nav { position: absolute; top: 28px; right: 32px; }
 .markdown-fragment-intro h2 { font: 400 38px/1.1 Georgia, serif; letter-spacing: -.04em; margin: 0 0 18px; }
 .markdown-fragment-intro p { color: #777b6e; font-size: 14px; line-height: 1.8; margin: 0 0 22px; }
 .markdown-demo :focus-visible { outline: 2px solid #586349; outline-offset: 4px; }
 @media (max-width: 900px) {
   .markdown-demo { padding-inline: 16px; }
   .markdown-demo > .home-link { left: 16px; }
+  .markdown-demo > .site-nav { right: 16px; }
   .markdown-example { gap: 32px; }
 }
 @media (max-width: 640px) {
   .markdown-demo { padding: 92px 16px 48px; }
+  .markdown-demo > .home-link, .markdown-demo > .site-nav { top: 20px; }
   .markdown-example, .markdown-example:nth-child(even) { grid-template-columns: 1fr; gap: 24px; margin-bottom: 48px; }
   .markdown-fragment-intro { order: -1; justify-self: start; max-width: 360px; }
   .markdown-example:nth-child(even) .markdown-fragment-preview { order: 0; }

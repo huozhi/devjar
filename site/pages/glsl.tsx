@@ -3,6 +3,7 @@ import { Editor } from '@sugar-high/react'
 import { taffy } from '@sugar-high/react/themes'
 import { Footer } from '../components/footer'
 import { HomeLink } from '../components/home-link'
+import { SiteNav } from '../components/site-nav'
 import '../styles.css'
 import '../glsl.css'
 
@@ -188,6 +189,7 @@ export default function GlslPage() {
     <main className="glsl-page">
     <title>GLSL playground — Devjar</title>
       <HomeLink />
+      <SiteNav active={undefined} />
     <div className="glsl-workspace">
       <div className="glsl-editor-row">
         <div className="glsl-editor-wrap">

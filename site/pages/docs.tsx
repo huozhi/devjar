@@ -1,8 +1,8 @@
 import { Code } from '@sugar-high/react'
 import { taffy } from '@sugar-high/react/themes'
 import { Footer } from '../components/footer'
-import { GitHubLink } from '../components/github-link'
 import { HomeLink } from '../components/home-link'
+import { SiteNav } from '../components/site-nav'
 import '../styles.css'
 import '../docs.css'
 
@@ -23,10 +23,7 @@ export default function Docs() {
         <header className="docs-header">
           <div className="docs-topbar">
             <HomeLink />
-            <nav className="docs-top-links" aria-label="Page navigation">
-              <a href="/markdown">Markdown</a>
-              <GitHubLink />
-            </nav>
+            <SiteNav active="docs" />
           </div>
           <span className="docs-eyebrow">THE FIELD GUIDE / 01</span>
           <h1>Documentation</h1>

@@ -169,10 +169,12 @@ footer {
   padding: 100px 32px 64px;
   color: #171717;
 }
-.intro-links { position: absolute; top: 28px; right: 32px; display: flex; align-items: center; gap: 12px; color: #737373; }
-.intro-links a { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 6px; text-decoration: none; }
-.intro-links .intro-docs { width: auto; padding: 0 10px; font-size: 14px; }
-.intro-links a:hover { color: #171717; background: #f4f4f4; }
+.site-nav { display: flex; align-items: center; gap: 8px; color: #777b6e; font-size: 14px; }
+.site-nav a { display: grid; place-items: center; min-width: 36px; height: 36px; padding: 0 9px; border-radius: 6px; text-decoration: none; }
+.site-nav a:hover { color: #171717; background: #eeece6; }
+.site-nav a[aria-current="page"] { color: #292d24; background: #e8e5db; font-weight: 600; }
+.site-nav a:focus-visible { outline: 2px solid #586349; outline-offset: 2px; }
+.intro-section > .site-nav { position: absolute; top: 28px; right: 32px; }
 .intro-section h1 { margin: 0; font-size: clamp(72px, 9vw, 120px); font-weight: 600; letter-spacing: -.07em; line-height: 1; }
 .intro-copy { margin: 20px 0 0; color: #737373; font-size: clamp(18px, 2.2vw, 26px); font-weight: 300; letter-spacing: -.025em; line-height: 1.4; }
 .intro-agents { margin: 10px 0 0; color: #8a8781; font-size: 13px; font-weight: 400; line-height: 1.5; }
@@ -452,7 +454,7 @@ html { scroll-behavior: smooth; }
 }
 
 @media (max-width: 900px) and (min-width: 641px) { .intro-section { padding-left: 16px; padding-right: 16px; } }
-@media (max-width: 640px) { .intro-links { top: 20px; right: 12px; } .intro-command-panel { min-height: 124px; } }
+@media (max-width: 640px) { .intro-section > .site-nav { top: 20px; right: 12px; } .intro-command-panel { min-height: 124px; } .site-nav { gap: 0; font-size: 13px; } .site-nav a { padding: 0 7px; } }
 
 .deploy-section { max-width: 1440px; margin: 64px 0 0; padding: 0 32px; color: #40403b; }
 .deploy-terminal { max-width: 1024px; }

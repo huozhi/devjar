@@ -15,25 +15,6 @@
 .docs-header a { text-decoration: none; }
 .docs-header a:hover { color: #171717; }
 
-.docs-header .docs-top-links {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #777b6e;
-  font-size: 14px;
-}
-
-.docs-top-links a {
-  display: grid;
-  place-items: center;
-  min-width: 36px;
-  height: 36px;
-  padding: 0 9px;
-  border-radius: 6px;
-}
-
-.docs-top-links a:hover { background: #eeece6; }
-
 .docs-eyebrow {
   display: block;
   margin-top: 104px;
@@ -119,8 +100,6 @@
 @media (max-width: 640px) {
   .docs-page { padding: 20px 16px 0; }
   .docs-topbar { gap: 12px; }
-  .docs-header .docs-top-links { gap: 0; font-size: 13px; }
-  .docs-top-links a { padding: 0 7px; }
   .docs-eyebrow { margin-top: 72px; }
   .docs-header .docs-contents { margin-top: 36px; }
   .docs-page .usage-section { padding: 44px 0; }
