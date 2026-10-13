@@ -1,24 +1,22 @@
 ---
-title: On the Persistence of Small Signals
-author: Ada Chen · Department of Natural Sciences
-date: October 2026
+title: Measuring uncertainty
+author: Ada Chen · Research notes
 ---
 
-# On the Persistence of Small Signals
+# Measuring uncertainty
 
-## Abstract
+A measurement is useful when we know how much confidence to place in it.
 
-Weak signals often survive repeated observation. This paper examines how a modest change in measurement conditions can reveal patterns that a single reading would overlook.
+## Repeated observations
 
-## 1. Method
+Take several readings under the same conditions. Their spread tells us something that a single value cannot.
 
-We observed twelve samples at regular intervals, holding temperature and exposure constant. Each measurement was repeated three times.
+| Trial | Reading |
+| --- | ---: |
+| A | 4.2 |
+| B | 4.4 |
+| C | 4.1 |
 
-| Condition | Samples | Mean response |
-| --- | ---: | ---: |
-| Morning light | 12 | 0.42 |
-| Evening light | 12 | 0.61 |
+## Report what remains
 
-## 2. Discussion
-
-The difference is consistent across trials. Further work should distinguish changes in the signal from changes in the instrument itself.
+Keep the original readings beside the summary. Precision describes the instrument; uncertainty describes what we still do not know.

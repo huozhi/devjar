@@ -1,53 +1,32 @@
-import { useEffect, useRef } from 'react'
 import '../styles.css'
 import '../markdown-demo.css'
 
 const themes = [
-  { id: 'studio', name: 'Studio', kind: 'Product notes' },
-  { id: 'primer', name: 'Primer', kind: 'Project documentation' },
-  { id: 'editorial', name: 'Editorial', kind: 'Collected essays' },
-  { id: 'academic', name: 'Academic', kind: 'Tufte CSS · Research essay' },
+  { id: 'studio', name: 'Studio', kind: 'A quieter workspace', description: 'Clean sans-serif type, clear hierarchy, and generous space. A natural fit for product notes and small websites.', detail: 'Neutral colors · Spacious headings · Simple callouts' },
+  { id: 'primer', name: 'Primer', kind: 'Familiar from the first line', description: 'The rhythm of a good README: compact sections, crisp tables, and code that is easy to scan. Made for project documentation.', detail: 'Section dividers · Code blocks · Structured tables' },
+  { id: 'editorial', name: 'Editorial', kind: 'Give the words some room', description: 'Warm paper, expressive serif type, and a relaxed reading pace. For stories, essays, and things worth lingering over.', detail: 'Large serif type · Warm colors · Italic headings' },
+  { id: 'academic', name: 'Academic', kind: 'A thoughtful page', description: 'Tufte CSS brings ET Book type and the character of a printed essay to the web. Well suited to research notes and careful explanations.', detail: 'Tufte CSS · Local ET Book fonts · Scholarly typography' },
 ] as const
-
-function PageFragment({ theme }: { theme: typeof themes[number] }) {
-  const frameRef = useRef<HTMLIFrameElement | null>(null)
-  useEffect(() => {
-    const frame = frameRef.current
-    if (!frame) return
-    let observer: ResizeObserver | undefined
-    const observe = () => {
-      const body = frame.contentDocument?.body
-      if (!body) return
-      observer?.disconnect()
-      const resize = () => {
-        const height = Math.ceil(body.getBoundingClientRect().height)
-        if (height > 0) frame.style.height = `${height + frame.offsetHeight - frame.clientHeight}px`
-      }
-      observer = new ResizeObserver(resize)
-      observer.observe(body)
-      resize()
-    }
-    frame.addEventListener('load', observe)
-    observe()
-    return () => { frame.removeEventListener('load', observe); observer?.disconnect() }
-  }, [])
-  return <section className="markdown-fragment" aria-label={`${theme.name} theme`}>
-    <div className="markdown-fragment-label"><span>{theme.name}</span><span>{theme.kind}</span></div>
-    <iframe ref={frameRef} title={`${theme.name} page fragment`} src={`/markdown-previews/${theme.id}/`} scrolling="no" />
-  </section>
-}
 
 export default function MarkdownDemo() {
   return <>
     <title>Markdown themes — Devjar</title>
-    <meta name="description" content="Four Markdown reading styles for product notes, project documentation, collected essays, and Tufte-style research essays." />
+    <meta name="description" content="Four Markdown reading styles for product notes, project documentation, essays, and Tufte-style research notes." />
     <main className="markdown-demo">
       <nav className="intro-links" aria-label="Page navigation">
         <a className="intro-docs" href="/">Home</a>
         <a className="intro-docs" href="/docs">Docs</a>
         <a className="intro-docs" href="https://github.com/huozhi/devjar" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
       </nav>
-      <div className="markdown-fragments">{themes.map(theme => <PageFragment key={theme.id} theme={theme} />)}</div>
+      <div className="markdown-fragments">{themes.map(theme => <section key={theme.id} className="markdown-example" aria-labelledby={`theme-${theme.id}`}>
+        <iframe className="markdown-fragment-preview" title={`${theme.name} page fragment`} src={`/markdown-previews/${theme.id}/`} />
+        <div className="markdown-fragment-intro">
+          <span className="markdown-fragment-kind">{theme.kind}</span>
+          <h2 id={`theme-${theme.id}`}>{theme.name}</h2>
+          <p>{theme.description}</p>
+          <span className="markdown-fragment-detail">{theme.detail}</span>
+        </div>
+      </section>)}</div>
     </main>
   </>
 }

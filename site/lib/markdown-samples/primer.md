@@ -1,29 +1,27 @@
 ---
-title: Fieldbook
-description: A small toolkit for recording observations.
+title: tiny-cache
 ---
 
-# Fieldbook
+# tiny-cache
 
-Keep a plain-text record of an experiment, a field visit, or a question you want to return to.
+A small in-memory cache with an explicit lifetime.
 
-## Getting started
+## Usage
 
-```sh
-mkdir field-notes
-cd field-notes
+```js
+const cache = createCache({ ttl: 60 })
+cache.set('weather', { temperature: 18 })
+cache.get('weather')
 ```
 
-Create one file per visit. Give each observation a date and a short, descriptive title.
+### API
 
-## File format
-
-| Field | Purpose |
+| Method | Returns |
 | --- | --- |
-| `date` | When the observation was made |
-| `location` | Where to look again |
-| `notes` | What changed and what stayed the same |
+| `get(key)` | A value, or `undefined` |
+| `set(key, value)` | The stored value |
+| `clear()` | An empty cache |
 
-## Contributing
+### Contributing
 
-Keep examples small and repeatable. Include the original measurements, and explain how someone else can reproduce the observation.
+Keep changes small. Add a reproducible example with your issue.
