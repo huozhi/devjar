@@ -1,3 +1,4 @@
+import { GitHubLink } from '../components/github-link'
 import '../styles.css'
 import '../markdown-demo.css'
 
@@ -16,7 +17,7 @@ export default function MarkdownDemo() {
       <nav className="intro-links" aria-label="Page navigation">
         <a className="intro-docs" href="/">Home</a>
         <a className="intro-docs" href="/docs">Docs</a>
-        <a className="intro-docs" href="https://github.com/huozhi/devjar" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+        <GitHubLink />
       </nav>
       <div className="markdown-fragments">{themes.map(theme => <section key={theme.id} className="markdown-example" aria-labelledby={`theme-${theme.id}`}>
         <iframe className="markdown-fragment-preview" title={`${theme.name} page fragment`} src={`/markdown-previews/${theme.id}/`} />
