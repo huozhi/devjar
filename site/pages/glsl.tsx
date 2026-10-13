@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Editor } from '@sugar-high/react'
 import { taffy } from '@sugar-high/react/themes'
+import { Footer } from '../components/footer'
 import '../styles.css'
 import '../glsl.css'
 
@@ -182,7 +183,8 @@ export default function GlslPage() {
     window.setTimeout(() => setCopied(false), 2000)
   }
 
-  return <main className="glsl-page">
+  return <>
+    <main className="glsl-page">
     <title>GLSL playground — Devjar</title>
     <div className="glsl-workspace">
       <div className="glsl-editor-row">
@@ -204,5 +206,7 @@ export default function GlslPage() {
       </div>
       <div className="glsl-preview"><canvas ref={canvas} aria-label="GLSL shader preview" />{error && <pre role="alert">{error}</pre>}</div>
     </div>
-  </main>
+    </main>
+    <Footer />
+  </>
 }

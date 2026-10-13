@@ -1,5 +1,7 @@
 import { Code } from '@sugar-high/react'
 import { taffy } from '@sugar-high/react/themes'
+import { Footer } from '../components/footer'
+import { GitHubLink } from '../components/github-link'
 import '../styles.css'
 import '../docs.css'
 
@@ -18,7 +20,8 @@ export default function Docs() {
       <link rel="alternate" type="text/plain" title="Devjar agent reference" href="/llms.txt" />
       <main className="docs-page">
         <header className="docs-header">
-          <a className="docs-home" href="/">
+          <div className="docs-topbar">
+            <a className="docs-home" href="/">
             <svg width="21" height="21" viewBox="12 14 40 44" aria-hidden="true">
               <defs>
                 <mask id="docs-jar-cutout">
@@ -29,7 +32,14 @@ export default function Docs() {
               <path d="M23 16h18v9l4 5a8 8 0 0 1 2 5v13a6 6 0 0 1-6 6H23a6 6 0 0 1-6-6V35a8 8 0 0 1 2-5l4-5V16Z" fill="currentColor" mask="url(#docs-jar-cutout)" />
             </svg>
             devjar
-          </a>
+            </a>
+            <nav className="docs-top-links" aria-label="Page navigation">
+              <a href="/">Home</a>
+              <a href="/markdown">Markdown</a>
+              <GitHubLink />
+            </nav>
+          </div>
+          <span className="docs-eyebrow">THE FIELD GUIDE / 01</span>
           <h1>Documentation</h1>
           <p className="section-intro">Start with a live playground or a folder of pages.</p>
           <nav className="docs-contents" aria-label="On this page">
@@ -174,6 +184,7 @@ npx devjar start`}</Code>
           </div>
         </section>
       </main>
+      <Footer />
     </>
   )
 }

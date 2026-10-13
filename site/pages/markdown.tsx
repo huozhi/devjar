@@ -1,4 +1,5 @@
 import { GitHubLink } from '../components/github-link'
+import { Footer } from '../components/footer'
 import '../styles.css'
 import '../markdown-demo.css'
 
@@ -27,5 +28,6 @@ export default function MarkdownDemo() {
         </div>
       </section>)}</div>
     </main>
+    <Footer />
   </>
 }

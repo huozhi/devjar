@@ -78,7 +78,7 @@ footer {
 .site-footer {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   gap: 1rem;
   max-width: 960px;
   width: 100%;
@@ -87,6 +87,29 @@ footer {
   color: #737373;
   font-size: 0.8125rem;
   line-height: 1.5;
+}
+
+.footer-social {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.footer-social a {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+}
+
+.footer-social a:hover {
+  background: #eeece6;
+}
+
+.footer-social a:focus-visible {
+  outline: 2px solid #586349;
+  outline-offset: 2px;
 }
 
 .footer-links {
@@ -312,8 +335,8 @@ footer {
     padding-right: 12px;
   }
   .site-footer {
-    align-items: flex-start;
-    flex-direction: column;
+    align-items: center;
+    flex-direction: row;
     gap: 0.75rem;
   }
   .footer-links {
