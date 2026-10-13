@@ -1,6 +1,6 @@
 .docs-page {
   width: min(100%, 960px);
-  margin: 0 auto;
+  margin: 0;
   padding: 28px 32px 0;
   color: #292d24;
 }
@@ -10,16 +10,6 @@
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-}
-
-.docs-home {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  height: 36px;
-  font: 18px var(--font-ioskeley-mono);
-  letter-spacing: -.04em;
-  white-space: nowrap;
 }
 
 .docs-header a { text-decoration: none; }

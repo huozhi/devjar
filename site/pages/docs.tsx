@@ -2,6 +2,7 @@ import { Code } from '@sugar-high/react'
 import { taffy } from '@sugar-high/react/themes'
 import { Footer } from '../components/footer'
 import { GitHubLink } from '../components/github-link'
+import { HomeLink } from '../components/home-link'
 import '../styles.css'
 import '../docs.css'
 
@@ -21,20 +22,8 @@ export default function Docs() {
       <main className="docs-page">
         <header className="docs-header">
           <div className="docs-topbar">
-            <a className="docs-home" href="/">
-            <svg width="21" height="21" viewBox="12 14 40 44" aria-hidden="true">
-              <defs>
-                <mask id="docs-jar-cutout">
-                  <rect width="64" height="64" fill="white" />
-                  <path d="m25 35 5 5-5 5m10 0h7" fill="none" stroke="black" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                </mask>
-              </defs>
-              <path d="M23 16h18v9l4 5a8 8 0 0 1 2 5v13a6 6 0 0 1-6 6H23a6 6 0 0 1-6-6V35a8 8 0 0 1 2-5l4-5V16Z" fill="currentColor" mask="url(#docs-jar-cutout)" />
-            </svg>
-            devjar
-            </a>
+            <HomeLink />
             <nav className="docs-top-links" aria-label="Page navigation">
-              <a href="/">Home</a>
               <a href="/markdown">Markdown</a>
               <GitHubLink />
             </nav>

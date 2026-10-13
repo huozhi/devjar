@@ -1,4 +1,4 @@
-.example-gallery { width: min(1440px, 100%); padding: 0 32px; margin: 80px auto 0; }
+.example-gallery { width: min(1440px, 100%); padding: 0 32px; margin: 80px 0 0; }
 .examples-intro { margin-bottom: 38px; }
 .examples-intro > span { font: 9px var(--font-ioskeley-mono); letter-spacing: .08em; color: #8a887f; }
 .examples-intro h2 { font-size: 28px; font-weight: 500; letter-spacing: -.035em; margin: 12px 0; color: #292922; }
@@ -46,7 +46,7 @@
   .floating-editor-action { padding: 8px 0; }
 }
 
-.hero-playground { width: min(1440px, 100%); padding: 0 32px; margin: 0 auto; }
+.hero-playground { width: min(1440px, 100%); padding: 0 32px; margin: 0; }
 .demo-intro { display: flex; justify-content: space-between; gap: 16px; margin: 0 0 14px; color: #737373; font-size: 12px; }
 .demo-intro > span:last-child { color: #999; }
 .code-line-changed { background: #dce8f3; }

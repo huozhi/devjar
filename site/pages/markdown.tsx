@@ -1,5 +1,6 @@
 import { GitHubLink } from '../components/github-link'
 import { Footer } from '../components/footer'
+import { HomeLink } from '../components/home-link'
 import '../styles.css'
 import '../markdown-demo.css'
 
@@ -15,8 +16,8 @@ export default function MarkdownDemo() {
     <title>Markdown themes — Devjar</title>
     <meta name="description" content="Four Markdown reading styles for product notes, project documentation, essays, and scholarly research notes." />
     <main className="markdown-demo">
+      <HomeLink />
       <nav className="intro-links" aria-label="Page navigation">
-        <a className="intro-docs" href="/">Home</a>
         <a className="intro-docs" href="/docs">Docs</a>
         <GitHubLink />
       </nav>
