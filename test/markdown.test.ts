@@ -67,7 +67,7 @@ describe('Markdown pages', () => {
         expect(page.markup).toContain('language-js')
         expect([...page.assets.keys()]).toEqual(['assets/plot.svg'])
         expect(page.styles).toContain(':root { --md-accent: purple; }')
-        expect(page.markup.includes('aria-label="Table of contents"')).toBe(theme === 'primer')
+        expect(page.markup.includes('aria-label="Table of contents"')).toBe(theme === 'github')
         const html = markdownDocument(page, { base: '/preview/', theme, liveReload: false, metadataHead: '' })
         expect(html).toContain(`data-md-theme="${theme}"`)
         expect(html).toContain(`/_jar/markdown/${theme}.css`)
@@ -95,12 +95,12 @@ describe('Markdown pages', () => {
         ['![Escape](../../../outside.svg)', 'Reference escapes the project'],
       ]) {
         await writeFile(join(root, 'pages/index.md'), source)
-        await expect(render(root, 'studio')).rejects.toThrow(error)
+        await expect(render(root, 'minimal')).rejects.toThrow(error)
       }
       await writeFile(join(outside, 'plot.svg'), '<svg/>')
       await symlink(join(outside, 'plot.svg'), join(root, 'assets/escape.svg'))
       await writeFile(join(root, 'pages/index.md'), '![Escape](../assets/escape.svg)')
-      await expect(render(root, 'studio')).rejects.toThrow('Reference escapes the project')
+      await expect(render(root, 'minimal')).rejects.toThrow('Reference escapes the project')
       expect(() => markdownTheme('missing')).toThrow('Unknown Markdown theme')
     } finally {
       await rm(root, { recursive: true, force: true })
@@ -139,12 +139,12 @@ describe('Markdown pages', () => {
       built = await startBuiltServer({ root: result.outDir, host: '127.0.0.1', port: 0 })
       expect((await fetch(`http://127.0.0.1:${built.port}/preview/missing`)).status).toBe(404)
       expect(await (await fetch(`http://127.0.0.1:${built.port}/preview/reading/`)).text()).toContain('Reading guide')
-      dev = await startDevServer({ root, host: '127.0.0.1', port: 0, cdn: undefined, base: '/preview/', theme: 'primer' })
+      dev = await startDevServer({ root, host: '127.0.0.1', port: 0, cdn: undefined, base: '/preview/', theme: 'github' })
       const origin = `http://127.0.0.1:${dev.port}`
       expect(await (await fetch(origin + '/preview/reading/')).text()).toContain('Reading guide')
       const document = await (await fetch(origin + '/preview/')).text()
-      expect((await fetch(origin + '/preview/_jar/markdown/primer.css')).status).toBe(200)
-      expect(document).toContain('data-md-theme="primer"')
+      expect((await fetch(origin + '/preview/_jar/markdown/github.css')).status).toBe(200)
+      expect(document).toContain('data-md-theme="github"')
       expect(document).toContain('EventSource("/preview/_jar/events")')
       const asset = document.match(/src="([^\"]+plot\.svg[^\"]*)"/)![1].replace(/&amp;/g, '&')
       expect((await fetch(origin + asset)).status).toBe(200)

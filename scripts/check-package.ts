@@ -44,7 +44,7 @@ const transformAssets = JSON.parse(
   readFileSync(join(root, 'dist/transform-assets.json'), 'utf8'),
 ) as Record<string, string>
 const required = [
-  ...['base', 'studio', 'primer', 'editorial', 'academic', 'print'].map(name => `dist/markdown-styles/${name}.css`),
+  ...['base', 'minimal', 'github', 'editorial', 'academic', 'print'].map(name => `dist/markdown-styles/${name}.css`),
   'dist/bin.js',
   'dist/client.js',
   'dist/http-loader.mjs',

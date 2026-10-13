@@ -28,8 +28,8 @@ npx devjar start
 
 | Theme | Style |
 | --- | --- |
-| `studio` (default) | Neutral sans-serif product typography, inspired by Geist and Radix |
-| `primer` | README-style headings, tables, and code, inspired by GitHub Primer |
+| `minimal` (default) | Airy sans-serif typography, oversized light headings, and minimal decoration |
+| `github` | GitHub-style README headings, compact tables, and code blocks |
 | `editorial` | Warm paper, generous serif typography, and expressive article layout |
 | `academic` | Compact paper layout with a centered title, system serif fonts, and restrained section headings |
 

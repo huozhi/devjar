@@ -112,7 +112,7 @@ async function renderPage(options: MarkdownOptions): Promise<MarkdownPage> {
   const title = String(metadata.title || headings.find(heading => heading.depth === 1)?.text || 'Untitled')
   const description = String(metadata.description || '')
   const byline = [metadata.author, metadata.date].filter(Boolean).map(value => escapeHtml(String(value))).join(' · ')
-  const toc = options.theme === 'primer' && headings.filter(heading => heading.depth === 2).length > 1
+  const toc = options.theme === 'github' && headings.filter(heading => heading.depth === 2).length > 1
     ? `<nav class="md-toc" aria-label="Table of contents"><strong>Contents</strong><ol>${headings.filter(heading => heading.depth === 2).map(heading => `<li><a href="#${escapeHtml(heading.id)}">${escapeHtml(heading.text)}</a></li>`).join('')}</ol></nav>`
     : ''
   const home = options.routes.get('/') !== options.page ? `<a class="md-home" href="${withBase(options.base, '/')}">← Home</a>` : ''

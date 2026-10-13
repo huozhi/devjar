@@ -2,13 +2,13 @@ import { cp, mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-export const markdownThemes = ['studio', 'primer', 'editorial', 'academic'] as const
+export const markdownThemes = ['minimal', 'github', 'editorial', 'academic'] as const
 export type MarkdownTheme = typeof markdownThemes[number]
 
 export function markdownTheme(value: string | undefined): MarkdownTheme {
-  if (value === undefined) return 'studio'
+  if (value === undefined) return 'minimal'
   if (!(markdownThemes as readonly string[]).includes(value)) {
-    throw new Error(`Unknown Markdown theme: ${value}. Choose studio, primer, editorial, or academic.`)
+    throw new Error(`Unknown Markdown theme: ${value}. Choose minimal, github, editorial, or academic.`)
   }
   return value as MarkdownTheme
 }

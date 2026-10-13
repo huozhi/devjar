@@ -25,7 +25,7 @@ Commands:
   start    Serve the production build from <root>/dist
 
 Options:
-  --theme <name>  Markdown theme: studio, primer, editorial, academic (dev and build; default: studio)
+  --theme <name>  Markdown theme: minimal, github, editorial, academic (dev and build; default: minimal)
   --cdn <url>      ESM-compatible module CDN (dev and build)
   --base <path>    Public base path (dev and build; default: /)
   --origin <url>   Absolute origin for metadata URLs (build; default: Vercel URL or http://localhost:3000)

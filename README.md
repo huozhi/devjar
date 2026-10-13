@@ -210,7 +210,7 @@ npx devjar [command] [root] [options]
 | `--port <port>` | `dev`, `start` | `3000` |
 | `--cdn <url>` | `dev`, `build` | `https://esm.sh` |
 | `--exclude <path>` | `build` | Page file or directory to omit; repeatable |
-| `--theme <name>` | `dev`, `build` | Markdown theme: `studio` (default), `primer`, `editorial`, or `academic` |
+| `--theme <name>` | `dev`, `build` | Markdown theme: `minimal` (default), `github`, `editorial`, or `academic` |
 | `--base <path>` | `dev`, `build` | `/`; deployment subdirectory |
 | `--origin <url>` | `build` | Vercel production URL, or `http://localhost:3000`; absolute origin for social image URLs |
 | `--sitemap[=<filename>]` | `build` | Export a sitemap using `--origin`; defaults to `sitemap.xml` |
