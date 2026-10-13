@@ -245,6 +245,7 @@ function shouldNavigate(event: MouseEvent, anchor: HTMLAnchorElement) {
 function navigate(event: MouseEvent) {
   const route = routeAnchor(event.target)
   if (!route || !shouldNavigate(event, route.anchor)) return
+  if (!routeManifest.routes[normalizeRoute(route.route)]) return
   const pathname = withBase(route.route)
   if (pathname === location.pathname
     && route.url.search === location.search
@@ -261,7 +262,7 @@ function navigate(event: MouseEvent) {
 
 function preloadNavigation(event: Event) {
   const route = routeAnchor(event.target)
-  if (route) preloadRoute(route.route)
+  if (route && routeManifest.routes[normalizeRoute(route.route)]) preloadRoute(route.route)
 }
 
 async function start() {
