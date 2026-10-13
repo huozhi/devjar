@@ -17,6 +17,12 @@ Take several readings under the same conditions. Their spread tells us something
 | B | 4.4 |
 | C | 4.1 |
 
+The sample spread gives us a useful summary:
+
+$$
+s = \sqrt{\frac{1}{n-1}\sum_{i=1}^{n}(x_i-\bar{x})^2}.
+$$
+
 ## Report what remains
 
 Keep the original readings beside the summary. Precision describes the instrument; uncertainty describes what we still do not know.

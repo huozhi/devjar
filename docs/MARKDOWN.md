@@ -107,3 +107,32 @@ Available variables: `--md-bg`, `--md-text`, `--md-muted`, `--md-accent`,
 Ordinary CSS selectors override the defaults without `!important`.
 CSS `url(...)` assets are resolved from `markdown.css` and copied into builds.
 Import custom fonts with `@font-face`; nested CSS `@import` is not supported.
+
+## Math
+
+```sh
+npx devjar dev --theme academic --math
+npx devjar build --theme academic --math
+```
+
+`--math` enables KaTeX rendering for Markdown pages. Write inline expressions
+between `$` delimiters:
+
+```md
+Energy is $E = mc^2$.
+
+$$
+\int_0^1 x^2\,dx = \frac{1}{3}
+$$
+```
+
+Use `$$` on separate lines for display equations. Inline code and fenced code
+blocks keep their source. Escape currency dollar signs with `\$`.
+Without `--math`, dollar-delimited text stays ordinary Markdown.
+
+Formula HTML and accessible MathML are generated on the server in development
+and during builds. CSS and fonts are served locally and copied into the build
+only when formulas are present. No client renderer or external math CDN is needed.
+Invalid or unsupported expressions report an error naming the Markdown file;
+commands requiring trusted HTML or resource access are disabled.
+This supports KaTeX's LaTeX math syntax, not complete `.tex` documents.

@@ -25,6 +25,7 @@ Commands:
   start    Serve the production build from <root>/dist
 
 Options:
+  --math          Render LaTeX math in Markdown pages (dev and build)
   --theme <name>  Markdown theme: minimal, github, editorial, academic (dev and build; default: minimal)
   --cdn <url>      ESM-compatible module CDN (dev and build)
   --base <path>    Public base path (dev and build; default: /)
@@ -126,6 +127,7 @@ async function run() {
   let origin: string | undefined
   let sitemap: string | undefined
   let theme: string | undefined
+  let math = false
   let outDir: string | undefined
   const exclude: string[] = []
 
@@ -134,6 +136,7 @@ async function run() {
     if (arg === '--host') host = valueAfter(args, index++)
     else if (arg === '--port' || arg === '-p') port = Number(valueAfter(args, index++))
     else if (arg === '--cdn') cdn = valueAfter(args, index++)
+    else if (arg === '--math') math = true
     else if (arg === '--theme') theme = valueAfter(args, index++)
     else if (arg === '--base') base = valueAfter(args, index++)
     else if (arg === '--origin') origin = valueAfter(args, index++)
@@ -154,6 +157,7 @@ async function run() {
   }
   if (command !== 'build' && origin) throw new Error('--origin is only available for build')
   if (command !== 'build' && sitemap !== undefined) throw new Error('--sitemap is only available for build')
+  if (command === 'start' && math) throw new Error('--math is only available for dev and build')
   if (command === 'start' && theme !== undefined) throw new Error('--theme is only available for dev and build')
   if (command === 'start' && (cdn || base)) {
     throw new Error('start does not accept --cdn or --base; configure these when building')
@@ -172,6 +176,7 @@ async function run() {
       origin,
       sitemap,
       theme,
+      math,
     })
     const deploymentRoot = vercelOutputRoot(process.cwd())
     if (deploymentRoot) await writeVercelOutput(result.outDir, deploymentRoot)
@@ -198,6 +203,7 @@ async function run() {
         cdn,
         base: base || '/',
         theme,
+        math,
       })
   const browserHost = server.host === '0.0.0.0' || server.host === '::'
     ? 'localhost'

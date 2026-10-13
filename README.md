@@ -210,6 +210,7 @@ npx devjar [command] [root] [options]
 | `--port <port>` | `dev`, `start` | `3000` |
 | `--cdn <url>` | `dev`, `build` | `https://esm.sh` |
 | `--exclude <path>` | `build` | Page file or directory to omit; repeatable |
+| `--math` | `dev`, `build` | Render LaTeX math in Markdown at build time |
 | `--theme <name>` | `dev`, `build` | Markdown theme: `minimal` (default), `github`, `editorial`, or `academic` |
 | `--base <path>` | `dev`, `build` | `/`; deployment subdirectory |
 | `--origin <url>` | `build` | Vercel production URL, or `http://localhost:3000`; absolute origin for social image URLs |

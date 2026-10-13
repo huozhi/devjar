@@ -16,7 +16,7 @@ for (const theme of markdownThemes) {
     await cp(join(root, 'site/lib/markdown-samples', `${theme}.md`), join(project, 'pages/index.md'))
     const result = await buildProject({
       root: project, outDir: 'dist', cdn: undefined, prerender: true, exclude: [],
-      base: `/markdown-previews/${theme}/`, theme,
+      base: `/markdown-previews/${theme}/`, theme, math: true,
     })
     await cp(result.outDir, join(previews, theme), { recursive: true })
   } finally {
