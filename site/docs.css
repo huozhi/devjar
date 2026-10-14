@@ -14,6 +14,23 @@
 .docs-header a { text-decoration: none; }
 .docs-header a:hover { color: #171717; }
 
+.docs-page .docs-heading-link {
+  margin-left: 4px;
+  color: #88917e;
+  font: inherit;
+  text-decoration: none;
+  opacity: 0;
+}
+
+.docs-page :is(h1, h2, h3, summary):hover > .docs-heading-link,
+.docs-page .docs-heading-link:focus-visible { opacity: 1; }
+
+@media (hover: none) {
+  .docs-page .docs-heading-link { opacity: 1; }
+}
+
+.docs-page :is(h1, h2, h3)[id] { scroll-margin-top: 24px; }
+
 .docs-header h1 {
   margin: 104px 0 16px;
   color: #292d24;

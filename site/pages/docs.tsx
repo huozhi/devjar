@@ -11,9 +11,21 @@ const markdownDocs = 'https://github.com/huozhi/devjar/blob/main/docs/MARKDOWN.m
 
 type Feature = { name: string, href: string, summary: string }
 
-const featureGroups: { title: string, features: Feature[] }[] = [
+function HeadingLink({ hash }: { hash: string }) {
+  return <a className="docs-heading-link" href={`#${hash}`} aria-label="Copy link to this heading" title="Copy link" onClick={(event) => {
+    if (event.currentTarget.closest('summary')) {
+      event.preventDefault()
+      event.stopPropagation()
+      location.hash = hash
+    }
+    void navigator.clipboard?.writeText(new URL(`#${hash}`, location.href).href).catch(() => {})
+  }}>#</a>
+}
+
+const featureGroups: { title: string, id: string, features: Feature[] }[] = [
   {
     title: 'Live previews',
+    id: 'live-previews',
     features: [
       { name: 'DevJar component', href: '#devjar-component', summary: 'Render project files in a managed iframe.' },
       { name: 'useDevJar hook', href: '#use-devjar', summary: 'Own the iframe and decide when code runs.' },
@@ -25,6 +37,7 @@ const featureGroups: { title: string, features: Feature[] }[] = [
   },
   {
     title: 'Static sites',
+    id: 'static-sites',
     features: [
       { name: 'File-based routes', href: '#routes', summary: 'Pages, nested routes, and a custom 404.' },
       { name: 'Markdown pages', href: '#markdown', summary: 'Themed HTML pages with no React runtime.' },
@@ -61,7 +74,7 @@ export default function Docs() {
             <HomeLink />
             <SiteNav active="docs" />
           </div>
-          <h1>Documentation</h1>
+          <h1 id="documentation">Documentation<HeadingLink hash="documentation" /></h1>
           <nav className="docs-contents" aria-label="On this page">
             <a href="#features">Features</a>
             <a href="#browser-only">Browser-only runtime</a>
@@ -72,13 +85,13 @@ export default function Docs() {
         </header>
         <section id="features" className="usage-section" aria-labelledby="features-heading">
           <div className="usage-content">
-            <h2 id="features-heading">Features</h2>
+            <h2 id="features-heading">Features<HeadingLink hash="features" /></h2>
             <p className="section-intro">Everything Devjar can do, with a link to the details.</p>
           </div>
           <div className="feature-index">
             {featureGroups.map(group => (
               <div key={group.title} className="feature-group">
-                <h3>{group.title}</h3>
+                <h3 id={group.id}>{group.title}<HeadingLink hash={group.id} /></h3>
                 <ul>
                   {group.features.map(feature => (
                     <li key={feature.name}>
@@ -96,7 +109,7 @@ export default function Docs() {
         </section>
         <section id="browser-only" className="usage-section" aria-labelledby="browser-only-heading">
           <div className="usage-content">
-            <h2 id="browser-only-heading">Browser-only runtime</h2>
+            <h2 id="browser-only-heading">Browser-only runtime<HeadingLink hash="browser-only" /></h2>
             <blockquote className="docs-note">
               <p>
                 Previews and CLI sites run in the browser.
@@ -107,10 +120,10 @@ export default function Docs() {
         </section>
         <section id="live-code" className="usage-section" aria-labelledby="live-code-heading">
           <div className="usage-content">
-            <h2 id="live-code-heading">Live code APIs</h2>
+            <h2 id="live-code-heading">Live code APIs<HeadingLink hash="live-code" /></h2>
             <p className="section-intro">Add live React previews to an editor, docs page, or playground.</p>
             <div id="devjar-component" className="section docs-anchor">
-              <h3>Render a project with DevJar</h3>
+              <h3>Render a project with DevJar<HeadingLink hash="devjar-component" /></h3>
               <p>
                 Pass your files as strings to <code>files</code>.
                 Devjar runs them in an iframe and updates when they change.
@@ -142,7 +155,7 @@ function Preview() {
             </div>
 
             <div id="use-devjar" className="section docs-anchor">
-              <h3>Advanced API: control your own iframe</h3>
+              <h3>Advanced API: control your own iframe<HeadingLink hash="use-devjar" /></h3>
               <p>Use <code>useDevJar</code> to render into your own iframe and choose when code runs.</p>
               <div className="code-block" aria-label="useDevJar hook example">
                 <Code theme={taffy.light} lang="typescript" controls={false} fontSize={13}>{`import { useDevJar } from 'devjar'
@@ -165,13 +178,13 @@ function Preview({ files }) {
 
         <section id="cli" className="usage-section" aria-labelledby="build-heading">
           <div className="usage-content">
-            <h2 id="build-heading">CLI: build a site without the setup</h2>
+            <h2 id="build-heading">CLI: build a site without the setup<HeadingLink hash="cli" /></h2>
             <p className="section-intro">
               Build a static site with no config. Requires Node.js 22+.
             </p>
 
             <div className="section">
-              <h3>Three commands</h3>
+              <h3 id="three-commands">Three commands<HeadingLink hash="three-commands" /></h3>
               <p>Develop, build, then preview the build.</p>
               <div className="code-block" aria-label="Devjar commands">
                 <Code theme={taffy.light} lang="plaintext" controls={false} fontSize={13}>{`npx devjar dev
@@ -181,7 +194,7 @@ npx devjar start`}</Code>
             </div>
 
             <div id="routes" className="section docs-anchor">
-              <h3>Routes from files</h3>
+              <h3>Routes from files<HeadingLink hash="routes" /></h3>
               <p>Each file in <code>pages/</code> becomes a route.</p>
               <p>Packages load from a CDN, so there is nothing to install. Pin versions in an optional <code>package.json</code>.</p>
               <div className="code-block" aria-label="Example project structure">
@@ -196,7 +209,7 @@ pages/
             </div>
 
             <div id="markdown" className="section docs-anchor">
-              <h3>Markdown pages</h3>
+              <h3>Markdown pages<HeadingLink hash="markdown" /></h3>
               <p>
                 Put <code>.md</code> files in <code>pages/</code>. They build to plain HTML with no JavaScript.
                 Pick a theme with <code>--theme</code>: <code>minimal</code>, <code>github</code>, <code>editorial</code>, or <code>academic</code>.
@@ -210,7 +223,7 @@ npx devjar build --theme editorial --math`}</Code>
             </div>
 
             <div id="tailwind" className="section docs-anchor">
-              <h3>Tailwind CSS</h3>
+              <h3>Tailwind CSS<HeadingLink hash="tailwind" /></h3>
               <p>
                 Add <code>tailwindcss</code> or <code>@tailwindcss/browser</code> to your dependencies.
                 Builds output plain CSS. Write full class names, not ones built from strings.
@@ -223,7 +236,7 @@ npx devjar build --theme editorial --math`}</Code>
             </div>
 
             <div id="assets" className="section docs-anchor">
-              <h3>Imports and assets</h3>
+              <h3>Imports and assets<HeadingLink hash="assets" /></h3>
               <div className="code-block" aria-label="Asset import example">
                 <Code theme={taffy.light} lang="typescript" controls={false} fontSize={13}>{`import settings from '../settings.json'
 import notes from '../notes.md' with { type: 'text' }
@@ -237,7 +250,7 @@ import '../styles.css'`}</Code>
             </div>
 
             <div id="public-files" className="section docs-anchor">
-              <h3>Public files and static APIs</h3>
+              <h3>Public files and static APIs<HeadingLink hash="public-files" /></h3>
               <div className="code-block" aria-label="Public files and static APIs">
                 <Code theme={taffy.light} lang="plaintext" controls={false} fontSize={13}>{`public/logo.svg  → /logo.svg
 api/status.json  → /api/status.json
@@ -247,7 +260,7 @@ api/message.txt  → /api/message.txt`}</Code>
             </div>
 
             <div id="metadata" className="section docs-anchor">
-              <h3>Page metadata</h3>
+              <h3>Page metadata<HeadingLink hash="metadata" /></h3>
               <p>
                 Add an icon and a share image to the project root.
                 Devjar adds them to every page. No code needed.
@@ -303,7 +316,7 @@ pages/
             </div>
 
             <div id="sitemap" className="section docs-anchor">
-              <h3>Sitemap</h3>
+              <h3>Sitemap<HeadingLink hash="sitemap" /></h3>
               <p>Add <code>--sitemap</code> to <code>build</code> to write <code>sitemap.xml</code>. Set <code>--origin</code> to your site URL.</p>
               <div className="code-block" aria-label="Sitemap build example">
                 <Code theme={taffy.light} lang="bash" controls={false} fontSize={13}>{`npx devjar build --origin https://example.com --sitemap
@@ -313,7 +326,7 @@ npx devjar build --origin https://example.com --base /blog/ --sitemap=site-map.x
             </div>
 
             <div id="base-path" className="section docs-anchor">
-              <h3>Base path</h3>
+              <h3>Base path<HeadingLink hash="base-path" /></h3>
               <p>Use <code>--base</code> to host the site in a subdirectory. Pass it to both <code>dev</code> and <code>build</code>.</p>
               <div className="code-block" aria-label="Base path example">
                 <Code theme={taffy.light} lang="bash" controls={false} fontSize={13}>{`npx devjar build --base /preview/
@@ -322,7 +335,7 @@ npx devjar start`}</Code>
             </div>
 
             <div id="exclude" className="section docs-anchor">
-              <h3>Exclude pages</h3>
+              <h3>Exclude pages<HeadingLink hash="exclude" /></h3>
               <p>Leave drafts or playgrounds out of the build. They still work in <code>dev</code>. Repeat the flag for more paths.</p>
               <div className="code-block" aria-label="Exclude pages example">
                 <Code theme={taffy.light} lang="bash" controls={false} fontSize={13}>{`npx devjar build --exclude pages/playground.tsx --exclude pages/drafts`}</Code>
@@ -330,7 +343,7 @@ npx devjar start`}</Code>
             </div>
 
             <div id="local-packages" className="section docs-anchor">
-              <h3>Local packages</h3>
+              <h3>Local packages<HeadingLink hash="local-packages" /></h3>
               <p>Point a dependency at a local folder. Devjar compiles it, watches for edits, and bundles it in builds.</p>
               <div className="code-block" aria-label="Local package example">
                 <Code theme={taffy.light} lang="json" controls={false} fontSize={13}>{`{
@@ -342,7 +355,7 @@ npx devjar start`}</Code>
             </div>
 
             <div id="output" className="section docs-anchor">
-              <h3>Static output for any host</h3>
+              <h3>Static output for any host<HeadingLink hash="output" /></h3>
               <p>
                 Every page is prerendered to HTML, with all dependencies included.
                 Deploy <code>dist/</code> to any static host.
@@ -351,7 +364,7 @@ npx devjar start`}</Code>
             </div>
 
             <details id="cli-reference" className="section docs-details">
-              <summary>All commands and options</summary>
+              <summary>All commands and options<HeadingLink hash="cli-reference" /></summary>
               <p>Usage: <code>npx devjar [command] [root] [options]</code>. <code>root</code> defaults to the current folder.</p>
               <div className="docs-table-wrap">
                 <table>
@@ -363,7 +376,7 @@ npx devjar start`}</Code>
                   </tbody>
                 </table>
               </div>
-              <h3>Options</h3>
+              <h3 id="options">Options<HeadingLink hash="options" /></h3>
               <div className="docs-table-wrap">
                 <table>
                   <thead><tr><th>Option</th><th>Commands</th><th>Default and purpose</th></tr></thead>
