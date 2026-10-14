@@ -79,8 +79,9 @@ A measured result.[^measurement]
 ```
 
 Relative `.md` links resolve from the source file, must refer to an included page,
-and become page URLs. Heading IDs support fragment links. Local images and other
-supported assets are resolved from the source file and copied with hashed names.
+and become page URLs. Heading IDs support fragment links; click the # beside a
+heading to copy its link. Local images and other supported assets are resolved
+from the source file and copied with hashed names.
 Absolute paths such as `/logo.svg` refer to public files or routes. All local
 URLs respect `--base`; external URLs remain unchanged.
 

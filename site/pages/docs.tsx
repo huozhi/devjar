@@ -198,7 +198,7 @@ pages/
             <div id="markdown" className="section docs-anchor">
               <h3>Markdown pages</h3>
               <p>
-                Put <code>.md</code> files in <code>pages/</code>. They build to plain HTML with no JavaScript.
+                Put <code>.md</code> files in <code>pages/</code>. They build to HTML with a small script for copying heading links.
                 Pick a theme with <code>--theme</code>: <code>minimal</code>, <code>github</code>, <code>editorial</code>, or <code>academic</code>.
                 Add <code>--math</code> for LaTeX.
               </p>

@@ -62,6 +62,7 @@ describe('Markdown pages', () => {
         expect(page.title).toBe('A study of light')
         expect(page.markup).toContain('href="/preview/notes/#experiment"')
         expect(page.markup).toContain('Ada Chen · 2026-10-13')
+        expect(page.markup).toContain('href="#experiment" aria-label="Copy link to this heading"')
         expect(page.markup).toContain('Measured twice.')
         expect(page.markup).toContain('<div class="md-table"><table>')
         expect(page.markup).toContain('language-js')
@@ -75,8 +76,13 @@ describe('Markdown pages', () => {
           expect(html).not.toContain(`/_jar/markdown/${other}.css`)
         }
         expect(html).toContain('<meta name="description" content="Notes on observation">')
-        expect(html).not.toContain('<script')
+        expect(html).toContain('navigator.clipboard?.writeText')
       }
+      await writeFile(join(root, 'pages/index.md'), '---\ntitle: Field notes\n---\n## Title\n\n## Title\n')
+      const generated = await render(root, 'minimal', false)
+      expect(generated.markup).toContain('<h1 id="title-3">Field notes<a class="md-heading-link" href="#title-3"')
+      expect(generated.markup).toContain('<h2 id="title">')
+      expect(generated.markup).toContain('<h2 id="title-2">')
     } finally { await rm(root, { recursive: true, force: true }) }
   })
 
@@ -114,7 +120,7 @@ describe('Markdown pages', () => {
       await writeFile(join(root, 'pages/index.md'), `---\ntitle: '<script>alert(1)</script>'\n---\n<script>alert(1)</script>\n\n[Bad](javascript:alert)\n\n![Bad](data:text/html,test)`)
       const page = await render(root, 'editorial', false)
       const html = markdownDocument(page, { base: '/', theme: 'editorial', liveReload: false, metadataHead: '' })
-      expect(html).not.toContain('<script>')
+      expect(html).not.toContain('<script>alert(1)</script>')
       expect(html).not.toContain('javascript:')
       expect(html).not.toContain('data:text/html')
       expect(html).toContain('&lt;script&gt;')
@@ -132,7 +138,7 @@ describe('Markdown pages', () => {
         prerender: true, exclude: [], base: '/preview/', theme: 'editorial', sitemap: 'sitemap.xml' })
       const html = await readFile(join(result.outDir, 'index.html'), 'utf8')
       expect(html).toContain('<h1 id="a-study-of-light">')
-      expect(html).not.toContain('<script')
+      expect(html).toContain('navigator.clipboard?.writeText')
       expect((await readdir(join(result.outDir, '_jar/markdown'))).sort()).toEqual(['base.css', 'editorial.css', 'print.css'])
       expect(html).toMatch(/\/preview\/_jar\/assets\/plot-[a-f0-9]+\.svg/)
       expect(await readFile(join(result.outDir, 'sitemap.xml'), 'utf8')).toContain('/preview/notes/')
@@ -200,7 +206,7 @@ describe('Markdown pages', () => {
         prerender: true, exclude: [], base: '/preview/', math: true })
       const html = await readFile(join(result.outDir, 'index.html'), 'utf8')
       expect(html).toContain('class="katex"')
-      expect(html).not.toContain('<script')
+      expect(html).toContain('navigator.clipboard?.writeText')
       built = await startBuiltServer({ root: result.outDir, host: '127.0.0.1', port: 0 })
       dev = await startDevServer({ root, host: '127.0.0.1', port: 0, cdn: undefined, base: '/preview/', math: true })
       for (const port of [built.port, dev.port]) {
