@@ -15,13 +15,9 @@
 .docs-header a:hover { color: #171717; }
 
 .docs-page .docs-heading-link {
-  display: inline-flex;
-  align-items: center;
-  vertical-align: middle;
-  margin-right: .35em;
+  margin-left: 4px;
   color: #88917e;
   font: inherit;
-  line-height: 1;
   text-decoration: none;
   opacity: 0;
 }
