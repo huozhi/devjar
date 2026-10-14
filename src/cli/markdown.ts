@@ -59,7 +59,6 @@ async function renderPage(options: MarkdownOptions): Promise<MarkdownPage> {
   const assets = new Map<string, Buffer>()
   const headings: { id: string, text: string, depth: number }[] = []
   const headingIds = new Map<string, number>()
-  const headingLink = (id: string) => `<a class="md-heading-link" href="#${escapeHtml(id)}" aria-label="Copy link to this heading" title="Copy link">#</a>`
   const rewritten = new WeakSet<object>()
   const parser = new Marked(markedFootnote({ description: 'Notes' }))
   let hasMath = false
@@ -79,7 +78,7 @@ async function renderPage(options: MarkdownOptions): Promise<MarkdownPage> {
         headingIds.set(slug, count + 1)
         const id = count ? `${slug}-${count + 1}` : slug
         headings.push({ id, text: plain, depth })
-        return `<h${depth} id="${escapeHtml(id)}">${this.parser.parseInline(tokens)}${headingLink(id)}</h${depth}>\n`
+        return `<h${depth} id="${escapeHtml(id)}">${this.parser.parseInline(tokens)}</h${depth}>\n`
       },
       table(token) { return `<div class="md-table">${Renderer.prototype.table.call(this, token)}</div>` },
     },
@@ -128,11 +127,9 @@ async function renderPage(options: MarkdownOptions): Promise<MarkdownPage> {
   const home = options.routes.get('/') !== options.page ? `<a class="md-home" href="${withBase(options.base, '/')}">← Home</a>` : ''
   // Keep the document title first, even when metadata accompanies an authored H1.
   const bylineMarkup = `${description ? `<p class="md-description">${escapeHtml(description)}</p>` : ''}${byline ? `<p class="md-byline">${byline}</p>` : ''}${toc}`
-  let titleId = 'title'
-  for (let suffix = 2; headings.some(heading => heading.id === titleId); suffix++) titleId = `title-${suffix}`
   const content = headings.some(heading => heading.depth === 1)
     ? body.replace(/(<\/h1>)/, match => match + bylineMarkup)
-    : `<h1 id="${titleId}">${escapeHtml(title)}${headingLink(titleId)}</h1>${bylineMarkup}${body}`
+    : `<h1>${escapeHtml(title)}</h1>${bylineMarkup}${body}`
   let styles = ''
   if (hasMath) styles += '\n:where(.katex-display) { overflow-x: auto; overflow-y: hidden; padding-block: .5rem; }'
   let hasCustomStyles = false
@@ -158,7 +155,6 @@ export function markdownDocument(page: MarkdownPage, options: {
     `<link rel="stylesheet" href="${withBase(options.base, '/_jar/markdown/' + filename)}"${filename === 'print.css' ? ' media="print"' : ''}>`
   )).join('')
   const customStyles = page.styles ? `<style>${page.styles.replace(/<\/style/gi, '<\\/style')}</style>` : ''
-  const copyLinks = `<script>document.addEventListener('click', event => { const link = event.target.closest('.md-heading-link'); if (link) navigator.clipboard?.writeText(new URL(link.getAttribute('href'), location.href).href).catch(() => {}); });</script>`
   const reload = options.liveReload ? `<script>const events = new EventSource(${JSON.stringify(withBase(options.base, '/_jar/events'))}); events.addEventListener('change', () => location.reload());</script>` : ''
-  return `<!doctype html><html lang="${escapeHtml(page.lang)}" data-md-theme="${options.theme}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(page.title)}</title>${page.description ? `<meta name="description" content="${escapeHtml(page.description)}">` : ''}${options.metadataHead}${math}${themeStyles}${customStyles}</head><body>${page.markup}${copyLinks}${reload}</body></html>`
+  return `<!doctype html><html lang="${escapeHtml(page.lang)}" data-md-theme="${options.theme}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(page.title)}</title>${page.description ? `<meta name="description" content="${escapeHtml(page.description)}">` : ''}${options.metadataHead}${math}${themeStyles}${customStyles}</head><body>${page.markup}${reload}</body></html>`
 }
