@@ -14,11 +14,22 @@ test('browser compiler preserves the native development transform contract', () 
     ['text.tsx', `import data from './data.json'; import text from './shader.glsl' with {type:'text'}; export default () => <pre>{data.title}{text}</pre>`],
     ['decorator.ts', 'function sealed(target: Function) {} @sealed export class A { x = 1 }'],
     ['scope.ts', 'export function f(process: {env: {NODE_ENV: string}}) { return process.env.NODE_ENV } export const env = process.env.NODE_ENV'],
+    // Refresh clones imported custom-hook references when wrapping inline components.
+    // Every cloned reference needs semantic IDs before replacing global defines.
+    ...[
+      ['memo-named.tsx', `memo(function Panel() { useChart() })`],
+      ['memo-anonymous.tsx', `memo(function () { useChart() })`],
+      ['memo-arrow.tsx', `memo(() => { useChart() })`],
+      ['forward-ref.tsx', `forwardRef(function Panel(props, ref) { useChart() })`],
+      ['react-memo.tsx', `React.memo(function Panel() { useChart() })`],
+      ['react-forward-ref.tsx', `React.forwardRef(function Panel(props, ref) { useChart() })`],
+      ['memo-forward-ref.tsx', `memo(forwardRef(function Panel(props, ref) { useChart() }))`],
+    ].map(([filename, component]) => [filename, `import * as React from 'react'; import { memo, forwardRef } from 'react'; import { useChart } from './chart'; export const Panel = ${component}`]),
   ]
   for (const [filename, source] of cases) {
     const native = transformSync(filename, source, getTransformOptions(filename, true, true))
-    expect(native.errors).toEqual([])
-    expect(transform(filename, source)).toBe(native.code)
+    expect(native.errors, filename).toEqual([])
+    expect(transform(filename, source), filename).toBe(native.code)
   }
 })
 

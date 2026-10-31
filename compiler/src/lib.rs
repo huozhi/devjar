@@ -42,6 +42,9 @@ pub fn transform(filename: &str, source: &str) -> Result<String, JsError> {
     }
     let defines = ReplaceGlobalDefinesConfig::new(&[("process.env.NODE_ENV", "\"development\"")])
         .map_err(|_| JsError::new("Invalid compiler defines"))?;
-    let _ = ReplaceGlobalDefines::new(&allocator, defines).build(result.scoping, &mut program);
+    // Transformer output can contain cloned nodes without semantic ids, such as the
+    // hook lists React Refresh repeats around `memo(fn)`. Defines read those ids.
+    let scoping = SemanticBuilder::new().build(&program).semantic.into_scoping();
+    let _ = ReplaceGlobalDefines::new(&allocator, defines).build(scoping, &mut program);
     Ok(Codegen::new().build(&program).code)
 }
