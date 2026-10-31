@@ -14,6 +14,14 @@ test('browser compiler preserves the native development transform contract', () 
     ['text.tsx', `import data from './data.json'; import text from './shader.glsl' with {type:'text'}; export default () => <pre>{data.title}{text}</pre>`],
     ['decorator.ts', 'function sealed(target: Function) {} @sealed export class A { x = 1 }'],
     ['scope.ts', 'export function f(process: {env: {NODE_ENV: string}}) { return process.env.NODE_ENV } export const env = process.env.NODE_ENV'],
+    ...[
+      `memo(function Panel() { useChart() })`,
+      `memo(function () { useChart() })`,
+      `memo(() => { useChart() })`,
+      `forwardRef(function Panel(props, ref) { useChart() })`,
+      `React.memo(function Panel() { useChart() })`,
+      `React.forwardRef(function Panel(props, ref) { useChart() })`,
+    ].map(component => ['wrapped.tsx', `import * as React from 'react'; import { memo, forwardRef } from 'react'; import { useChart } from './chart'; export const Panel = ${component}`]),
   ]
   for (const [filename, source] of cases) {
     const native = transformSync(filename, source, getTransformOptions(filename, true, true))
