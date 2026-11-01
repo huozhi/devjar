@@ -114,10 +114,11 @@ function replaceImports(
       const placeholder = createLocalImportPlaceholder(localModuleKey)
       code += source.substring(ss, s) + (d < 0 ? placeholder + source.substring(e, e + 1) : JSON.stringify(placeholder) + ')')
     } else {
-      code += source.substring(ss, s)
-      code += localModuleKey
+      const specifier = localModuleKey
         ? createLocalImportPlaceholder(localModuleKey)
         : resolveModule(n)
+      code += source.substring(ss, s)
+      code += d >= 0 ? JSON.stringify(specifier) : specifier
       code += source.substring(e, se)
     }
     if (localModuleKey) dependencies.push(localModuleKey)

@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test'
+import { linkModules } from '../src/client/core'
 import { createModule, type ModuleRuntime } from '../src/client/module'
 
 const refreshRuntimeUrl = `data:text/javascript;utf-8,${encodeURIComponent(`
@@ -58,4 +59,37 @@ export default '${value}'
   } finally {
     delete testGlobal.__devjarTestExecutions
   }
+})
+
+test('linked static and dynamic imports evaluate', async () => {
+  const dataModule = (source: string) => `data:text/javascript;utf-8,${encodeURIComponent(source)}`
+  const resolveModule = (specifier: string) => {
+    if (specifier === 'react-refresh/runtime') return refreshRuntimeUrl
+    if (specifier === 'react') return dataModule(`export default {}`)
+    return dataModule(`export default ${JSON.stringify(specifier)}`)
+  }
+  const files = {
+    'index.js': `
+import staticBare from "static-package"
+import { local as staticLocal } from "./local"
+const bare = await import("bare-package")
+const local = await import('./local')
+const chained = await import("chained-package").then(mod => mod.default)
+const spaced = await import( 'spaced-package' , { } )
+export default [staticBare, staticLocal, bare.default, local.local, chained, spaced.default]
+`,
+    'local.js': `export const local = 'local'`,
+  }
+
+  const { files: linked, dependencies } = await linkModules(files, resolveModule, files)
+  const { module } = await createModule(linked, {
+    resolveModule,
+    dependencies,
+    runtime: {},
+    entry: '@index.js',
+  })
+
+  expect(module.default).toEqual([
+    'static-package', 'local', 'bare-package', 'local', 'chained-package', 'spaced-package',
+  ])
 })
