@@ -135,12 +135,19 @@ agent can see a broken page without opening developer tools.
 Requires Node.js 22+. Deploy `dist/` to a static host. No configuration file or
 local dependency installation needed. Run `npx devjar` for help.
 
-### Preview HTML files
+### Preview a single file
 
 ```sh
 npx devjar report.html  # Serve one HTML file with live reload
 npx devjar ./output     # Serve a folder of HTML files
+npx devjar Chart.tsx    # Render one React component at /
+npx devjar notes.md     # Render one Markdown page at /
 ```
+
+A `.tsx`, `.jsx`, or `.md` file renders like a page in `pages/`, with the same
+imports, CDN packages, and live updates. Inside a project, the nearest folder
+with `package.json` is the root, so imports such as `../lib/data` and pinned
+package versions keep working.
 
 HTML documents, such as those written by AI agents, are served as-is: no
 `pages/` directory, routing, or build step. Files next to the document

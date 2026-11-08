@@ -73,7 +73,7 @@ export async function staticTarget(path: string): Promise<StaticTarget | undefin
   if (!info) return
   if (info.isFile()) {
     if (!isHtml(path)) {
-      throw new Error(`Cannot serve ${basename(path)} directly. Pass an .html file, a folder of HTML files, or a project directory.`)
+      throw new Error(`Cannot serve ${basename(path)} directly. Pass an .html, .tsx, .jsx, or .md file, a folder of HTML files, or a project directory.`)
     }
     return { root: await realpath(dirname(path)), entry: basename(path) }
   }
