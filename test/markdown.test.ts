@@ -128,6 +128,7 @@ describe('Markdown pages', () => {
     try {
       await mkdir(join(root, 'public/reading'), { recursive: true })
       await writeFile(join(root, 'public/reading/index.html'), '<h1>Reading guide</h1>')
+      await writeFile(join(root, 'public/reading/my plot.svg'), '<svg xmlns="http://www.w3.org/2000/svg"/>')
       const result = await buildProject({ root, outDir: 'dist', cdn: 'http://127.0.0.1:1',
         prerender: true, exclude: [], base: '/preview/', theme: 'editorial', sitemap: 'sitemap.xml' })
       const html = await readFile(join(result.outDir, 'index.html'), 'utf8')
@@ -139,9 +140,12 @@ describe('Markdown pages', () => {
       built = await startBuiltServer({ root: result.outDir, host: '127.0.0.1', port: 0 })
       expect((await fetch(`http://127.0.0.1:${built.port}/preview/missing`)).status).toBe(404)
       expect(await (await fetch(`http://127.0.0.1:${built.port}/preview/reading/`)).text()).toContain('Reading guide')
+      expect((await fetch(`http://127.0.0.1:${built.port}/preview/reading/my%20plot.svg`)).status).toBe(200)
       dev = await startDevServer({ root, host: '127.0.0.1', port: 0, cdn: undefined, base: '/preview/', theme: 'github' })
       const origin = `http://127.0.0.1:${dev.port}`
       expect(await (await fetch(origin + '/preview/reading/')).text()).toContain('Reading guide')
+      expect((await fetch(origin + '/preview/reading/my%20plot.svg')).status).toBe(200)
+      expect((await fetch(origin + '/preview/%E0%A4%A')).status).toBe(404)
       const document = await (await fetch(origin + '/preview/')).text()
       expect((await fetch(origin + '/preview/_jar/markdown/github.css')).status).toBe(200)
       expect(document).toContain('data-md-theme="github"')

@@ -364,6 +364,16 @@ function trackServerShutdown(server: ReturnType<typeof createServer>) {
   }
 }
 
+// File names such as `my plot.svg` arrive percent-encoded in request URLs.
+function decodedPath(pathname: string | undefined) {
+  if (!pathname) return
+  try {
+    return decodeURIComponent(pathname)
+  } catch {
+    return
+  }
+}
+
 function warnIgnoredHtml(files: string[]) {
   if (!files.length) return
   const shown = files.slice(0, 3).join(', ') + (files.length > 3 ? `, and ${files.length - 3} more` : '')
@@ -416,7 +426,7 @@ export async function startDevServer(options: DevServerOptions) {
         response.end('Method not allowed')
         return
       }
-      const requestPath = withoutBase(base, url.pathname)
+      const requestPath = decodedPath(withoutBase(base, url.pathname))
       if (!requestPath) {
         send(request, response, 404, 'text/plain; charset=utf-8', 'Not found')
         return
@@ -1074,7 +1084,7 @@ export async function startBuiltServer(options: StartServerOptions) {
         response.end(request.method === 'HEAD' ? undefined : 'Method not allowed')
         return
       }
-      const requestPath = withoutBase(base, url.pathname)
+      const requestPath = decodedPath(withoutBase(base, url.pathname))
       if (!requestPath) {
         send(request, response, 404, 'text/plain; charset=utf-8', 'Not found')
         return
