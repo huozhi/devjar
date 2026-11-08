@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test'
+import { findIgnoredHtml } from '../src/cli/routes'
 import { mkdtemp, mkdir, realpath, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -19,6 +20,7 @@ test('resolves HTML files and HTML folders, but not projects', async () => {
     'output/notes.md': '# Notes',
     'nested/v1/index.html': '<h1>v1</h1>',
     'project/pages/index.tsx': '',
+    'project/pages/report.html': '',
     'project/legacy.html': '',
     'empty/readme.txt': '',
   })
@@ -26,6 +28,8 @@ test('resolves HTML files and HTML folders, but not projects', async () => {
     expect(await staticTarget(join(root, 'output/report.html'))).toEqual({ root: join(root, 'output'), entry: 'report.html' })
     expect(await staticTarget(join(root, 'output'))).toEqual({ root: join(root, 'output'), entry: undefined })
     expect(await staticTarget(join(root, 'nested'))).toEqual({ root: join(root, 'nested'), entry: undefined })
+    // HTML in pages/ is reported so dev and build can point to the right command.
+    expect(await findIgnoredHtml(join(root, 'project'))).toEqual(['pages/report.html'])
     for (const path of ['project', 'empty', 'missing']) expect(await staticTarget(join(root, path))).toBeUndefined()
     await expect(staticTarget(join(root, 'output/notes.md'))).rejects.toThrow('Pass an .html file')
   } finally {
