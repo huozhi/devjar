@@ -141,8 +141,9 @@ npx devjar ./output     # Serve a folder of HTML files
 HTML documents, such as those written by AI agents, are served as-is: no
 `pages/` directory, routing, or build step. Files next to the document
 (stylesheets, scripts, images, data) are served with the same relative URLs.
-A folder without `index.html` shows its HTML files, newest first. Pages reload
-when any file changes. Hidden files and `node_modules` are not served.
+A folder without `index.html` shows its HTML files, newest first. Stylesheet
+edits apply in place; other edits reload the page at the same scroll position.
+Hidden files and `node_modules` are not served.
 A folder is served this way only when it has no `pages/` directory.
 
 ### Routes

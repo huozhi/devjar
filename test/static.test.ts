@@ -91,6 +91,7 @@ test('serves an HTML file with its folder as-is and reloads on changes', async (
     'data.csv': 'a,b\n1,2\n',
     'my plot.svg': '<svg xmlns="http://www.w3.org/2000/svg"/>',
     'v2/index.html': '<h1>v2</h1>',
+    'unrelated/notes.html': '<h1>Notes</h1>',
     '.env': 'SECRET=1',
     'node_modules/pkg/index.js': '',
   })
@@ -103,7 +104,7 @@ test('serves an HTML file with its folder as-is and reloads on changes', async (
     expect(home.headers.get('content-type')).toBe('text/html; charset=utf-8')
     const document = await home.text()
     expect(document.startsWith('<!doctype html><link rel="stylesheet" href="styles.css"><body><h1>Report</h1><script src="script.js"></script>')).toBe(true)
-    expect(document).toMatch(/EventSource\("\/_jar\/events"\).*<\/script><\/body>$/)
+    expect(document).toMatch(/EventSource\("\/_jar\/events"\)[\s\S]*<\/script><\/body>$/)
 
     for (const [path, type, body] of [
       ['/styles.css', 'text/css; charset=utf-8', 'h1 { color: green; }'],
@@ -128,10 +129,18 @@ test('serves an HTML file with its folder as-is and reloads on changes', async (
     const events = await fetch(origin + '/_jar/events', { signal: controller.signal })
     const reader = events.body!.getReader()
     await reader.read()
+    const nextChange = async () => JSON.parse(/data: (.*)/.exec(new TextDecoder().decode((await reader.read()).value))![1])
     try {
-      const change = reader.read()
+      // Stylesheets are swapped in place; other files reload the page.
+      const css = nextChange()
       await writeFile(join(root, 'styles.css'), 'h1 { color: purple; }')
-      expect(new TextDecoder().decode((await change).value)).toContain('"reload":true')
+      expect(await css).toEqual({ reload: false, paths: ['/styles.css'] })
+      // A single file watches only folders the page loaded, not unrelated ones.
+      await writeFile(join(root, 'unrelated/notes.html'), 'changed')
+      const script = nextChange()
+      await Bun.sleep(100)
+      await writeFile(join(root, 'script.js'), 'document.title = "changed"')
+      expect(await script).toEqual({ reload: true, paths: ['/script.js'] })
     } finally { controller.abort() }
   } finally {
     await server.close()
