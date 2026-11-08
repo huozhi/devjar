@@ -92,7 +92,7 @@ function withReload(document: string) {
     : document.slice(0, bodyEnd) + reloadScript + document.slice(bodyEnd)
 }
 
-async function listing(directory: string, pathname: string) {
+async function listing(directory: string) {
   const files = await htmlFiles(directory, listingLimit)
   const entries = await Promise.all(files.map(async path => ({
     href: relative(directory, path).split(sep).map(encodeURIComponent).join('/'),
@@ -100,12 +100,14 @@ async function listing(directory: string, pathname: string) {
     modified: (await stat(path)).mtimeMs,
   })))
   entries.sort((a, b) => b.modified - a.modified || a.name.localeCompare(b.name))
-  const title = escapeHtml(decodeURIComponent(pathname))
-  const items = entries.map(entry => (
-    `<li><a href="${escapeHtml(entry.href)}">${escapeHtml(entry.name)}</a><time>${new Date(entry.modified).toLocaleString()}</time></li>`
-  )).join('')
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${title}</title>
-<style>body{font:15px/1.5 system-ui,sans-serif;max-width:720px;margin:48px auto;padding:0 20px;color:#222}h1{font-size:20px}ul{list-style:none;padding:0}li{display:flex;justify-content:space-between;gap:16px;padding:8px 0;border-bottom:1px solid #eee}time{color:#888;font-size:13px;white-space:nowrap}</style>
+  const title = escapeHtml(basename(directory) + '/')
+  const items = entries.map(entry => {
+    const slash = entry.name.lastIndexOf('/') + 1
+    const folder = slash ? `<span>${escapeHtml(entry.name.slice(0, slash))}</span>` : ''
+    return `<li><a href="${escapeHtml(entry.href)}">${folder}${escapeHtml(entry.name.slice(slash))}</a></li>`
+  }).join('')
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark"><title>${title}</title>
+<style>body{font:15px/1.6 system-ui,sans-serif;max-width:560px;margin:72px auto;padding:0 24px;color:#1f1f1f;background:#fff}h1{font-size:13px;font-weight:400;color:#8a8a8a;margin:0 0 20px}ul{list-style:none;margin:0;padding:0}a{display:block;margin:0 -10px;padding:6px 10px;border-radius:6px;color:inherit;text-decoration:none}a:hover{background:#f3f3f3}a span{color:#8a8a8a}p{color:#8a8a8a}@media (prefers-color-scheme:dark){body{color:#e8e8e8;background:#161616}a:hover{background:#242424}h1,a span,p{color:#8f8f8f}}</style>
 </head><body><h1>${title}</h1>${items ? `<ul>${items}</ul>` : '<p>No HTML files.</p>'}</body></html>`
 }
 
@@ -166,7 +168,7 @@ export async function startStaticServer(options: StaticServerOptions) {
       }
       const index = join(path, 'index.html')
       if ((await statOrUndefined(index))?.isFile()) await serveHtml(request, response, index)
-      else send(request, response, 200, 'text/html; charset=utf-8', withReload(await listing(path, url.pathname)))
+      else send(request, response, 200, 'text/html; charset=utf-8', withReload(await listing(path)))
       return
     }
     if (!info?.isFile() || !isInside(root, await realpath(path))) {

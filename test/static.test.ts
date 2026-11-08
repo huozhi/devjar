@@ -116,7 +116,7 @@ test('lists HTML files in a folder without an index page', async () => {
   const server = await startStaticServer({ target: { root, entry: undefined }, host: '127.0.0.1', port: 0 })
   try {
     const listing = await (await fetch(`http://127.0.0.1:${server.port}/`)).text()
-    expect([...listing.matchAll(/<a href="([^"]+)">([^<]+)<\/a>/g)].map(match => [match[1], match[2]]).sort()).toEqual([
+    expect([...listing.matchAll(/<a href="([^"]+)">(.*?)<\/a>/g)].map(match => [match[1], match[2].replace(/<[^>]+>/g, '')]).sort()).toEqual([
       ['drafts/v1%20%3Cold%3E.html', 'drafts/v1 &lt;old&gt;.html'],
       ['report.html', 'report.html'],
     ])
