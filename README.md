@@ -135,11 +135,13 @@ While `devjar dev` runs, uncaught browser errors, rejected promises,
 `console.error` calls, and failed loads print in the terminal, so you or an
 agent can see a broken page without opening developer tools.
 
-### Preview HTML files
+### Preview a single file
 
 ```sh
 npx devjar report.html  # Serve one HTML file with live reload
 npx devjar ./output     # Serve a folder of HTML files
+npx devjar Chart.tsx    # Render one React component at /
+npx devjar notes.md     # Render one Markdown page at /
 ```
 
 HTML documents, such as those written by AI agents, are served as-is: no
@@ -149,6 +151,11 @@ A folder without `index.html` shows its HTML files, newest first. Stylesheet
 edits apply in place; other edits reload the page at the same scroll position.
 Hidden files and `node_modules` are not served.
 A folder is served this way only when it has no `pages/` directory.
+
+A `.tsx`, `.jsx`, or `.md` file renders like a page in `pages/`, with the same
+imports, CDN packages, and live updates. Inside a project, the nearest folder
+with `package.json` is the root, so imports such as `../lib/data` and pinned
+package versions keep working.
 
 ### Routes
 

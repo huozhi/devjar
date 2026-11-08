@@ -18,7 +18,7 @@ async function fixture(files: Record<string, string>) {
 test('resolves HTML files and HTML folders, but not projects', async () => {
   const root = await fixture({
     'output/report.html': '<h1>Report</h1>',
-    'output/notes.md': '# Notes',
+    'output/notes.txt': 'Notes',
     'nested/v1/index.html': '<h1>v1</h1>',
     'project/pages/index.tsx': '',
     'project/pages/report.html': '',
@@ -30,7 +30,7 @@ test('resolves HTML files and HTML folders, but not projects', async () => {
     expect(await staticTarget(join(root, 'output'))).toEqual({ root: join(root, 'output'), entry: undefined })
     expect(await staticTarget(join(root, 'nested'))).toEqual({ root: join(root, 'nested'), entry: undefined })
     for (const path of ['project', 'empty', 'missing']) expect(await staticTarget(join(root, path))).toBeUndefined()
-    await expect(staticTarget(join(root, 'output/notes.md'))).rejects.toThrow('Pass an .html file')
+    await expect(staticTarget(join(root, 'output/notes.txt'))).rejects.toThrow('Pass an .html, .tsx, .jsx, or .md file')
     // HTML in pages/ is reported so dev and build can point to the right command.
     expect((await discover(join(root, 'project'), [])).ignoredHtml).toEqual(['pages/report.html'])
   } finally {

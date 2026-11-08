@@ -80,6 +80,11 @@ export async function discover(root: string, exclude: string[]) {
   return { routes, notFound, ignoredHtml }
 }
 
+/** Pages for `devjar dev Chart.tsx`: one React or Markdown file served at `/`. */
+export function singlePage(root: string, entry: string): Awaited<ReturnType<typeof discover>> {
+  return { routes: new Map([['/', join(root, entry)]]), notFound: undefined, ignoredHtml: [] }
+}
+
 export function manifest(root: string, pages: Awaited<ReturnType<typeof discover>>, options: ManifestOptions): RouteManifest {
   const routes: Record<string, RouteEntry> = {}
   for (const [route, page] of pages.routes) {

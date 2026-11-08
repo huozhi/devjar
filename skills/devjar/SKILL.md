@@ -42,18 +42,22 @@ reference for the CLI, file routing, and embedded preview API.
   runtime, server actions, dynamic server routes, or automatic layouts.
 - Never put secrets in project files or browser code.
 
-## HTML preview
+## Single-file preview
 
 - To preview an HTML file you wrote, run `npx devjar report.html`. For a folder
   of HTML output, run `npx devjar ./output`; without `index.html` it lists the
   HTML files, newest first.
+- To preview one React component or Markdown file without creating `pages/`,
+  run `npx devjar Chart.tsx` or `npx devjar notes.md`. The component must
+  default-export a React component. It renders at `/` with live updates.
 - Keep the document's stylesheets, scripts, and images next to it and reference
   them with relative URLs. Files are served as-is with no build step.
 - Do not put HTML files in `pages/`; use this for standalone HTML instead.
 
 ## Check your work
 
-- Keep `npx devjar dev` (or `npx devjar report.html`) running while you edit.
+- Keep `npx devjar dev` (or `npx devjar report.html`, `npx devjar Chart.tsx`)
+  running while you edit.
   Browser errors, rejected promises, `console.error` calls, and failed loads
   print in its terminal as `Browser error on <page>` and similar lines. After a
   change, load the page once and read that output; fix any errors before

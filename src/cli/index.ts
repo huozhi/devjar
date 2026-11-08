@@ -20,7 +20,7 @@ import {
   usesDevjarRuntime,
 } from './modules'
 import type { HmrChange, RouteManifest } from './protocol'
-import { discover, isInside, loadRouteManifest, manifest as createManifest, routeFromCliPage } from './routes'
+import { discover, isInside, manifest as createManifest, routeFromCliPage, singlePage } from './routes'
 import type { ManifestOptions } from './routes'
 import { renderMarkdown, markdownDocument, type MarkdownPage } from './markdown'
 import { markdownTheme, markdownStylesRoot, copyMarkdownStyles } from './markdown-theme'
@@ -56,6 +56,8 @@ export type DevServerOptions = {
   base: string
   theme?: string
   math?: boolean
+  /** Serve one React or Markdown file in root at `/` instead of pages/. */
+  entry?: string
 }
 
 export type BuildOptions = {
@@ -419,7 +421,9 @@ export async function startDevServer(options: DevServerOptions) {
     },
   })
 
-  warnIgnoredHtml((await discover(root, [])).ignoredHtml)
+  const entry = options.entry
+  const findPages = () => entry ? Promise.resolve(singlePage(root, entry)) : discover(root, [])
+  warnIgnoredHtml((await findPages()).ignoredHtml)
 
   const server = createServer(async (request, response) => {
     try {
@@ -458,7 +462,7 @@ export async function startDevServer(options: DevServerOptions) {
       }
       if (requestPath === '/_jar/routes.json') {
         try {
-          const manifest = await loadRouteManifest(root, {
+          const manifest = createManifest(root, await findPages(), {
             liveReload: true,
             revision,
             base,
@@ -544,7 +548,7 @@ export async function startDevServer(options: DevServerOptions) {
       if (metadataFiles.includes(requestPath.slice(1))
         && await serveFile(request, response, root, requestPath.slice(1), undefined, noStore)) return
       if (await serveFile(request, response, join(root, 'public'), requestPath.slice(1), undefined, noStore)) return
-      const pages = await discover(root, [])
+      const pages = await findPages()
       const route = normalizeRoute(requestPath)
       const page = pages.routes.get(route) || pages.notFound
       if (page?.endsWith('.md')) {
