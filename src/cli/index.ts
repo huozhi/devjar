@@ -35,6 +35,7 @@ import {
 import { getTailwindBrowserUrl, getTailwindBuildUrls } from './tailwind'
 import { prerender, type PrerenderedRoute } from './prerender'
 import { compileTailwind } from './tailwind-build'
+import { findIgnoredHtml } from './routes'
 import { vendorModules } from './vendor'
 import { LocalPackages } from './local-packages'
 import { contentTypes } from './content-types'
@@ -380,6 +381,12 @@ function reportRequestError(error: unknown) {
   return detail
 }
 
+function warnIgnoredHtml(files: string[]) {
+  if (!files.length) return
+  const shown = files.slice(0, 3).join(', ') + (files.length > 3 ? `, and ${files.length - 3} more` : '')
+  console.warn(`Devjar: HTML files in pages/ are not pages: ${shown}.\nPreview one as-is with \`devjar ${files[0]}\`, or move it to public/ to publish it with the site.`)
+}
+
 export async function startDevServer(options: DevServerOptions) {
   const root = await realpath(resolve(options.root))
   const host = options.host
@@ -394,6 +401,7 @@ export async function startDevServer(options: DevServerOptions) {
   const { send, serveFile } = createResponder({})
   let revision = 0
   let localReloadTimer: NodeJS.Timeout | undefined
+  warnIgnoredHtml(await findIgnoredHtml(root))
   const localPackages = new LocalPackages({
     root,
     prefix: withBase(base, '/_jar/local'),
@@ -884,6 +892,7 @@ async function buildWithPackages(options: BuildOptions, localPackages: LocalPack
   const runtime = await runtimeRoot()
   const cdn = resolveCdn(options.cdn)
   const discovered = await discover(root, options.exclude)
+  warnIgnoredHtml(await findIgnoredHtml(root))
   const reactRoutes = new Map([...discovered.routes].filter(([, page]) => !page.endsWith('.md')))
   const markdownPages = new Map<string, MarkdownPage>()
   for (const [route, page] of discovered.routes) {

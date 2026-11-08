@@ -77,6 +77,27 @@ export async function discover(root: string, exclude: string[]) {
   return { routes, notFound }
 }
 
+/** HTML files in pages/. They are not pages; `devjar file.html` previews them as-is. */
+export async function findIgnoredHtml(root: string) {
+  const files: string[] = []
+  const visit = async (directory: string) => {
+    let entries
+    try {
+      entries = await readdir(directory, { withFileTypes: true })
+    } catch {
+      return
+    }
+    for (const entry of entries) {
+      if (entry.name.startsWith('_') || entry.name.startsWith('.') || entry.name === 'node_modules') continue
+      const path = join(directory, entry.name)
+      if (entry.isDirectory()) await visit(path)
+      else if (entry.isFile() && /\.html?$/i.test(entry.name)) files.push(relative(root, path).split(sep).join('/'))
+    }
+  }
+  await visit(join(root, 'pages'))
+  return files.sort()
+}
+
 export function manifest(root: string, pages: Awaited<ReturnType<typeof discover>>, options: ManifestOptions): RouteManifest {
   const routes: Record<string, RouteEntry> = {}
   for (const [route, page] of pages.routes) {
