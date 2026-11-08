@@ -1,6 +1,6 @@
 ---
 name: devjar
-description: Build a small static website from Markdown pages or React pages with Devjar, with live preview and static export. Use for notes, documentation, landing pages, and browser prototypes; not full-stack applications.
+description: Build a small static website from Markdown pages or React pages with Devjar, with live preview and static export, or preview generated HTML files with live reload. Use for notes, documentation, landing pages, HTML reports, and browser prototypes; not full-stack applications.
 ---
 
 # Devjar
@@ -41,6 +41,15 @@ reference for the CLI, file routing, and embedded preview API.
 - Keep the implementation browser-compatible. Devjar does not provide a Node
   runtime, server actions, dynamic server routes, or automatic layouts.
 - Never put secrets in project files or browser code.
+
+## HTML preview
+
+- To preview an HTML file you wrote, run `npx devjar report.html`. For a folder
+  of HTML output, run `npx devjar ./output`; without `index.html` it lists the
+  HTML files, newest first.
+- Keep the document's stylesheets, scripts, and images next to it and reference
+  them with relative URLs. Files are served as-is with no build step.
+- Do not put HTML files in `pages/`; use this for standalone HTML instead.
 
 ## Embedded Live React Preview
 
