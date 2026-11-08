@@ -3,6 +3,7 @@ import { readFile, readdir, realpath, stat } from 'node:fs/promises'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { basename, dirname, extname, join, relative, resolve, sep } from 'node:path'
+import { browserLogPath, browserLogScript, createBrowserLogPrinter, readBrowserLog, withEarlyScript } from './browser-log'
 import { contentTypes } from './content-types'
 
 // Serves HTML documents and their files as-is, without pages/ routing. This is
@@ -119,11 +120,14 @@ new EventSource(${JSON.stringify(eventsPath)}).addEventListener('change', event 
 })
 </script>`
 
-function withReload(document: string) {
-  const bodyEnd = document.toLowerCase().lastIndexOf('</body>')
+const logScript = browserLogScript(browserLogPath)
+
+function withDevScripts(document: string) {
+  const withLog = withEarlyScript(document, logScript)
+  const bodyEnd = withLog.toLowerCase().lastIndexOf('</body>')
   return bodyEnd === -1
-    ? document + reloadScript
-    : document.slice(0, bodyEnd) + reloadScript + document.slice(bodyEnd)
+    ? withLog + reloadScript
+    : withLog.slice(0, bodyEnd) + reloadScript + withLog.slice(bodyEnd)
 }
 
 async function listing(directory: string) {
@@ -153,13 +157,21 @@ function send(request: IncomingMessage, response: ServerResponse, status: number
 export async function startStaticServer(options: StaticServerOptions) {
   const { root, entry } = options.target
   const events = new Set<ServerResponse>()
+  const printBrowserLog = createBrowserLogPrinter(message => console.error(message))
 
   async function serveHtml(request: IncomingMessage, response: ServerResponse, path: string) {
     if (entry) watchDirectory(dirname(path), false)
-    send(request, response, 200, 'text/html; charset=utf-8', withReload(await readFile(path, 'utf8')))
+    send(request, response, 200, 'text/html; charset=utf-8', withDevScripts(await readFile(path, 'utf8')))
   }
 
   async function handle(request: IncomingMessage, response: ServerResponse) {
+    if (request.method === 'POST' && request.url === browserLogPath) {
+      const entry = await readBrowserLog(request)
+      if (entry) printBrowserLog(entry, `http://${request.headers.host}`)
+      response.writeHead(entry ? 204 : 400)
+      response.end()
+      return
+    }
     if (request.method !== 'GET' && request.method !== 'HEAD') {
       response.writeHead(405, { Allow: 'GET, HEAD' })
       response.end()
@@ -203,7 +215,7 @@ export async function startStaticServer(options: StaticServerOptions) {
       }
       const index = join(path, 'index.html')
       if ((await statOrUndefined(index))?.isFile()) await serveHtml(request, response, index)
-      else send(request, response, 200, 'text/html; charset=utf-8', withReload(await listing(path)))
+      else send(request, response, 200, 'text/html; charset=utf-8', withDevScripts(await listing(path)))
       return
     }
     if (!info?.isFile() || !isInside(root, await realpath(path))) {

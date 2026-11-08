@@ -51,6 +51,15 @@ reference for the CLI, file routing, and embedded preview API.
   them with relative URLs. Files are served as-is with no build step.
 - Do not put HTML files in `pages/`; use this for standalone HTML instead.
 
+## Check your work
+
+- Keep `npx devjar dev` (or `npx devjar report.html`) running while you edit.
+  Browser errors, rejected promises, `console.error` calls, and failed loads
+  print in its terminal as `Browser error on <page>` and similar lines. After a
+  change, load the page once and read that output; fix any errors before
+  reporting the page as done.
+- When the default port is busy, Devjar uses the next free port and prints it.
+
 ## Embedded Live React Preview
 
 For an existing React application that needs editable source and a live iframe
