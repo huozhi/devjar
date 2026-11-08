@@ -57,8 +57,11 @@ test('rejects project-only commands and flags for HTML files', async () => {
 test('takes the next free port unless one is requested', async () => {
   const root = await fixture({ 'report.html': '<h1>Report</h1>' })
   const bin = join(import.meta.dir, '../src/bin/devjar.ts')
-  const blocker = createServer()
-  await new Promise<void>(resolve => blocker.once('error', () => resolve()).listen(3000, 'localhost', resolve))
+  // localhost may resolve to IPv4 or IPv6, so hold port 3000 on both.
+  const blockers = await Promise.all(['127.0.0.1', '::1'].map(host => new Promise<ReturnType<typeof createServer>>(resolve => {
+    const blocker = createServer()
+    blocker.once('error', () => resolve(blocker)).listen(3000, host, () => resolve(blocker))
+  })))
   const child = Bun.spawn([process.execPath, bin, join(root, 'report.html')], { stdout: 'pipe', stderr: 'pipe' })
   try {
     const reader = child.stdout.getReader()
@@ -75,7 +78,7 @@ test('takes the next free port unless one is requested', async () => {
   } finally {
     child.kill()
     await child.exited
-    blocker.close()
+    for (const blocker of blockers) blocker.close()
     await rm(root, { recursive: true, force: true })
   }
 }, 10_000)
