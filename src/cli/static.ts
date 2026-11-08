@@ -1,4 +1,4 @@
-import { createReadStream, watch } from 'node:fs'
+import { createReadStream, watch, type FSWatcher } from 'node:fs'
 import { readFile, readdir, realpath, stat } from 'node:fs/promises'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
@@ -22,6 +22,7 @@ export type StaticServerOptions = {
 
 const eventsPath = '/_jar/events'
 const listingLimit = 500
+const listingDepth = 4
 
 function isHtml(path: string) {
   const extension = extname(path).toLowerCase()
@@ -48,16 +49,17 @@ async function statOrUndefined(path: string) {
 
 async function htmlFiles(directory: string, limit: number) {
   const files: string[] = []
-  const visit = async (current: string) => {
+  const visit = async (current: string, depth: number) => {
     for (const entry of await readdir(current, { withFileTypes: true })) {
       if (files.length >= limit) return
       if (isHiddenSegment(entry.name)) continue
       const path = join(current, entry.name)
-      if (entry.isDirectory()) await visit(path)
-      else if (entry.isFile() && isHtml(entry.name)) files.push(path)
+      if (entry.isDirectory()) {
+        if (depth < listingDepth) await visit(path, depth + 1)
+      } else if (entry.isFile() && isHtml(entry.name)) files.push(path)
     }
   }
-  await visit(directory)
+  await visit(directory, 0)
   return files
 }
 
@@ -83,7 +85,39 @@ function escapeHtml(value: string) {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
-const reloadScript = `<script type="module">new EventSource(${JSON.stringify(eventsPath)}).addEventListener('change', () => location.reload())</script>`
+// Swaps changed stylesheets in place; otherwise reloads and keeps the scroll position.
+const reloadScript = `<script type="module">
+const key = 'devjar:scroll:' + location.pathname
+try {
+  const saved = sessionStorage.getItem(key)
+  if (saved) {
+    sessionStorage.removeItem(key)
+    const [x, y] = JSON.parse(saved)
+    const restore = () => scrollTo(x, y)
+    if (document.readyState === 'complete') restore()
+    else addEventListener('load', restore, { once: true })
+  }
+} catch {}
+new EventSource(${JSON.stringify(eventsPath)}).addEventListener('change', event => {
+  const change = JSON.parse(event.data)
+  const links = change.reload ? [] : [...document.querySelectorAll('link[rel~="stylesheet"]')]
+    .filter(link => link.href && change.paths.includes(decodeURIComponent(new URL(link.href).pathname)))
+  if (links.length) {
+    for (const link of links) {
+      const next = link.cloneNode()
+      const url = new URL(link.href)
+      url.searchParams.set('devjar', Date.now())
+      next.href = url.href
+      next.addEventListener('load', () => link.remove(), { once: true })
+      next.addEventListener('error', () => link.remove(), { once: true })
+      link.after(next)
+    }
+    return
+  }
+  try { sessionStorage.setItem(key, JSON.stringify([scrollX, scrollY])) } catch {}
+  location.reload()
+})
+</script>`
 
 function withReload(document: string) {
   const bodyEnd = document.toLowerCase().lastIndexOf('</body>')
@@ -121,6 +155,7 @@ export async function startStaticServer(options: StaticServerOptions) {
   const events = new Set<ServerResponse>()
 
   async function serveHtml(request: IncomingMessage, response: ServerResponse, path: string) {
+    if (entry) watchDirectory(dirname(path), false)
     send(request, response, 200, 'text/html; charset=utf-8', withReload(await readFile(path, 'utf8')))
   }
 
@@ -179,6 +214,7 @@ export async function startStaticServer(options: StaticServerOptions) {
       await serveHtml(request, response, path)
       return
     }
+    if (entry) watchDirectory(dirname(path), false)
     response.writeHead(200, {
       'Content-Type': contentTypes[extname(path).toLowerCase()] || 'application/octet-stream',
       'Content-Length': info.size,
@@ -195,14 +231,38 @@ export async function startStaticServer(options: StaticServerOptions) {
     })
   })
 
+  let closing = false
   let timer: NodeJS.Timeout | undefined
-  const watcher = watch(root, { recursive: true }, (_event, filename) => {
-    if (!filename || filename.split(/[/\\]/).some(isHiddenSegment)) return
+  const changed = new Set<string>()
+  const notify = (directory: string, filename: string | null) => {
+    if (!filename) return
+    const path = relative(root, join(directory, filename))
+    if (path.split(sep).some(isHiddenSegment)) return
+    changed.add('/' + path.split(sep).join('/'))
     clearTimeout(timer)
     timer = setTimeout(() => {
-      for (const response of events) response.write('event: change\ndata: {"reload":true}\n\n')
+      const paths = [...changed]
+      changed.clear()
+      const css = paths.every(path => extname(path).toLowerCase() === '.css')
+      const change = JSON.stringify({ reload: !css, paths })
+      for (const response of events) response.write(`event: change\ndata: ${change}\n\n`)
     }, 40)
-  })
+  }
+  // A folder is watched whole so new HTML files appear in its listing. For a
+  // single file, which may sit in a large folder such as Downloads, watch only
+  // the directories of files the page has loaded.
+  const watchers = new Map<string, FSWatcher>()
+  const watchDirectory = (directory: string, recursive: boolean) => {
+    if (watchers.has(directory) || closing) return
+    const watcher = watch(directory, { recursive }, (_event, filename) => notify(directory, filename))
+    watcher.on('error', () => {
+      watcher.close()
+      watchers.delete(directory)
+    })
+    watchers.set(directory, watcher)
+  }
+  if (entry) watchDirectory(root, false)
+  else watchDirectory(root, true)
 
   try {
     await new Promise<void>((resolvePromise, reject) => {
@@ -210,15 +270,17 @@ export async function startStaticServer(options: StaticServerOptions) {
       server.listen(options.port, options.host, resolvePromise)
     })
   } catch (error) {
-    watcher.close()
+    for (const watcher of watchers.values()) watcher.close()
     throw error
   }
 
   let closePromise: Promise<void> | undefined
   const close = () => {
     closePromise ||= new Promise<void>((resolvePromise, reject) => {
+      closing = true
       clearTimeout(timer)
-      watcher.close()
+      for (const watcher of watchers.values()) watcher.close()
+      watchers.clear()
       for (const response of events) response.end()
       events.clear()
       const forceClose = setTimeout(() => server.closeAllConnections(), 5_000)

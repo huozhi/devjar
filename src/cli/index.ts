@@ -364,6 +364,12 @@ function trackServerShutdown(server: ReturnType<typeof createServer>) {
   }
 }
 
+function warnIgnoredHtml(files: string[]) {
+  if (!files.length) return
+  const shown = files.slice(0, 3).join(', ') + (files.length > 3 ? `, and ${files.length - 3} more` : '')
+  console.warn(`Devjar: HTML files in pages/ are not pages: ${shown}.\nPreview one as-is with \`devjar ${files[0]}\`, or move it to public/ to publish it with the site.`)
+}
+
 function reportRequestError(error: unknown) {
   const detail = error instanceof Error ? error.stack || error.message : String(error)
   console.error(detail)
@@ -400,7 +406,7 @@ export async function startDevServer(options: DevServerOptions) {
     },
   })
 
-  await discover(root, [])
+  warnIgnoredHtml((await discover(root, [])).ignoredHtml)
 
   const server = createServer(async (request, response) => {
     try {
@@ -874,6 +880,7 @@ async function buildWithPackages(options: BuildOptions, localPackages: LocalPack
   const runtime = await runtimeRoot()
   const cdn = resolveCdn(options.cdn)
   const discovered = await discover(root, options.exclude)
+  warnIgnoredHtml(discovered.ignoredHtml)
   const reactRoutes = new Map([...discovered.routes].filter(([, page]) => !page.endsWith('.md')))
   const markdownPages = new Map<string, MarkdownPage>()
   for (const [route, page] of discovered.routes) {

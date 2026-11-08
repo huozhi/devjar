@@ -2,7 +2,9 @@ import { expect, test } from 'bun:test'
 import { mkdtemp, mkdir, realpath, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { discover } from '../src/cli/routes'
 import { startStaticServer, staticTarget } from '../src/cli/static'
+import { createServer } from 'node:net'
 
 async function fixture(files: Record<string, string>) {
   const root = await realpath(await mkdtemp(join(tmpdir(), 'devjar-static-')))
@@ -19,6 +21,7 @@ test('resolves HTML files and HTML folders, but not projects', async () => {
     'output/notes.md': '# Notes',
     'nested/v1/index.html': '<h1>v1</h1>',
     'project/pages/index.tsx': '',
+    'project/pages/report.html': '',
     'project/legacy.html': '',
     'empty/readme.txt': '',
   })
@@ -28,6 +31,8 @@ test('resolves HTML files and HTML folders, but not projects', async () => {
     expect(await staticTarget(join(root, 'nested'))).toEqual({ root: join(root, 'nested'), entry: undefined })
     for (const path of ['project', 'empty', 'missing']) expect(await staticTarget(join(root, path))).toBeUndefined()
     await expect(staticTarget(join(root, 'output/notes.md'))).rejects.toThrow('Pass an .html file')
+    // HTML in pages/ is reported so dev and build can point to the right command.
+    expect((await discover(join(root, 'project'), [])).ignoredHtml).toEqual(['pages/report.html'])
   } finally {
     await rm(root, { recursive: true, force: true })
   }
@@ -49,6 +54,32 @@ test('rejects project-only commands and flags for HTML files', async () => {
   }
 })
 
+test('takes the next free port unless one is requested', async () => {
+  const root = await fixture({ 'report.html': '<h1>Report</h1>' })
+  const bin = join(import.meta.dir, '../src/bin/devjar.ts')
+  const blocker = createServer()
+  await new Promise<void>(resolve => blocker.once('error', () => resolve()).listen(3000, 'localhost', resolve))
+  const child = Bun.spawn([process.execPath, bin, join(root, 'report.html')], { stdout: 'pipe', stderr: 'pipe' })
+  try {
+    const reader = child.stdout.getReader()
+    let output = ''
+    while (!/Local .*\n/.test(output)) {
+      const { value, done } = await reader.read()
+      if (done) throw new Error(await new Response(child.stderr).text())
+      output += new TextDecoder().decode(value)
+    }
+    const port = Number(/localhost:(\d+)/.exec(output)![1])
+    expect(port).toBeGreaterThan(3000)
+    expect(output).toContain(`Port 3000 is in use; using ${port}.`)
+    expect(await (await fetch(`http://localhost:${port}/`)).text()).toStartWith('<h1>Report</h1>')
+  } finally {
+    child.kill()
+    await child.exited
+    blocker.close()
+    await rm(root, { recursive: true, force: true })
+  }
+}, 10_000)
+
 test('serves an HTML file with its folder as-is and reloads on changes', async () => {
   const root = await fixture({
     'report.html': '<!doctype html><link rel="stylesheet" href="styles.css"><body><h1>Report</h1><script src="script.js"></script></body>',
@@ -57,6 +88,7 @@ test('serves an HTML file with its folder as-is and reloads on changes', async (
     'data.csv': 'a,b\n1,2\n',
     'my plot.svg': '<svg xmlns="http://www.w3.org/2000/svg"/>',
     'v2/index.html': '<h1>v2</h1>',
+    'unrelated/notes.html': '<h1>Notes</h1>',
     '.env': 'SECRET=1',
     'node_modules/pkg/index.js': '',
   })
@@ -69,7 +101,7 @@ test('serves an HTML file with its folder as-is and reloads on changes', async (
     expect(home.headers.get('content-type')).toBe('text/html; charset=utf-8')
     const document = await home.text()
     expect(document.startsWith('<!doctype html><link rel="stylesheet" href="styles.css"><body><h1>Report</h1><script src="script.js"></script>')).toBe(true)
-    expect(document).toMatch(/EventSource\("\/_jar\/events"\).*<\/script><\/body>$/)
+    expect(document).toMatch(/EventSource\("\/_jar\/events"\)[\s\S]*<\/script><\/body>$/)
 
     for (const [path, type, body] of [
       ['/styles.css', 'text/css; charset=utf-8', 'h1 { color: green; }'],
@@ -94,10 +126,18 @@ test('serves an HTML file with its folder as-is and reloads on changes', async (
     const events = await fetch(origin + '/_jar/events', { signal: controller.signal })
     const reader = events.body!.getReader()
     await reader.read()
+    const nextChange = async () => JSON.parse(/data: (.*)/.exec(new TextDecoder().decode((await reader.read()).value))![1])
     try {
-      const change = reader.read()
+      // Stylesheets are swapped in place; other files reload the page.
+      const css = nextChange()
       await writeFile(join(root, 'styles.css'), 'h1 { color: purple; }')
-      expect(new TextDecoder().decode((await change).value)).toContain('"reload":true')
+      expect(await css).toEqual({ reload: false, paths: ['/styles.css'] })
+      // A single file watches only folders the page loaded, not unrelated ones.
+      await writeFile(join(root, 'unrelated/notes.html'), 'changed')
+      const script = nextChange()
+      await Bun.sleep(100)
+      await writeFile(join(root, 'script.js'), 'document.title = "changed"')
+      expect(await script).toEqual({ reload: true, paths: ['/script.js'] })
     } finally { controller.abort() }
   } finally {
     await server.close()

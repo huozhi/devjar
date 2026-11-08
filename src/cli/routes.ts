@@ -48,12 +48,15 @@ export async function discover(root: string, exclude: string[]) {
   }
   const isExcluded = (path: string) => excludedPaths.some(excluded => isInside(excluded, path))
   const files: string[] = []
+  // HTML files are not pages; they are previewed as-is with `devjar file.html`.
+  const ignoredHtml: string[] = []
   const visit = async (directory: string) => {
     for (const entry of await readdir(directory, { withFileTypes: true })) {
       const path = join(directory, entry.name)
       if (entry.name.startsWith('_') || isExcluded(path)) continue
       if (entry.isDirectory()) await visit(path)
       else if (entry.isFile() && pageExtensions.includes(extname(entry.name))) files.push(path)
+      else if (entry.isFile() && /\.html?$/i.test(entry.name)) ignoredHtml.push(relative(root, path).split(sep).join('/'))
     }
   }
   if (!isExcluded(pagesRoot)) await visit(pagesRoot)
@@ -74,7 +77,7 @@ export async function discover(root: string, exclude: string[]) {
   if (!routes.has('/')) {
     throw new Error(`No index page found in ${pagesRoot}.\nCreate pages/index.tsx (or .md, .ts, .jsx, .js) to define the home page.`)
   }
-  return { routes, notFound }
+  return { routes, notFound, ignoredHtml }
 }
 
 export function manifest(root: string, pages: Awaited<ReturnType<typeof discover>>, options: ManifestOptions): RouteManifest {

@@ -141,8 +141,9 @@ npx devjar ./output     # Serve a folder of HTML files
 HTML documents, such as those written by AI agents, are served as-is: no
 `pages/` directory, routing, or build step. Files next to the document
 (stylesheets, scripts, images, data) are served with the same relative URLs.
-A folder without `index.html` shows its HTML files, newest first. Pages reload
-when any file changes. Hidden files and `node_modules` are not served.
+A folder without `index.html` shows its HTML files, newest first. Stylesheet
+edits apply in place; other edits reload the page at the same scroll position.
+Hidden files and `node_modules` are not served.
 A folder is served this way only when it has no `pages/` directory.
 
 ### Routes
@@ -221,7 +222,7 @@ npx devjar [command] [root] [options]
 | Flag | Commands | Default / purpose |
 | --- | --- | --- |
 | `--host <host>` | `dev`, `start` | `localhost`; `0.0.0.0` enables network access |
-| `--port <port>` | `dev`, `start` | `3000` |
+| `--port <port>` | `dev`, `start` | `3000`, or the next free port |
 | `--cdn <url>` | `dev`, `build` | `https://esm.sh` |
 | `--exclude <path>` | `build` | Page file or directory to omit; repeatable |
 | `--math` | `dev`, `build` | Render LaTeX math in Markdown at build time |
