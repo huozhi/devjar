@@ -438,6 +438,7 @@ npx devjar dev examples/basic
 | [Dashboard](./examples/dashboard) | Navigation, Tailwind, and static data |
 | [SWR](./examples/swr) | Optimistic updates, rollback, and simulated subscriptions |
 | [Personal résumé](./examples/personal) | Edit JSON in a playground, then export the site |
+| [HTML report](./examples/html) | Preview an agent-written HTML folder as-is with `npx devjar examples/html` |
 
 <details>
 <summary>Export the personal website without its playground</summary>
