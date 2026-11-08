@@ -126,7 +126,7 @@ export async function loadRouteManifest(root: string, options: ManifestOptions):
   return manifest(root, await discover(root, []), options)
 }
 
-/** Pages for `devjar dev Chart.tsx`: one React or Markdown file served at `/`. */
+/** Pages for `devjar dev chart.tsx`: one React or Markdown file served at `/`. */
 export function singlePage(root: string, entry: string): Awaited<ReturnType<typeof discover>> {
   return { routes: new Map([['/', join(root, entry)]]), notFound: undefined }
 }

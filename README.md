@@ -140,7 +140,7 @@ local dependency installation needed. Run `npx devjar` for help.
 ```sh
 npx devjar report.html  # Serve one HTML file with live reload
 npx devjar ./output     # Serve a folder of HTML files
-npx devjar Chart.tsx    # Render one React component at /
+npx devjar chart.tsx    # Render one React component at /
 npx devjar notes.md     # Render one Markdown page at /
 ```
 

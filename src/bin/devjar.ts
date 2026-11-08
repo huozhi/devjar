@@ -44,7 +44,7 @@ Options:
 Examples:
   devjar report.html
   devjar ./output
-  devjar Chart.tsx
+  devjar chart.tsx
   devjar dev
   devjar dev examples/dashboard
   devjar build examples/dashboard

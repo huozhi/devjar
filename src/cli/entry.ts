@@ -21,7 +21,7 @@ async function isFile(path: string) {
 }
 
 /**
- * Resolves `devjar dev Chart.tsx` or `devjar dev notes.md` to one page served
+ * Resolves `devjar dev chart.tsx` or `devjar dev notes.md` to one page served
  * at `/`. Returns undefined for anything other than a React or Markdown file.
  */
 export async function pageEntry(path: string): Promise<PageEntry | undefined> {
