@@ -35,7 +35,7 @@ Options:
   --sitemap[=<filename>] Export a sitemap (build; default filename: sitemap.xml)
   --exclude <path> Exclude a page file or directory from the build (repeatable)
   --host <host>    Host to listen on (dev and start; default: localhost)
-  --port <port>    Port to listen on (dev and start; default: 3000)
+  --port <port>    Port to listen on (dev and start; default: 3000, or the next free port)
   -o, --out-dir   Build output relative to the project root (build and start; default: dist)
   -v, --version    Show the installed version
   -h, --help       Show this help
@@ -71,7 +71,7 @@ async function version() {
 
 function friendlyError(error: unknown) {
   if ((error as NodeJS.ErrnoException)?.code === 'EADDRINUSE') {
-    return 'Port is already in use. Choose another one with --port <port>.'
+    return 'Port is already in use. Choose another one with --port <port>, or omit --port to use the next free port.'
   }
   return error instanceof Error ? error.message : String(error)
 }
@@ -203,27 +203,40 @@ async function run() {
     return
   }
 
-  const server = target
-    ? await startStaticServer({ target, host: host || 'localhost', port: port ?? 3000 })
+  const requestedPort = port ?? 3000
+  const startServer = async (port: number) => target
+    ? await startStaticServer({ target, host: host || 'localhost', port })
     : command === 'start'
     ? await startBuiltServer({
         root: await startRoot(root || process.cwd(), outDir),
         host: host || 'localhost',
-        port: port ?? 3000,
+        port,
       })
     : await startDevServer({
         root: root || process.cwd(),
         host: host || 'localhost',
-        port: port ?? 3000,
+        port,
         cdn,
         base: base || '/',
         theme,
         math,
       })
+  // Agents often run several previews at once; take the next free port unless
+  // one was requested explicitly.
+  const startWithFreePort = async (attempt: number): ReturnType<typeof startServer> => {
+    try {
+      return await startServer(requestedPort + attempt)
+    } catch (error) {
+      if (port !== undefined || attempt === 9 || (error as NodeJS.ErrnoException).code !== 'EADDRINUSE') throw error
+      return startWithFreePort(attempt + 1)
+    }
+  }
+  const server = await startWithFreePort(0)
   const browserHost = server.host === '0.0.0.0' || server.host === '::'
     ? 'localhost'
     : server.host.includes(':') ? `[${server.host}]` : server.host
   const url = `http://${browserHost}:${server.port}${server.base}`
+  if (server.port !== requestedPort) console.log(`Port ${requestedPort} is in use; using ${server.port}.`)
   console.log(style(1, command === 'start' ? 'Devjar production server ready' : 'Devjar development server ready'))
   console.log('')
   console.log(`Local  ${style(36, url)}`)
