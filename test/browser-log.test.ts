@@ -14,9 +14,15 @@ test('prints browser errors without the page origin and drops quick repeats', ()
   print(error, 'http://localhost:3000')
   print(error, 'http://localhost:3000')
   print({ type: 'resource', page: '/', message: 'Failed to load img http://localhost:3000/missing.png' }, 'http://localhost:3000')
+  // React reports a render error twice; CDN frames collapse into one line.
+  const reactError = 'TypeError: items is undefined\n    at List (http://localhost:3000/_jar/module?path=List.tsx:4:9)\n'
+    + '    at renderWithHooks (https://esm.sh/react-dom@19/client:1:1)\n    at beginWork (https://esm.sh/react-dom@19/client:2:2)'
+  print({ type: 'console', page: '/', message: reactError + '\n\nThe above error occurred in the <List> component.' }, 'http://localhost:3000')
+  print({ type: 'error', page: '/', message: reactError }, 'http://localhost:3000')
   expect(lines).toEqual([
     'Browser error on /report.html\n  TypeError: x is undefined\n      at render (/script.js:3:5)',
     'Browser failed to load on /\n  img /missing.png',
+    'Browser console.error on /\n  TypeError: items is undefined\n      at List (/_jar/module?path=List.tsx:4:9)\n      at … 2 more frames\n  \n  The above error occurred in the <List> component.',
   ])
 })
 

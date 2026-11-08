@@ -26,6 +26,21 @@ const text = value => {
   if (typeof value === 'string') return value
   try { return JSON.stringify(value) } catch { return String(value) }
 }
+// Applies console format specifiers such as React's console.error('%o\\n\\n%s', error, text).
+const format = args => {
+  if (typeof args[0] !== 'string' || !/%[sdifoOc]/.test(args[0])) return args.map(text).join(' ')
+  let index = 1
+  const head = args[0].replace(/%([sdifoOc%])/g, (match, type) => {
+    if (type === '%') return '%'
+    if (index >= args.length) return match
+    const value = args[index++]
+    if (type === 'c') return ''
+    if (type === 'd' || type === 'i') return String(parseInt(value))
+    if (type === 'f') return String(parseFloat(value))
+    return text(value)
+  })
+  return [head, ...args.slice(index).map(text)].join(' ')
+}
 const send = (type, message) => {
   const body = JSON.stringify({ type, message: String(message).slice(0, 8000), page: location.pathname + location.search })
   try { if (navigator.sendBeacon(endpoint, body)) return } catch {}
@@ -44,7 +59,7 @@ addEventListener('error', event => {
 addEventListener('unhandledrejection', event => send('rejection', 'Unhandled rejection: ' + text(event.reason)))
 const consoleError = console.error
 console.error = (...args) => {
-  send('console', args.map(text).join(' '))
+  send('console', format(args))
   return consoleError.apply(console, args)
 }
 })()</script>`
@@ -82,12 +97,38 @@ const labels: Record<BrowserLogEntry['type'], string> = {
   resource: 'Browser failed to load',
 }
 
-/** Prints entries to stderr, dropping repeats of the same entry within a short window. */
+// Stack frames from other origins, such as React internals on a CDN, rarely
+// point at the bug; collapse each run of them into one line.
+function collapseExternalFrames(message: string) {
+  const lines: string[] = []
+  let hidden = 0
+  const flush = () => {
+    if (hidden) lines.push(`    at … ${hidden} more ${hidden === 1 ? 'frame' : 'frames'}`)
+    hidden = 0
+  }
+  for (const line of message.split('\n')) {
+    if (/^\s*at\s.*\b[a-z][a-z\d+.-]*:\/\//i.test(line)) {
+      hidden++
+      continue
+    }
+    flush()
+    lines.push(line)
+  }
+  flush()
+  return lines.join('\n')
+}
+
+/**
+ * Prints entries to stderr. The same error often arrives twice, from the
+ * error event and from a framework's console.error, so entries whose first
+ * line matches one printed moments ago on the same page are dropped.
+ */
 export function createBrowserLogPrinter(write: (line: string) => void) {
   const recent = new Map<string, { time: number, repeats: number }>()
   return (entry: BrowserLogEntry, origin: string) => {
-    const message = entry.message.split(origin).join('').trim()
-    const key = `${entry.type}\n${entry.page}\n${message}`
+    const message = collapseExternalFrames(entry.message.split(origin).join('').trim())
+    const firstLine = message.split('\n').find(line => line.trim())?.trim() || ''
+    const key = `${entry.page}\n${firstLine}`
     const now = Date.now()
     const previous = recent.get(key)
     if (previous && now - previous.time < repeatWindowMs) {
