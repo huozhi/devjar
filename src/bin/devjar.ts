@@ -2,8 +2,9 @@ import { homedir, networkInterfaces } from 'node:os'
 import { createUpdateHint } from '../cli/update'
 import { networkUrls } from '../cli/network'
 import { readFile } from 'node:fs/promises'
-import { join, relative } from 'node:path'
+import { isAbsolute, join, relative } from 'node:path'
 import { buildProject, startBuiltServer, startDevServer } from '../cli/index'
+import { startStaticServer, staticTarget } from '../cli/static'
 import { vercelOutputRoot, writeVercelOutput } from '../cli/vercel-output'
 
 type Command = 'dev' | 'build' | 'start'
@@ -16,8 +17,9 @@ function style(code: number, value: string) {
 
 function help() {
   console.log(`devjar [command] [root] [options]
+devjar <file.html|directory> [options]
 
-Build a static website from React or Markdown pages.
+Build a static website from React or Markdown pages, or preview HTML files as-is.
 
 Commands:
   dev      Start a development server
@@ -39,6 +41,8 @@ Options:
   -h, --help       Show this help
 
 Examples:
+  devjar report.html
+  devjar ./output
   devjar dev
   devjar dev examples/dashboard
   devjar build examples/dashboard
@@ -165,6 +169,15 @@ async function run() {
   if (command !== 'build' && exclude.length) throw new Error('--exclude is only available for build')
   if (command === 'dev' && outDir) throw new Error('dev does not accept --out-dir')
 
+  const target = command === 'dev' ? await staticTarget(root || process.cwd()) : undefined
+  if (command !== 'dev' && root && /\.html?$/i.test(root)) {
+    throw new Error(`${command} needs a project with pages/. Preview an HTML file with: devjar ${root}`)
+  }
+  if (target) {
+    const unsupported = [cdn && '--cdn', base && '--base', theme !== undefined && '--theme', math && '--math'].filter(Boolean)
+    if (unsupported.length) throw new Error(`${unsupported.join(', ')} ${unsupported.length > 1 ? 'are' : 'is'} not available when serving HTML files directly`)
+  }
+
   if (command === 'build') {
     const result = await buildProject({
       root: root || process.cwd(),
@@ -190,7 +203,9 @@ async function run() {
     return
   }
 
-  const server = command === 'start'
+  const server = target
+    ? await startStaticServer({ target, host: host || 'localhost', port: port ?? 3000 })
+    : command === 'start'
     ? await startBuiltServer({
         root: await startRoot(root || process.cwd(), outDir),
         host: host || 'localhost',
@@ -212,6 +227,11 @@ async function run() {
   console.log(style(1, command === 'start' ? 'Devjar production server ready' : 'Devjar development server ready'))
   console.log('')
   console.log(`Local  ${style(36, url)}`)
+  if (target) {
+    const served = join(target.root, target.entry || '')
+    const shown = relative(process.cwd(), served)
+    console.log(`Serving  ${shown.startsWith('..') || isAbsolute(shown) ? served : shown || '.'}`)
+  }
   const urls = networkUrls(server.host, server.port, server.base, networkInterfaces())
   for (const url of urls) console.log(`Network  ${style(36, url)}`)
   if (urls.length) console.log('Open a Network URL on your phone while connected to the same Wi-Fi.')

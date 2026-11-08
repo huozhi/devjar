@@ -131,6 +131,20 @@ npx devjar start  # Preview the export
 Requires Node.js 22+. Deploy `dist/` to a static host. No configuration file or
 local dependency installation needed. Run `npx devjar` for help.
 
+### Preview HTML files
+
+```sh
+npx devjar report.html  # Serve one HTML file with live reload
+npx devjar ./output     # Serve a folder of HTML files
+```
+
+HTML documents, such as those written by AI agents, are served as-is: no
+`pages/` directory, routing, or build step. Files next to the document
+(stylesheets, scripts, images, data) are served with the same relative URLs.
+A folder without `index.html` shows its HTML files, newest first. Pages reload
+when any file changes. Hidden files and `node_modules` are not served.
+A folder is served this way only when it has no `pages/` directory.
+
 ### Routes
 
 ```text
@@ -424,6 +438,7 @@ npx devjar dev examples/basic
 | [Dashboard](./examples/dashboard) | Navigation, Tailwind, and static data |
 | [SWR](./examples/swr) | Optimistic updates, rollback, and simulated subscriptions |
 | [Personal résumé](./examples/personal) | Edit JSON in a playground, then export the site |
+| [HTML report](./examples/html) | Preview an agent-written HTML folder as-is with `npx devjar examples/html` |
 
 <details>
 <summary>Export the personal website without its playground</summary>

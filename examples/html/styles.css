@@ -1,0 +1,12 @@
+:root { --accent: #2f6fde; --muted: #6b7280; }
+body { font: 16px/1.6 system-ui, sans-serif; max-width: 720px; margin: 48px auto; padding: 0 20px; color: #1f2328; }
+header { display: flex; align-items: center; gap: 12px; }
+h1 { font-size: 28px; margin: 0; }
+h2 { font-size: 18px; margin-top: 32px; }
+.lead, .note { color: var(--muted); }
+#chart { display: flex; align-items: flex-end; gap: 8px; height: 180px; padding-top: 8px; border-bottom: 1px solid #d0d7de; }
+.bar { flex: 1; background: var(--accent); border-radius: 4px 4px 0 0; position: relative; }
+.bar span { position: absolute; top: -22px; width: 100%; text-align: center; font-size: 12px; color: var(--muted); }
+table { border-collapse: collapse; width: 100%; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #eaeef2; }
+td:last-child, th:last-child { text-align: right; }

@@ -37,6 +37,7 @@ import { prerender, type PrerenderedRoute } from './prerender'
 import { compileTailwind } from './tailwind-build'
 import { vendorModules } from './vendor'
 import { LocalPackages } from './local-packages'
+import { contentTypes } from './content-types'
 
 // Stable identities for vendoring; these URLs are loaded from disk, never fetched.
 const localPackagePrefix = 'https://local.devjar.invalid/_jar/local'
@@ -274,33 +275,6 @@ function metadataOrigin(origin: string | undefined) {
   }
   if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new Error(`Invalid origin: ${value}`)
   return url.origin
-}
-
-const contentTypes: Record<string, string> = {
-  '.avif': 'image/avif',
-  '.css': 'text/css; charset=utf-8',
-  '.gif': 'image/gif',
-  '.html': 'text/html; charset=utf-8',
-  '.ico': 'image/x-icon',
-  '.jpeg': 'image/jpeg',
-  '.jpg': 'image/jpeg',
-  '.js': 'text/javascript; charset=utf-8',
-  '.json': 'application/json; charset=utf-8',
-  '.mp3': 'audio/mpeg',
-  '.mp4': 'video/mp4',
-  '.ogg': 'audio/ogg',
-  '.otf': 'font/otf',
-  '.pdf': 'application/pdf',
-  '.png': 'image/png',
-  '.svg': 'image/svg+xml',
-  '.txt': 'text/plain; charset=utf-8',
-  '.ttf': 'font/ttf',
-  '.wasm': 'application/wasm',
-  '.wav': 'audio/wav',
-  '.webm': 'video/webm',
-  '.webp': 'image/webp',
-  '.woff': 'font/woff',
-  '.woff2': 'font/woff2',
 }
 
 async function serveResponseFile(
