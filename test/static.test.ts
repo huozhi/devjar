@@ -3,6 +3,7 @@ import { findIgnoredHtml } from '../src/cli/routes'
 import { mkdtemp, mkdir, realpath, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { createServer } from 'node:net'
 import { startStaticServer, staticTarget } from '../src/cli/static'
 
 async function fixture(files: Record<string, string>) {
@@ -52,6 +53,32 @@ test('rejects project-only commands and flags for HTML files', async () => {
     await rm(root, { recursive: true, force: true })
   }
 })
+
+test('takes the next free port unless one is requested', async () => {
+  const root = await fixture({ 'report.html': '<h1>Report</h1>' })
+  const bin = join(import.meta.dir, '../src/bin/devjar.ts')
+  const blocker = createServer()
+  await new Promise<void>(resolve => blocker.once('error', () => resolve()).listen(3000, 'localhost', resolve))
+  const child = Bun.spawn([process.execPath, bin, join(root, 'report.html')], { stdout: 'pipe', stderr: 'pipe' })
+  try {
+    const reader = child.stdout.getReader()
+    let output = ''
+    while (!/Local .*\n/.test(output)) {
+      const { value, done } = await reader.read()
+      if (done) throw new Error(await new Response(child.stderr).text())
+      output += new TextDecoder().decode(value)
+    }
+    const port = Number(/localhost:(\d+)/.exec(output)![1])
+    expect(port).toBeGreaterThan(3000)
+    expect(output).toContain(`Port 3000 is in use; using ${port}.`)
+    expect(await (await fetch(`http://localhost:${port}/`)).text()).toContain('<h1>Report</h1>')
+  } finally {
+    child.kill()
+    await child.exited
+    blocker.close()
+    await rm(root, { recursive: true, force: true })
+  }
+}, 10_000)
 
 test('serves an HTML file with its folder as-is and reloads on changes', async () => {
   const root = await fixture({

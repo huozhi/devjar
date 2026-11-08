@@ -50,6 +50,8 @@ reference for the CLI, file routing, and embedded preview API.
 - Keep the document's stylesheets, scripts, and images next to it and reference
   them with relative URLs. Files are served as-is with no build step.
 - Do not put HTML files in `pages/`; use this for standalone HTML instead.
+- When the default port is busy, Devjar uses the next free port and prints
+  its URL; read the URL from the output instead of assuming port 3000.
 
 ## Embedded Live React Preview
 

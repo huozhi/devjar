@@ -221,7 +221,7 @@ npx devjar [command] [root] [options]
 | Flag | Commands | Default / purpose |
 | --- | --- | --- |
 | `--host <host>` | `dev`, `start` | `localhost`; `0.0.0.0` enables network access |
-| `--port <port>` | `dev`, `start` | `3000` |
+| `--port <port>` | `dev`, `start` | `3000`, or the next free port |
 | `--cdn <url>` | `dev`, `build` | `https://esm.sh` |
 | `--exclude <path>` | `build` | Page file or directory to omit; repeatable |
 | `--math` | `dev`, `build` | Render LaTeX math in Markdown at build time |
