@@ -126,6 +126,8 @@ Without --port, a busy port 3000 falls back to the next free port; read the prin
 Requires Node.js 22 or newer. Use --help for flags. Do not create a Devjar
 configuration file or a devjar field in package.json. User settings are CLI flags.
 
+While npx devjar dev runs, browser errors, rejected promises, console.error calls, and failed loads print in the terminal as "Browser error on <page>" lines. Read them after loading a page to confirm it works.
+
 ## Files and imports
 
 - pages/index.tsx -> /
