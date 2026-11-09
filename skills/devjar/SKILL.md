@@ -53,6 +53,14 @@ reference for the CLI, file routing, and embedded preview API.
 - When the default port is busy, Devjar uses the next free port and prints
   its URL; read the URL from the output instead of assuming port 3000.
 
+## Check your work
+
+- Keep `npx devjar dev` (or `npx devjar report.html`) running while you edit.
+  Browser errors, rejected promises, `console.error` calls, and failed loads
+  print in its terminal as `Browser error on <page>` and similar lines. After a
+  change, load the page once and read that output; fix any errors before
+  reporting the page as done.
+
 ## Embedded Live React Preview
 
 For an existing React application that needs editable source and a live iframe

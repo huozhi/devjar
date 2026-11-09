@@ -103,7 +103,9 @@ test('serves an HTML file with its folder as-is and reloads on changes', async (
     const home = await fetch(origin + '/')
     expect(home.headers.get('content-type')).toBe('text/html; charset=utf-8')
     const document = await home.text()
-    expect(document.startsWith('<!doctype html><link rel="stylesheet" href="styles.css"><body><h1>Report</h1><script src="script.js"></script>')).toBe(true)
+    // The document is unchanged apart from the error forwarder first and live reload last.
+    expect(document.replace(/<script>\(\(\) => \{[\s\S]*?\}\)\(\)<\/script>/, '')).toStartWith('<!doctype html><link rel="stylesheet" href="styles.css"><body><h1>Report</h1><script src="script.js"></script>')
+    expect(document.indexOf('/_jar/log')).toBeLessThan(document.indexOf('styles.css'))
     expect(document).toMatch(/EventSource\("\/_jar\/events"\)[\s\S]*<\/script><\/body>$/)
 
     for (const [path, type, body] of [
@@ -121,7 +123,7 @@ test('serves an HTML file with its folder as-is and reloads on changes', async (
 
     const redirect = await fetch(origin + '/v2?q=1', { redirect: 'manual' })
     expect([redirect.status, redirect.headers.get('location')]).toEqual([308, '/v2/?q=1'])
-    expect(await (await fetch(origin + '/v2/')).text()).toStartWith('<h1>v2</h1>')
+    expect(await (await fetch(origin + '/v2/')).text()).toContain('<h1>v2</h1>')
     expect(await (await fetch(origin + '/', { method: 'HEAD' })).text()).toBe('')
 
     // Synchronize with the watcher through SSE before changing a file.
@@ -164,7 +166,7 @@ test('lists HTML files in a folder without an index page', async () => {
       ['report.html', 'report.html'],
     ])
     await writeFile(join(root, 'index.html'), '<h1>Home</h1>')
-    expect(await (await fetch(`http://127.0.0.1:${server.port}/`)).text()).toStartWith('<h1>Home</h1>')
+    expect(await (await fetch(`http://127.0.0.1:${server.port}/`)).text()).toContain('<h1>Home</h1>')
   } finally {
     await server.close()
     await rm(root, { recursive: true, force: true })

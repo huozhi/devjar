@@ -128,6 +128,10 @@ npx devjar build  # Export to dist/
 npx devjar start  # Preview the export
 ```
 
+While `devjar dev` runs, uncaught browser errors, rejected promises,
+`console.error` calls, and failed loads print in the terminal, so you or an
+agent can see a broken page without opening developer tools.
+
 Requires Node.js 22+. Deploy `dist/` to a static host. No configuration file or
 local dependency installation needed. Run `npx devjar` for help.
 

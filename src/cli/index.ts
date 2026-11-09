@@ -39,6 +39,7 @@ import { findIgnoredHtml } from './routes'
 import { vendorModules } from './vendor'
 import { LocalPackages } from './local-packages'
 import { contentTypes } from './content-types'
+import { browserLogPath, browserLogScript, createBrowserLogPrinter, readBrowserLog } from './browser-log'
 
 // Stable identities for vendoring; these URLs are loaded from disk, never fetched.
 const localPackagePrefix = 'https://local.devjar.invalid/_jar/local'
@@ -257,8 +258,9 @@ addEventListener('unhandledrejection', event => showBootstrapError(event.reason?
   const errorStyles = options.liveReload
     ? '.devjar-error{box-sizing:border-box;position:fixed;z-index:10;inset:auto 0 0;margin:0;padding:6px 12px;max-height:25vh;overflow:auto;border:0;border-radius:0;background:#fff7f6;color:#9f2d20;font:11px/1.4 ui-monospace,monospace;white-space:pre-wrap}'
     : ''
+  const browserLog = options.liveReload ? browserLogScript(withBase(options.base, browserLogPath)) : ''
   return `<!doctype html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html><head>${browserLog}<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="devjar-base" content="${options.base}">${documentHead}${metadataHead}${tailwindPreload}<script type="importmap">${JSON.stringify({ imports })}</script>
 <style>html,body,#root,#__reactRoot{width:100%;min-height:100%;margin:0}${errorStyles}</style>${staticStyles}
 ${tailwindStylesheet}</head><body><div id="root"><div id="__reactRoot">${options.content}</div></div>${errorOverlay}${tailwindScript}${clientScript}</body></html>`
@@ -394,6 +396,7 @@ export async function startDevServer(options: DevServerOptions) {
   const base = normalizeBase(options.base)
   const theme = markdownTheme(options.theme)
   const events = new Set<ServerResponse>()
+  const printBrowserLog = createBrowserLogPrinter(message => console.error(message))
   const markdownAssets = new Set<string>()
   const assetsRoot = await runtimeRoot()
   const devjarDependencies = await readDevjarDependencies(assetsRoot)
@@ -423,6 +426,13 @@ export async function startDevServer(options: DevServerOptions) {
   const server = createServer(async (request, response) => {
     try {
       const url = new URL(request.url || '/', `http://${request.headers.host || 'localhost'}`)
+      if (request.method === 'POST' && withoutBase(base, url.pathname) === browserLogPath) {
+        const entry = await readBrowserLog(request)
+        if (entry) printBrowserLog(entry, url.origin)
+        response.writeHead(entry ? 204 : 400)
+        response.end()
+        return
+      }
       if (request.method !== 'GET' && request.method !== 'HEAD') {
         response.writeHead(405, { Allow: 'GET, HEAD' })
         response.end('Method not allowed')
