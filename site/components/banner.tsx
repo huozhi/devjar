@@ -7,7 +7,7 @@ import { MiniPlayground } from './mini-playground'
 const tabs = [
   { id: 'prompt', label: 'Prompt', text: 'Build a website with Devjar. Follow https://devjar.vercel.app/llms.txt' },
   { id: 'install', label: 'Install', text: 'npm install devjar' },
-  { id: 'cli', label: 'CLI', text: 'npx devjar dev\nnpx devjar build' },
+  { id: 'cli', label: 'CLI', text: 'npx devjar dev\nnpx devjar chart.tsx\nnpx devjar build' },
 ]
 
 export function Banner() {

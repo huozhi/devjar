@@ -1,5 +1,6 @@
 import { Footer } from '../components/footer'
 import { DeployDemo } from '../components/deploy-demo'
+import { PreviewDemo } from '../components/preview-demo'
 import { Banner } from '../components/banner'
 import { ExampleGallery } from '../components/example-gallery'
 import { Analytics } from "@vercel/analytics/react"
@@ -27,6 +28,7 @@ export default function Page() {
             <ExampleGallery />
           </div>
         </div>
+        <PreviewDemo />
         <DeployDemo />
       </main>
       <Footer />
