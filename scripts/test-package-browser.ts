@@ -299,6 +299,30 @@ export default function Page() {
   await stopServer(server)
   await rm(join(projectRoot, 'pages/broken.tsx'))
 
+  // A single component file renders at / and keeps state across Fast Refresh.
+  await mkdir(join(projectRoot, 'widgets'), { recursive: true })
+  const counterSource = (label: string) => `import { useState } from 'react'
+export default function Counter() {
+  const [count, setCount] = useState(0)
+  return <button onClick={() => setCount(count + 1)}>${label} {count}</button>
+}`
+  await writeFile(join(projectRoot, 'widgets/counter.tsx'), counterSource('Count'))
+  server = spawn(devjar, ['widgets/counter.tsx', '--host', '127.0.0.1', '--port', '0'], {
+    cwd: projectRoot, stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  const singleFileUrl = await serverUrl(server)
+  const singleFilePage = await browser.newPage()
+  await singleFilePage.goto(singleFileUrl)
+  await singleFilePage.getByRole('button', { name: 'Count 0' }).click()
+  await singleFilePage.getByRole('button', { name: 'Count 1' }).waitFor()
+  await singleFilePage.evaluate(() => { (window as any).__singleFileMarker = true })
+  await writeFile(join(projectRoot, 'widgets/counter.tsx'), counterSource('Clicks'))
+  await singleFilePage.getByRole('button', { name: 'Clicks 1' }).waitFor()
+  assert.equal(await singleFilePage.evaluate(() => (window as any).__singleFileMarker), true)
+  await singleFilePage.close()
+  await stopServer(server)
+  await rm(join(projectRoot, 'widgets'), { recursive: true })
+
   // Reuse the package fixture to exercise the browser compiler through DevJar.
   // This catches asset/worker wiring and state preservation that native tests cannot.
   await stopServer(server)
