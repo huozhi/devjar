@@ -36,7 +36,7 @@ function getBase() {
 const base = getBase()
 const prerenderedRoute = routeFromPathname(location.pathname)
 
-const appRoot = getRoot('devjar-root')
+const appRoot = getRoot('__jar')
 let reactRoot: Root | undefined
 
 class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
