@@ -35,6 +35,7 @@ test('browser compiler preserves the native development transform contract', () 
 
 test('browser compiler reports syntax errors and can compile after an error', () => {
   expect(() => transform('broken.tsx', 'export default () => <div>')).toThrow('Unexpected token')
+  expect(() => transform('broken.tsx', 'const a = 1\nexport default () => <div>')).toThrow(/broken\.tsx:2:\d+\n.*\n2 \| export default \(\) => <div>\n.*\^/)
   expect(() => transform('duplicate.ts', 'let value = 1; let value = 2')).toThrow()
   expect(transform('valid.ts', 'export const value: number = 1')).toContain('export const value = 1')
 })

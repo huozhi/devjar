@@ -10,6 +10,7 @@ crate-type = ["cdylib"]
 [dependencies]
 oxc_allocator = "=0.144.0"
 oxc_codegen = { version = "=0.144.0", default-features = false }
+oxc_diagnostics = "=0.144.0"
 oxc_parser = "=0.144.0"
 oxc_semantic = "=0.144.0"
 oxc_span = "=0.144.0"
