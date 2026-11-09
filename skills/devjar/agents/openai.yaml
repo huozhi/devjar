@@ -1,4 +1,4 @@
 interface:
   display_name: "Devjar"
-  short_description: "Build a Markdown or React site with live preview"
+  short_description: "Build a Markdown or React site, or preview a single file, with live reload"
   default_prompt: "Use $devjar to build a small static website with a live preview."

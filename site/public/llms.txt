@@ -140,6 +140,7 @@ While npx devjar dev runs, browser errors, rejected promises, console.error call
 - pages/404.tsx or pages/404.md -> custom not-found page
 - Underscore-prefixed files and folders inside pages/ are private: they are not routes in dev, builds, or embedded previews, but remain importable.
 - React pages default-export a component. Shared components are explicitly imported; there is no automatic layout convention.
+- React pages render into <div id="__jar">, not #root. The only base style removes the body margin and any project CSS overrides it; style html, body, #__jar { height: 100%; } for a full-height app.
 - React pages support JavaScript, TypeScript, JSX, and TSX. Use relative imports for local modules and CSS.
 - JSON imports provide a default export. JSON must be valid (double quotes; no comments or trailing commas).
 - Any local file can be imported as a string: import text from './notes.md' with { type: 'text' }.
