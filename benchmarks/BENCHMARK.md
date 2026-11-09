@@ -37,15 +37,15 @@ headlessly at 1280 × 800 with no network or CPU throttling. Tailwind is disable
 
 ## Recorded baseline
 
-Measured on Apple M4 Pro, darwin 25.6.0 arm64, Chromium 151.0.7922.34.
-Source commit: `c34f419`. See [browser.json](./browser.json) for the raw data.
+Measured on Apple M4, darwin 25.6.0 arm64, Chromium 151.0.7922.34.
+Source commit: `685f4ee`. See [browser.json](./browser.json) for the raw data.
 
 | Project | Cold median | Cold p95 | Warm edit median | Warm edit p95 |
 | --- | ---: | ---: | ---: | ---: |
-| 2 files | 61.6 ms | 65.3 ms | 1.2 ms | 1.5 ms |
-| 51 files | 142.4 ms | 155.7 ms | 9.4 ms | 10.3 ms |
+| 2 files | 56.5 ms | 96.4 ms | 1.2 ms | 2.0 ms |
+| 51 files | 147.8 ms | 275.6 ms | 9.1 ms | 11.5 ms |
 
-Runtime plus lexer: **18.4 KB gzip**. Compiler worker, binding, and WASM: **639.8 KB gzip**.
+Runtime plus lexer: **20.3 KB gzip**. Compiler worker, binding, and WASM: **430.7 KB gzip**.
 KB uses 1,000 bytes. These exclude React and other application dependencies.
 
 ## Interpretation
