@@ -1,5 +1,6 @@
-import { createReadStream, watch, type FSWatcher } from 'node:fs'
+import { createReadStream } from 'node:fs'
 import { readFile, readdir, realpath, stat } from 'node:fs/promises'
+import { closeServer, createDirectoryWatcher, createEventStream, listen, trackServerShutdown } from './server'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { basename, dirname, extname, join, relative, resolve, sep } from 'node:path'
@@ -156,11 +157,11 @@ function send(request: IncomingMessage, response: ServerResponse, status: number
 
 export async function startStaticServer(options: StaticServerOptions) {
   const { root, entry } = options.target
-  const events = new Set<ServerResponse>()
+  const events = createEventStream()
   const printBrowserLog = createBrowserLogPrinter(message => console.error(message))
 
   async function serveHtml(request: IncomingMessage, response: ServerResponse, path: string) {
-    if (entry) watchDirectory(dirname(path), false)
+    if (entry) watcher.watch(dirname(path), false)
     send(request, response, 200, 'text/html; charset=utf-8', withDevScripts(await readFile(path, 'utf8')))
   }
 
@@ -176,14 +177,7 @@ export async function startStaticServer(options: StaticServerOptions) {
     }
     const url = new URL(request.url || '/', 'http://localhost')
     if (url.pathname === eventsPath) {
-      response.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' })
-      if (request.method === 'HEAD') {
-        response.end()
-        return
-      }
-      response.write(': connected\n\n')
-      events.add(response)
-      request.on('close', () => events.delete(response))
+      events.accept(request, response)
       return
     }
     let segments: string[]
@@ -223,7 +217,7 @@ export async function startStaticServer(options: StaticServerOptions) {
       await serveHtml(request, response, path)
       return
     }
-    if (entry) watchDirectory(dirname(path), false)
+    if (entry) watcher.watch(dirname(path), false)
     response.writeHead(200, {
       'Content-Type': contentTypes[extname(path).toLowerCase()] || 'application/octet-stream',
       'Content-Length': info.size,
@@ -240,67 +234,40 @@ export async function startStaticServer(options: StaticServerOptions) {
     })
   })
 
-  let closing = false
+  const beginClose = trackServerShutdown(server)
+
   let timer: NodeJS.Timeout | undefined
   const changed = new Set<string>()
-  const notify = (directory: string, filename: string | null) => {
-    if (!filename) return
-    const path = relative(root, join(directory, filename))
-    if (path.split(sep).some(isHiddenSegment)) return
-    changed.add('/' + path.split(sep).join('/'))
+  // A folder is watched whole so new HTML files appear in its listing. For a
+  // single file, which may sit in a large folder such as Downloads, watch only
+  // the directories of files the page has loaded.
+  const watcher = createDirectoryWatcher(root, path => path.split('/').some(isHiddenSegment), (_event, path) => {
+    changed.add('/' + path)
     clearTimeout(timer)
     timer = setTimeout(() => {
       const paths = [...changed]
       changed.clear()
       const css = paths.every(path => extname(path).toLowerCase() === '.css')
-      const change = JSON.stringify({ reload: !css, paths })
-      for (const response of events) response.write(`event: change\ndata: ${change}\n\n`)
+      events.send(JSON.stringify({ reload: !css, paths }))
     }, 40)
-  }
-  // A folder is watched whole so new HTML files appear in its listing. For a
-  // single file, which may sit in a large folder such as Downloads, watch only
-  // the directories of files the page has loaded.
-  const watchers = new Map<string, FSWatcher>()
-  const watchDirectory = (directory: string, recursive: boolean) => {
-    if (watchers.has(directory) || closing) return
-    const watcher = watch(directory, { recursive }, (_event, filename) => notify(directory, filename))
-    watcher.on('error', () => {
-      watcher.close()
-      watchers.delete(directory)
-    })
-    watchers.set(directory, watcher)
-  }
-  if (entry) watchDirectory(root, false)
-  else watchDirectory(root, true)
+  })
+  watcher.watch(root, !entry)
 
   try {
-    await new Promise<void>((resolvePromise, reject) => {
-      server.once('error', reject)
-      server.listen(options.port, options.host, resolvePromise)
-    })
+    await listen(server, options.port, options.host)
   } catch (error) {
-    for (const watcher of watchers.values()) watcher.close()
+    watcher.close()
     throw error
   }
 
   let closePromise: Promise<void> | undefined
   const close = () => {
-    closePromise ||= new Promise<void>((resolvePromise, reject) => {
-      closing = true
+    closePromise ||= (() => {
       clearTimeout(timer)
-      for (const watcher of watchers.values()) watcher.close()
-      watchers.clear()
-      for (const response of events) response.end()
-      events.clear()
-      const forceClose = setTimeout(() => server.closeAllConnections(), 5_000)
-      forceClose.unref()
-      server.close(error => {
-        clearTimeout(forceClose)
-        if (error && (error as NodeJS.ErrnoException).code !== 'ERR_SERVER_NOT_RUNNING') reject(error)
-        else resolvePromise()
-      })
-      server.closeIdleConnections()
-    })
+      watcher.close()
+      events.close()
+      return closeServer(server, beginClose)
+    })()
     return closePromise
   }
 
