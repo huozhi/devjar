@@ -197,6 +197,13 @@ function metadataTags(files: string[], base: string, origin: string) {
   }).join('')}`
 }
 
+// Pages render into <div id="__jar">. The only base style removes the body
+// margin, with zero specificity in the lowest layer so any project CSS wins.
+const baseStyles = '@layer devjar{:where(body){margin:0}}'
+
+// The development error overlay styles itself instead of adding global rules.
+const errorOverlayStyle = 'box-sizing:border-box;position:fixed;z-index:10;inset:auto 0 0;margin:0;padding:6px 12px;max-height:25vh;overflow:auto;border:0;border-radius:0;background:#fff7f6;color:#9f2d20;font:11px/1.4 ui-monospace,monospace;white-space:pre-wrap'
+
 function html(options: HtmlOptions) {
   const imports = {
     react: options.resolveModule('react'),
@@ -242,7 +249,7 @@ await import(${JSON.stringify(options.clientUrl)})
     ? options.head
     : `<title data-devjar-default>Devjar</title>${options.head}`
   const errorOverlay = options.liveReload
-    ? `<pre id="__jarError" class="devjar-error" hidden></pre><script>
+    ? `<pre id="__jarError" style="${errorOverlayStyle}" hidden></pre><script>
 const errorRoot = document.getElementById('__jarError')
 const showBootstrapError = value => {
   errorRoot.hidden = false
@@ -258,15 +265,12 @@ addEventListener('error', event => {
 addEventListener('unhandledrejection', event => showBootstrapError(event.reason?.stack || event.reason || 'An asynchronous module failed'))
 </script>`
     : ''
-  const errorStyles = options.liveReload
-    ? '.devjar-error{box-sizing:border-box;position:fixed;z-index:10;inset:auto 0 0;margin:0;padding:6px 12px;max-height:25vh;overflow:auto;border:0;border-radius:0;background:#fff7f6;color:#9f2d20;font:11px/1.4 ui-monospace,monospace;white-space:pre-wrap}'
-    : ''
   const browserLog = options.liveReload ? browserLogScript(withBase(options.base, browserLogPath)) : ''
   return `<!doctype html>
 <html><head>${browserLog}<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="devjar-base" content="${options.base}">${documentHead}${metadataHead}${tailwindPreload}<script type="importmap">${JSON.stringify({ imports })}</script>
-<style>html,body,#root,#__reactRoot{width:100%;min-height:100%;margin:0}${errorStyles}</style>${staticStyles}
-${tailwindStylesheet}</head><body><div id="root"><div id="__reactRoot">${options.content}</div></div>${errorOverlay}${tailwindScript}${clientScript}</body></html>`
+<style>${baseStyles}</style>${staticStyles}
+${tailwindStylesheet}</head><body><div id="__jar">${options.content}</div>${errorOverlay}${tailwindScript}${clientScript}</body></html>`
 }
 
 function metadataOrigin(origin: string | undefined) {

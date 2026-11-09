@@ -271,6 +271,26 @@ Use valid JSON: double quotes, no comments or trailing commas.
 </details>
 
 <details>
+<summary>Style the page shell</summary>
+
+React pages render into `<div id="__jar">` inside `<body>`. Devjar's only
+base style removes the body margin, with the lowest precedence, so any rule in
+your CSS overrides it:
+
+```css
+/* Full-height app */
+html, body, #__jar { height: 100%; }
+
+/* Keep the browser's default body margin */
+body { margin: 8px; }
+
+/* Let body layout, such as grid centering, apply to the page itself */
+#__jar { display: contents; }
+```
+
+</details>
+
+<details>
 <summary>Local package development</summary>
 
 ```json

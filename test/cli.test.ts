@@ -379,6 +379,25 @@ export default function Page() { return <pre>{example}</pre> }`,
 })
 
 describe('dev server', () => {
+  test('renders pages into one #__jar with base styles that project CSS overrides', async () => {
+    const projectRoot = await mkdtemp(join(tmpdir(), '__jar-'))
+    let server: Awaited<ReturnType<typeof startDevServer>> | undefined
+    try {
+      await mkdir(join(projectRoot, 'pages'))
+      await writeFile(join(projectRoot, 'pages/index.tsx'), 'export default function Page() { return <h1>Home</h1> }')
+      server = await startDevServer({ root: projectRoot, host: '127.0.0.1', port: 0, cdn: undefined, base: '/' })
+      const document = await (await fetch(`http://${server.host}:${server.port}/`)).text()
+      expect(document).toContain('<body><div id="__jar"></div>')
+      expect(document).not.toContain('__reactRoot')
+      // Zero specificity in the lowest layer: any project rule for body wins.
+      expect(document).toContain('<style>@layer devjar{:where(body){margin:0}}</style>')
+      expect(document).toMatch(/<pre id="__jarError" style="[^"]+" hidden><\/pre>/)
+    } finally {
+      await server?.close()
+      await rm(projectRoot, { recursive: true, force: true })
+    }
+  })
+
   test('reports original module errors with a stack in the terminal', async () => {
     const projectRoot = await mkdtemp(join(tmpdir(), 'devjar-diagnostics-'))
     const errors = spyOn(console, 'error').mockImplementation(() => {})
@@ -919,13 +938,13 @@ export default function Page() {
       expect(document).not.toContain('devjar-error')
       expect(document).toContain('<head><meta charset="utf-8"')
       expect(document).toContain('<title>Static title</title><meta name="description" content="Static description">')
-      expect(document).not.toContain('<div id="__reactRoot"><title>')
+      expect(document).not.toContain('<div id="__jar"><title>')
       expect(document).toContain('<main class="page"><h1>Static now</h1>')
       expect(document).toMatch(/<img src="\/_jar\/assets\/logo-[a-f0-9]{10}\.svg" alt="Logo"/)
       expect(document).toContain('<iframe')
       expect(document).toMatch(/background-image: url\('\/_jar\/assets\/background-[a-f0-9]{10}\.png'\)/)
       expect(document).toMatch(/src: url\("\/_jar\/assets\/body-[a-f0-9]{10}\.woff2\?#iefix"\)/)
-      expect(document).toContain('<div id="__reactRoot">')
+      expect(document).toContain('<div id="__jar"><main class="page">')
       const aboutDocument = await readFile(join(result.outDir, 'guides/about/index.html'), 'utf8')
       expect(aboutDocument).toContain('<title>About title</title>')
       expect(aboutDocument).toContain('<h1>About statically rendered</h1>')
