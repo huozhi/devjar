@@ -54,6 +54,11 @@ export type CompileProjectModuleOptions = {
   development: boolean
   refresh: boolean
   platform: 'browser' | 'server'
+  /**
+   * How browser CSS modules apply styles: `adopted` embeds the CSS in the
+   * module; `linked` links the hashed file a production build writes.
+   */
+  stylesheets: 'adopted' | 'linked'
 }
 
 export function isStaticAsset(projectPath: string) {
@@ -291,6 +296,28 @@ export default sheet
 `
 }
 
+// Production CSS ships as hashed files. A page links the stylesheets its route
+// needs; a module for any other stylesheet links it and waits for it to load,
+// so each file is downloaded and parsed once and cached across pages.
+function linkedCssModule(href: string, projectPath: string) {
+  return `const path = ${JSON.stringify(projectPath)}
+let link = [...document.querySelectorAll('link[data-devjar-css]')].find(link => link.getAttribute('data-devjar-css') === path)
+if (!link) {
+  link = document.createElement('link')
+  link.rel = 'stylesheet'
+  link.href = ${JSON.stringify(href)}
+  link.setAttribute('data-devjar-css', path)
+  const loaded = new Promise(resolve => {
+    link.addEventListener('load', resolve, { once: true })
+    link.addEventListener('error', resolve, { once: true })
+  })
+  document.head.append(link)
+  await loaded
+}
+export default link.sheet
+`
+}
+
 function serverCssModule(source: string) {
   return `export default ${JSON.stringify(source)}\n`
 }
@@ -380,9 +407,11 @@ export async function compileProjectModule(
       code: outputModuleCode(
         options,
         projectPath,
-        options.platform === 'browser'
-          ? browserCssModule(source, projectPath)
-          : serverCssModule(source),
+        options.platform === 'server'
+          ? serverCssModule(source)
+          : options.stylesheets === 'linked'
+            ? linkedCssModule(options.assetUrl(projectPath, Buffer.from(source)), projectPath)
+            : browserCssModule(source, projectPath),
       ),
       dependencies: [...assets.values()].map(asset => asset.projectPath),
       refreshBoundary: false,

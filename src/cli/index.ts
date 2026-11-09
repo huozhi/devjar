@@ -34,7 +34,7 @@ import {
   withoutBase,
 } from '../shared/project'
 import { getTailwindBrowserUrl, getTailwindBuildUrls } from './tailwind'
-import { prerender, type PrerenderedRoute } from './prerender'
+import { prerender, type LinkedStylesheet, type PrerenderedRoute } from './prerender'
 import { compileTailwind } from './tailwind-build'
 import { findIgnoredHtml } from './routes'
 import { vendorModules } from './vendor'
@@ -184,7 +184,7 @@ type HtmlOptions = {
   metadataFiles: string[]
   metadataOrigin: string
   content: string
-  styles: string
+  stylesheets: LinkedStylesheet[]
 }
 
 function metadataTags(files: string[], base: string, origin: string) {
@@ -195,6 +195,10 @@ function metadataTags(files: string[], base: string, origin: string) {
       ? `<link rel="icon" href="${url}" type="${contentTypes[extname(filename)]}">`
       : `<meta property="og:image" content="${absoluteUrl}"><meta name="twitter:image" content="${absoluteUrl}">`
   }).join('')}`
+}
+
+function escapeAttribute(value: string) {
+  return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
 }
 
 // Pages render into <div id="__jar">. The only base style removes the body
@@ -241,9 +245,9 @@ globalThis.__jarRefreshRuntime = RefreshRuntime
 await import(${JSON.stringify(options.clientUrl)})
 </script>`
     : `<script type="module" src="${options.clientUrl}"></script>`
-  const staticStyles = options.styles
-    ? `<style data-devjar-static>${options.styles.replace(/<\/style/gi, '<\\/style')}</style>`
-    : ''
+  const staticStyles = options.stylesheets.map(stylesheet => (
+    `<link rel="stylesheet" href="${escapeAttribute(stylesheet.href)}" data-devjar-css="${escapeAttribute(stylesheet.projectPath)}">`
+  )).join('')
   const metadataHead = metadataTags(options.metadataFiles, options.base, options.metadataOrigin)
   const documentHead = /<title(?:\s|>)/i.test(options.head)
     ? options.head
@@ -463,6 +467,7 @@ export async function startDevServer(options: DevServerOptions) {
             development: true,
             refresh: true,
             platform: 'browser',
+            stylesheets: 'adopted',
           })
           modules.update(projectPath, compiled)
           watchLoadedFile(projectPath)
@@ -556,7 +561,7 @@ export async function startDevServer(options: DevServerOptions) {
             metadataOrigin: 'http://localhost:3000',
             head: '',
             content: '',
-            styles: '',
+            stylesheets: [],
           },
         ),
       )
@@ -793,7 +798,7 @@ async function writeRouteHtml(
     metadataOrigin: options.metadataOrigin,
     head: rendered.head,
     content: rendered.markup,
-    styles: rendered.styles,
+    stylesheets: rendered.stylesheets,
   })
   await writeFile(outputPath, document)
   if (route === '/404') await writeFile(join(outDir, '404.html'), document)
@@ -930,7 +935,7 @@ async function buildWithPackages(options: BuildOptions, localPackages: LocalPack
         resolveModule: specifier => localPackages.resolve(specifier, 'server', root),
       })
     : Object.fromEntries([...reactRoutes.keys()].map(route => (
-        [route, { head: '', markup: '', styles: '' }]
+        [route, { head: '', markup: '', stylesheets: [] }]
       )))
   const tailwindCss = tailwindBuildUrls
     ? await compileTailwind({
@@ -1020,8 +1025,13 @@ async function buildWithPackages(options: BuildOptions, localPackages: LocalPack
       development: false,
       refresh: false,
       platform: 'browser',
+      stylesheets: 'linked',
     })
     await writeFile(join(modulesRoot, moduleAssetName(projectPath)), compiled.code)
+    if (compiled.style !== undefined) {
+      const style = Buffer.from(compiled.style)
+      await writeFile(join(projectAssetsRoot, staticAssetName(projectPath, style)), style)
+    }
   }
   await writeFile(join(outDir, '_jar/routes.json'), JSON.stringify(manifest))
   await copyApiFiles(join(root, 'api'), join(outDir, 'api'))
