@@ -13,6 +13,8 @@ test('browser compiler preserves the native development transform contract', () 
     ['enum.ts', 'export enum Color { Red, Blue } export const color: Color = Color.Red'],
     ['text.tsx', `import data from './data.json'; import text from './shader.glsl' with {type:'text'}; export default () => <pre>{data.title}{text}</pre>`],
     ['decorator.ts', 'function sealed(target: Function) {} @sealed export class A { x = 1 }'],
+    // The browser compiler hard-codes the es2022 target: newer syntax lowers, ES2022 stays.
+    ['target.ts', 'export class A { static #n = 1; static { A.#n++ } has(o: object) { return #n in o } } export function f() { using r = open(); return /[\\p{L}--a]/v.test(r.name ?? "") }'],
     ['scope.ts', 'export function f(process: {env: {NODE_ENV: string}}) { return process.env.NODE_ENV } export const env = process.env.NODE_ENV'],
     // Refresh clones imported custom-hook references when wrapping inline components.
     // Every cloned reference needs semantic IDs before replacing global defines.

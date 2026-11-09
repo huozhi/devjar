@@ -30,8 +30,11 @@ pub fn transform(filename: &str, source: &str) -> Result<String, JsError> {
     if let Some(error) = semantic.diagnostics.errors().next() {
         return Err(format_error(filename, source, error));
     }
-    let mut options = TransformOptions::from_target("es2022")
-        .map_err(|error| JsError::new(&error))?;
+    // Matches `TransformOptions::from_target("es2022")` without linking Oxc's
+    // compatibility table: only post-ES2022 syntax is lowered.
+    let mut options = TransformOptions::default();
+    options.env.es2026.explicit_resource_management = true;
+    options.env.regexp.set_notation = true;
     options.jsx.development = true;
     options.jsx.refresh = Some(Default::default());
     options.jsx.conform();
