@@ -57,28 +57,34 @@ test('rejects project-only commands and flags for HTML files', async () => {
 test('takes the next free port unless one is requested', async () => {
   const root = await fixture({ 'report.html': '<h1>Report</h1>' })
   const bin = join(import.meta.dir, '../src/bin/devjar.ts')
-  // localhost may resolve to IPv4 or IPv6, so hold port 3000 on both.
-  const blockers = await Promise.all(['127.0.0.1', '::1'].map(host => new Promise<ReturnType<typeof createServer>>(resolve => {
-    const blocker = createServer()
-    blocker.once('error', () => resolve(blocker)).listen(3000, host, () => resolve(blocker))
-  })))
-  const child = Bun.spawn([process.execPath, bin, join(root, 'report.html')], { stdout: 'pipe', stderr: 'pipe' })
   try {
-    const reader = child.stdout.getReader()
-    let output = ''
-    while (!/Local .*\n/.test(output)) {
-      const { value, done } = await reader.read()
-      if (done) throw new Error(await new Response(child.stderr).text())
-      output += new TextDecoder().decode(value)
+    // Another program on either address family makes localhost:3000 busy.
+    for (const host of ['127.0.0.1', '::1']) {
+      const blocker = createServer()
+      const listening = await new Promise<boolean>(resolve => {
+        blocker.once('error', () => resolve(false)).listen(3000, host, () => resolve(true))
+      })
+      if (!listening) continue
+      const child = Bun.spawn([process.execPath, bin, join(root, 'report.html')], { stdout: 'pipe', stderr: 'pipe' })
+      try {
+        const reader = child.stdout.getReader()
+        let output = ''
+        while (!/Local .*\n/.test(output)) {
+          const { value, done } = await reader.read()
+          if (done) throw new Error(await new Response(child.stderr).text())
+          output += new TextDecoder().decode(value)
+        }
+        const port = Number(/localhost:(\d+)/.exec(output)![1])
+        expect([host, port > 3000]).toEqual([host, true])
+        expect(output).toContain(`Port 3000 is in use; using ${port}.`)
+        expect(await (await fetch(`http://localhost:${port}/`)).text()).toContain('<h1>Report</h1>')
+      } finally {
+        child.kill()
+        await child.exited
+        blocker.close()
+      }
     }
-    const port = Number(/localhost:(\d+)/.exec(output)![1])
-    expect(port).toBeGreaterThan(3000)
-    expect(output).toContain(`Port 3000 is in use; using ${port}.`)
-    expect(await (await fetch(`http://localhost:${port}/`)).text()).toContain('<h1>Report</h1>')
   } finally {
-    child.kill()
-    await child.exited
-    for (const blocker of blockers) blocker.close()
     await rm(root, { recursive: true, force: true })
   }
 }, 10_000)
