@@ -4,7 +4,7 @@ import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { init, parse } from 'es-module-lexer'
+import { init, parse } from 'es-module-lexer/minimal'
 import { LocalPackages } from '../src/cli/local-packages'
 import { buildProject, startDevServer } from '../src/cli/index'
 import { testCdnModule } from '../scripts/test-cdn'
@@ -79,7 +79,7 @@ test('serves local modules under the dev base path and reloads on library edits'
   let reader: ReadableStreamDefaultReader<Uint8Array> | undefined
   try {
     const page = await (await fetch(`${origin}/preview/_jar/module?path=pages/index.tsx`)).text()
-    await init
+    await init()
     const [imports] = parse(page)
     const localUrl = imports.find(item => item.n?.includes('/_jar/local/'))!.n!
     const local = await fetch(origin + localUrl)

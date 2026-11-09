@@ -2,7 +2,7 @@ import { textModuleSuffix, isTextImport, createTextModule } from '../shared/text
 import { createJsonModule } from '../shared/json'
 import { createModule } from './module'
 import type { ModuleRuntime } from './module'
-import { init, parse } from 'es-module-lexer'
+import { init, parse } from 'es-module-lexer/minimal'
 import { routeFromPagePath, sourceExtensions } from '../shared/project'
 
 export type PreviewStatus = 'idle' | 'compiling' | 'loading' | 'ready' | 'failed'
@@ -167,7 +167,7 @@ async function linkModules(
   rawFiles: Record<string, string>,
 ) {
   if (!esModuleLexerInit) {
-    await init
+    await init()
     esModuleLexerInit = true
   }
 

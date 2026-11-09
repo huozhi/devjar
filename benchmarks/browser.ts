@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { gzipSync } from 'node:zlib'
 import { chromium } from '@playwright/test'
-import { init, parse } from 'es-module-lexer'
+import { init, parse } from 'es-module-lexer/minimal'
 import { createPreviewResolver } from '../src/shared/cdn'
 
 // Run after pnpm build. Dependencies are mirrored before measurements; this is
@@ -20,7 +20,7 @@ const resolvePreview = createPreviewResolver({ react: '19.2.0', 'react-dom': '19
 const scratch = await mkdtemp(join(tmpdir(), 'devjar-benchmark-'))
 const mirrored = new Map<string, string>()
 const downloads = new Map<string, Promise<void>>()
-await init
+await init()
 
 function cdnPath(url: string) { return `/cdn/${encodeURIComponent(url)}` }
 function mirror(url: string): Promise<void> {
@@ -165,7 +165,7 @@ createRoot(document.getElementById('root')).render(<App />)
     const body = await readFile(join(root, 'dist', path))
     sizes.push({ path, rawBytes: body.length, gzipBytes: gzipSync(body).length })
   }
-  const lexer = await readFile(join(root, 'node_modules/es-module-lexer/dist/lexer.js'))
+  const lexer = await readFile(join(root, 'node_modules/es-module-lexer/dist/lexer.minimal.js'))
   sizes.push({ path: 'es-module-lexer', rawBytes: lexer.length, gzipBytes: gzipSync(lexer).length })
   const report = { date: new Date().toISOString(), packageVersion: (await Bun.file(join(root, 'package.json')).json()).version, commit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),
     environment: { os: `${platform()} ${release()} ${arch()}`, cpu: cpus()[0].model, browser: browser.version(), bun: Bun.version,
