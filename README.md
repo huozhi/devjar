@@ -273,19 +273,19 @@ Use valid JSON: double quotes, no comments or trailing commas.
 <details>
 <summary>Style the page shell</summary>
 
-React pages render into `<div id="root">` inside `<body>`. Devjar's only base
-style removes the body margin, with the lowest precedence, so any rule in your
-CSS overrides it:
+React pages render into `<div id="devjar-root">` inside `<body>`. Devjar's only
+base style removes the body margin, with the lowest precedence, so any rule in
+your CSS overrides it:
 
 ```css
 /* Full-height app */
-html, body, #root { height: 100%; }
+html, body, #devjar-root { height: 100%; }
 
 /* Keep the browser's default body margin */
 body { margin: 8px; }
 
 /* Let body layout, such as grid centering, apply to the page itself */
-#root { display: contents; }
+#devjar-root { display: contents; }
 ```
 
 </details>

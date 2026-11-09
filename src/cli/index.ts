@@ -197,7 +197,7 @@ function metadataTags(files: string[], base: string, origin: string) {
   }).join('')}`
 }
 
-// Pages render into <div id="root">. The only base style removes the body
+// Pages render into <div id="devjar-root">. The only base style removes the body
 // margin, with zero specificity in the lowest layer so any project CSS wins.
 const baseStyles = '@layer devjar{:where(body){margin:0}}'
 
@@ -270,7 +270,7 @@ addEventListener('unhandledrejection', event => showBootstrapError(event.reason?
 <html><head>${browserLog}<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="devjar-base" content="${options.base}">${documentHead}${metadataHead}${tailwindPreload}<script type="importmap">${JSON.stringify({ imports })}</script>
 <style>${baseStyles}</style>${staticStyles}
-${tailwindStylesheet}</head><body><div id="root">${options.content}</div>${errorOverlay}${tailwindScript}${clientScript}</body></html>`
+${tailwindStylesheet}</head><body><div id="devjar-root">${options.content}</div>${errorOverlay}${tailwindScript}${clientScript}</body></html>`
 }
 
 function metadataOrigin(origin: string | undefined) {

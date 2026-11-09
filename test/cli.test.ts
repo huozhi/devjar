@@ -379,7 +379,7 @@ export default function Page() { return <pre>{example}</pre> }`,
 })
 
 describe('dev server', () => {
-  test('renders pages into one #root with base styles that project CSS overrides', async () => {
+  test('renders pages into one #devjar-root with base styles that project CSS overrides', async () => {
     const projectRoot = await mkdtemp(join(tmpdir(), 'devjar-root-'))
     let server: Awaited<ReturnType<typeof startDevServer>> | undefined
     try {
@@ -387,7 +387,7 @@ describe('dev server', () => {
       await writeFile(join(projectRoot, 'pages/index.tsx'), 'export default function Page() { return <h1>Home</h1> }')
       server = await startDevServer({ root: projectRoot, host: '127.0.0.1', port: 0, cdn: undefined, base: '/' })
       const document = await (await fetch(`http://${server.host}:${server.port}/`)).text()
-      expect(document).toContain('<body><div id="root"></div>')
+      expect(document).toContain('<body><div id="devjar-root"></div>')
       expect(document).not.toContain('__reactRoot')
       // Zero specificity in the lowest layer: any project rule for body wins.
       expect(document).toContain('<style>@layer devjar{:where(body){margin:0}}</style>')
@@ -938,13 +938,13 @@ export default function Page() {
       expect(document).not.toContain('devjar-error')
       expect(document).toContain('<head><meta charset="utf-8"')
       expect(document).toContain('<title>Static title</title><meta name="description" content="Static description">')
-      expect(document).not.toContain('<div id="root"><title>')
+      expect(document).not.toContain('<div id="devjar-root"><title>')
       expect(document).toContain('<main class="page"><h1>Static now</h1>')
       expect(document).toMatch(/<img src="\/_jar\/assets\/logo-[a-f0-9]{10}\.svg" alt="Logo"/)
       expect(document).toContain('<iframe')
       expect(document).toMatch(/background-image: url\('\/_jar\/assets\/background-[a-f0-9]{10}\.png'\)/)
       expect(document).toMatch(/src: url\("\/_jar\/assets\/body-[a-f0-9]{10}\.woff2\?#iefix"\)/)
-      expect(document).toContain('<div id="root"><main class="page">')
+      expect(document).toContain('<div id="devjar-root"><main class="page">')
       const aboutDocument = await readFile(join(result.outDir, 'guides/about/index.html'), 'utf8')
       expect(aboutDocument).toContain('<title>About title</title>')
       expect(aboutDocument).toContain('<h1>About statically rendered</h1>')
