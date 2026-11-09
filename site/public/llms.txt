@@ -22,7 +22,6 @@
 - Build a content site: create pages/index.md and run npx devjar dev. Markdown pages need no React runtime.
 - Build an interactive React site: create pages/index.tsx and run npx devjar dev. No configuration file is required.
 - Preview a generated HTML file: run npx devjar report.html, or npx devjar ./output for a folder of HTML files. Files are served as-is with live reload; do not put HTML files in pages/.
-- Preview one React component or Markdown file: run npx devjar chart.tsx or npx devjar notes.md. It renders at / with the same imports and live updates as a page, and needs no pages/ directory.
 - Preview one React component or Markdown file: run npx devjar chart.tsx or npx devjar notes.md. It renders at / with live updates and needs no pages/ directory.
 
 ## Markdown sites
@@ -120,7 +119,6 @@ npx devjar build --exclude pages/playground.tsx  # Omit a development-only page
 npx devjar start           # Serve the export
 npx devjar dev my-site     # Use another project folder
 npx devjar report.html     # Serve an HTML file and its folder as-is
-npx devjar chart.tsx       # Render one React component at /
 npx devjar chart.tsx       # Render one React component at /
 npx devjar dev --host 0.0.0.0  # Preview on another device
 ```
