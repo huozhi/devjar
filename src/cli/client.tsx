@@ -25,7 +25,6 @@ function getRoot(id: string) {
   return root
 }
 
-const hostRoot = getRoot('root')
 const errorRoot = document.getElementById('__jarError')
 
 function getBase() {
@@ -37,17 +36,7 @@ function getBase() {
 const base = getBase()
 const prerenderedRoute = routeFromPathname(location.pathname)
 
-function getAppRoot() {
-  const existingRoot = document.getElementById('__reactRoot')
-  if (existingRoot) return existingRoot
-
-  const root = document.createElement('div')
-  root.id = '__reactRoot'
-  hostRoot.appendChild(root)
-  return root
-}
-
-const appRoot = getAppRoot()
+const appRoot = getRoot('root')
 let reactRoot: Root | undefined
 
 class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {

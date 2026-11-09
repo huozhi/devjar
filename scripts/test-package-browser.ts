@@ -165,6 +165,11 @@ export default function Page() {
   assert.equal(homeResponse?.status(), 200)
   await page.waitForFunction('globalThis.__devjarRenderCount > 0')
   await assertPage(page, 'Home', 'Package home')
+  // Pages render directly into #root, and the body margin reset is the only base style.
+  assert.deepEqual(await page.evaluate(() => ({
+    pageInRoot: document.querySelector('h1')?.closest('body > *')?.id,
+    margin: getComputedStyle(document.body).margin,
+  })), { pageInRoot: 'root', margin: '0px' })
   assert.deepEqual(externalRequests, [])
   const vendorUrls = await page.evaluate(() => performance.getEntriesByType('resource')
     .map(entry => entry.name)
