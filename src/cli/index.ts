@@ -1,4 +1,4 @@
-import { createReadStream, watch } from 'node:fs'
+import { createReadStream } from 'node:fs'
 import { cp, mkdir, readdir, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { dirname, extname, join, normalize, resolve, sep } from 'node:path'
@@ -25,6 +25,7 @@ import type { ManifestOptions } from './routes'
 import { renderMarkdown, markdownDocument, type MarkdownPage } from './markdown'
 import { markdownTheme, markdownStylesRoot, copyMarkdownStyles } from './markdown-theme'
 import { copyMathAssets, mathAssetsRoot } from './math'
+import { closeServer, createDirectoryWatcher, createEventStream, listen, trackServerShutdown } from './server'
 export { loadRouteManifest } from './routes'
 import {
   normalizeBase,
@@ -343,32 +344,6 @@ function createResponder(headers: Record<string, string>) {
   }
 }
 
-// End connections once their responses finish during shutdown, including
-// runtimes that do not automatically reap newly idle keep-alive connections.
-function trackServerShutdown(server: ReturnType<typeof createServer>) {
-  let closing = false
-  const pending = new Map<IncomingMessage['socket'], number>()
-  server.on('connection', socket => {
-    pending.set(socket, 0)
-    socket.once('close', () => pending.delete(socket))
-  })
-  server.prependListener('request', (request, response) => {
-    const socket = request.socket
-    pending.set(socket, (pending.get(socket) || 0) + 1)
-    response.once('finish', () => {
-      const remaining = (pending.get(socket) || 1) - 1
-      pending.set(socket, remaining)
-      if (closing && remaining === 0) socket.end()
-    })
-  })
-  return () => {
-    closing = true
-    for (const [socket, count] of pending) {
-      if (count === 0) socket.end()
-    }
-  }
-}
-
 // File names such as `my plot.svg` arrive percent-encoded in request URLs.
 function decodedPath(pathname: string | undefined) {
   if (!pathname) return
@@ -397,7 +372,7 @@ export async function startDevServer(options: DevServerOptions) {
   const port = options.port
   const base = normalizeBase(options.base)
   const theme = markdownTheme(options.theme)
-  const events = new Set<ServerResponse>()
+  const events = createEventStream()
   const printBrowserLog = createBrowserLogPrinter(message => console.error(message))
   const markdownAssets = new Set<string>()
   const assetsRoot = await runtimeRoot()
@@ -418,7 +393,7 @@ export async function startDevServer(options: DevServerOptions) {
       localReloadTimer = setTimeout(() => {
         revision++
         const change: HmrChange = { revision, reload: true, routes: false, timestamp: Date.now(), updates: [] }
-        for (const response of events) response.write(`event: change\ndata: ${JSON.stringify(change)}\n\n`)
+        events.send(JSON.stringify(change))
       }, 40)
     },
   })
@@ -448,18 +423,7 @@ export async function startDevServer(options: DevServerOptions) {
         return
       }
       if (requestPath === '/_jar/events') {
-        response.writeHead(200, {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          Connection: 'keep-alive',
-        })
-        if (request.method === 'HEAD') {
-          response.end()
-          return
-        }
-        response.write(': connected\n\n')
-        events.add(response)
-        request.on('close', () => events.delete(response))
+        events.accept(request, response)
         return
       }
       if (requestPath === '/_jar/routes.json') {
@@ -602,10 +566,8 @@ export async function startDevServer(options: DevServerOptions) {
   let pendingTimestamp = 0
   const pendingFiles = new Set<string>()
   const pendingRenames = new Set<string>()
-  const watcher = watch(root, { recursive: true }, (event, filename) => {
-    if (!filename || /(?:^|[/\\])(?:\.git|node_modules|dist)(?:[/\\]|$)/.test(filename)) return
+  const watcher = createDirectoryWatcher(root, path => /(?:^|\/)(?:\.git|node_modules|dist)(?:\/|$)/.test(path), (event, projectPath) => {
     if (!pendingFiles.size) pendingTimestamp = Date.now()
-    const projectPath = filename.split(sep).join('/')
     pendingFiles.add(projectPath)
     if (event === 'rename') pendingRenames.add(projectPath)
     clearTimeout(timer)
@@ -640,17 +602,13 @@ export async function startDevServer(options: DevServerOptions) {
         timestamp,
         updates: invalidation.updates,
       }
-      for (const response of events) {
-        response.write(`event: change\ndata: ${JSON.stringify(change)}\n\n`)
-      }
+      events.send(JSON.stringify(change))
     }, 40)
   })
+  watcher.watch(root, true)
 
   try {
-    await new Promise<void>((resolvePromise, reject) => {
-      server.once('error', reject)
-      server.listen(port, host, resolvePromise)
-    })
+    await listen(server, port, host)
   } catch (error) {
     watcher.close()
     localPackages.close()
@@ -665,18 +623,8 @@ export async function startDevServer(options: DevServerOptions) {
       clearTimeout(localReloadTimer)
       localPackages.close()
       watcher.close()
-      for (const response of events) response.end()
-      events.clear()
-
-      const forceClose = setTimeout(() => server.closeAllConnections(), 5_000)
-      forceClose.unref()
-      server.close(error => {
-        clearTimeout(forceClose)
-        if (error && (error as NodeJS.ErrnoException).code !== 'ERR_SERVER_NOT_RUNNING') reject(error)
-        else resolvePromise()
-      })
-      beginClose()
-      server.closeIdleConnections()
+      events.close()
+      closeServer(server, beginClose).then(resolvePromise, reject)
     })
     return closePromise
   }
@@ -1143,25 +1091,11 @@ export async function startBuiltServer(options: StartServerOptions) {
 
   const beginClose = trackServerShutdown(server)
 
-  await new Promise<void>((resolvePromise, reject) => {
-    server.once('error', reject)
-    server.listen(port, host, resolvePromise)
-  })
+  await listen(server, port, host)
 
   let closePromise: Promise<void> | undefined
   const close = () => {
-    if (closePromise) return closePromise
-    closePromise = new Promise<void>((resolvePromise, reject) => {
-      const forceClose = setTimeout(() => server.closeAllConnections(), 5_000)
-      forceClose.unref()
-      server.close(error => {
-        clearTimeout(forceClose)
-        if (error && (error as NodeJS.ErrnoException).code !== 'ERR_SERVER_NOT_RUNNING') reject(error)
-        else resolvePromise()
-      })
-      beginClose()
-      server.closeIdleConnections()
-    })
+    closePromise ||= closeServer(server, beginClose)
     return closePromise
   }
 
