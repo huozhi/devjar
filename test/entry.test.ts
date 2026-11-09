@@ -70,3 +70,34 @@ test('build and start point single files to devjar dev', () => {
     expect(result.stderr.toString()).toContain(`${command} needs a project with pages/. Preview a single file with: devjar chart.tsx`)
   }
 })
+
+test('a single file watches only the folders it loads', async () => {
+  const root = await fixture({
+    'chart.tsx': "import data from './lib/data.json'\nexport default function Chart() { return <h1>{data.label}</h1> }",
+    'lib/data.json': '{"label":"Signups"}',
+    'downloads/notes.md': '# Unrelated',
+  })
+  const server = await startDevServer({ root, host: '127.0.0.1', port: 0, cdn: undefined, base: '/', entry: 'chart.tsx' })
+  const origin = `http://127.0.0.1:${server.port}`
+  const controller = new AbortController()
+  try {
+    const events = await fetch(origin + '/_jar/events', { signal: controller.signal })
+    const reader = events.body!.getReader()
+    await reader.read()
+    // Loading the page module loads lib/data.json, so lib/ is watched from now on.
+    const module = await (await fetch(origin + '/_jar/module?path=chart.tsx')).text()
+    const dataUrl = /"([^"]*data\.json[^"]*)"/.exec(module)![1]
+    expect((await fetch(new URL(dataUrl, origin))).status).toBe(200)
+    const next = reader.read()
+    // Any Markdown edit reloads a watched project, so this only stays quiet unwatched.
+    await writeFile(join(root, 'downloads/notes.md'), '# Changed')
+    const quiet = await Promise.race([next.then(() => 'event'), Bun.sleep(300).then(() => 'quiet')])
+    expect(quiet).toBe('quiet')
+    await writeFile(join(root, 'lib/data.json'), '{"label":"Updated"}')
+    expect(new TextDecoder().decode((await next).value)).toContain('event: change')
+  } finally {
+    controller.abort()
+    await server.close()
+    await rm(root, { recursive: true, force: true })
+  }
+})

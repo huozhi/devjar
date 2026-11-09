@@ -464,6 +464,7 @@ export async function startDevServer(options: DevServerOptions) {
             platform: 'browser',
           })
           modules.update(projectPath, compiled)
+          watchLoadedFile(projectPath)
           send(request, response, 200, 'text/javascript; charset=utf-8', compiled.code)
         } catch (error) {
           send(request, response, 500, 'text/javascript; charset=utf-8', `throw new Error(${JSON.stringify(reportRequestError(error))})`)
@@ -520,7 +521,10 @@ export async function startDevServer(options: DevServerOptions) {
       if (page?.endsWith('.md')) {
         const rendered = await renderMarkdown({ root, page, routes: pages.routes, base, theme,
           liveReload: true, math: options.math || false, assetUrl: (path, contents) => devAssetUrl(path, contents, base) })
-        for (const path of rendered.assets.keys()) markdownAssets.add(path)
+        for (const path of rendered.assets.keys()) {
+          markdownAssets.add(path)
+          watchLoadedFile(path)
+        }
         send(request, response, pages.routes.has(route) ? 200 : 404, 'text/html; charset=utf-8',
           markdownDocument(rendered, { base, theme, liveReload: true, metadataHead: metadataTags(metadataFiles, base, 'http://localhost:3000') }))
         return
@@ -605,7 +609,12 @@ export async function startDevServer(options: DevServerOptions) {
       events.send(JSON.stringify(change))
     }, 40)
   })
-  watcher.watch(root, true)
+  // A project is watched whole. A single file, which may sit in a large
+  // folder such as Downloads, watches its own folder and those of files it loads.
+  watcher.watch(root, !entry)
+  function watchLoadedFile(projectPath: string) {
+    if (entry) watcher.watch(dirname(join(root, projectPath)), false)
+  }
 
   try {
     await listen(server, port, host)
