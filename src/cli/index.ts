@@ -39,7 +39,7 @@ import { findIgnoredHtml } from './routes'
 import { vendorModules } from './vendor'
 import { LocalPackages } from './local-packages'
 import { contentTypes } from './content-types'
-import { browserLogPath, browserLogScript, createBrowserLogPrinter, readBrowserLog } from './browser-log'
+import { browserLogPath, browserLogScript, createBrowserLogPrinter, receiveBrowserLog } from './browser-log'
 
 // Stable identities for vendoring; these URLs are loaded from disk, never fetched.
 const localPackagePrefix = 'https://local.devjar.invalid/_jar/local'
@@ -431,10 +431,7 @@ export async function startDevServer(options: DevServerOptions) {
     try {
       const url = new URL(request.url || '/', `http://${request.headers.host || 'localhost'}`)
       if (request.method === 'POST' && withoutBase(base, url.pathname) === browserLogPath) {
-        const entry = await readBrowserLog(request)
-        if (entry) printBrowserLog(entry, url.origin)
-        response.writeHead(entry ? 204 : 400)
-        response.end()
+        await receiveBrowserLog(request, response, printBrowserLog)
         return
       }
       if (request.method !== 'GET' && request.method !== 'HEAD') {
