@@ -40,6 +40,9 @@ reference for the CLI, file routing, and embedded preview API.
   the static site to `dist/`.
 - Keep the implementation browser-compatible. Devjar does not provide a Node
   runtime, server actions, dynamic server routes, or automatic layouts.
+- Pages render into `<div id="__jar">`, not `#root`. Devjar only removes the
+  body margin, and any project CSS overrides it. For a full-height app, style
+  `html, body, #__jar { height: 100%; }`.
 - Never put secrets in project files or browser code.
 
 ## Single-file preview
@@ -53,16 +56,18 @@ reference for the CLI, file routing, and embedded preview API.
 - Keep the document's stylesheets, scripts, and images next to it and reference
   them with relative URLs. Files are served as-is with no build step.
 - Do not put HTML files in `pages/`; use this for standalone HTML instead.
-- When the default port is busy, Devjar uses the next free port and prints
-  its URL; read the URL from the output instead of assuming port 3000.
 
 ## Check your work
 
-- Keep `npx devjar dev` (or `npx devjar report.html`) running while you edit.
-  Browser errors, rejected promises, `console.error` calls, and failed loads
-  print in its terminal as `Browser error on <page>` and similar lines. After a
-  change, load the page once and read that output; fix any errors before
-  reporting the page as done.
+- Keep `npx devjar dev`, or the single-file command such as
+  `npx devjar report.html` or `npx devjar chart.tsx`, running while you edit.
+- When the default port is busy, Devjar uses the next free port. Read the
+  `Local` URL from the output instead of assuming port 3000.
+- Browser errors, rejected promises, `console.error` calls, and failed loads
+  print in the terminal as `Browser error on <page>`, `Browser console.error
+  on <page>`, and `Browser failed to load on <page>`. After a change, load the
+  page once and read that output; fix any errors before reporting the page as
+  done. A failed load usually means a wrong relative path.
 
 ## Embedded Live React Preview
 
