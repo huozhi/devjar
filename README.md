@@ -451,6 +451,7 @@ npx devjar dev examples/basic
 | [SWR](./examples/swr) | Optimistic updates, rollback, and simulated subscriptions |
 | [Personal résumé](./examples/personal) | Edit JSON in a playground, then export the site |
 | [HTML report](./examples/html) | Preview an agent-written HTML folder as-is with `npx devjar examples/html` |
+| [Single file](./examples/single-file) | Preview one React component or Markdown file with `npx devjar examples/single-file/chart.tsx` |
 
 <details>
 <summary>Export the personal website without its playground</summary>

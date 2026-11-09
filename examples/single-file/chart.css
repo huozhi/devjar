@@ -1,0 +1,7 @@
+main { font: 16px/1.6 system-ui, sans-serif; max-width: 640px; margin: 48px auto; padding: 0 20px; color: #1f2328; }
+h1 { font-size: 24px; }
+.chart { display: flex; align-items: flex-end; gap: 8px; height: 180px; padding-top: 24px; border-bottom: 1px solid #d0d7de; }
+.bar { flex: 1; position: relative; border: 0; border-radius: 4px 4px 0 0; background: #9db8ef; cursor: pointer; }
+.bar.active { background: #2f6fde; }
+.bar span { position: absolute; top: -22px; left: 0; right: 0; font-size: 12px; color: #6b7280; }
+p { color: #6b7280; }

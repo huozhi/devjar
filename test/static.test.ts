@@ -4,6 +4,7 @@ import { mkdtemp, mkdir, realpath, rm, symlink, writeFile } from 'node:fs/promis
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createServer } from 'node:net'
+import { pageEntry } from '../src/cli/entry'
 import { startStaticServer, staticTarget } from '../src/cli/static'
 
 async function fixture(files: Record<string, string>) {
@@ -18,6 +19,7 @@ async function fixture(files: Record<string, string>) {
 test('resolves HTML files and HTML folders, but not projects', async () => {
   const root = await fixture({
     'output/report.html': '<h1>Report</h1>',
+    'output/notes.md': '# Notes',
     'output/notes.txt': 'Notes',
     'nested/v1/index.html': '<h1>v1</h1>',
     'project/pages/index.tsx': '',
@@ -32,6 +34,8 @@ test('resolves HTML files and HTML folders, but not projects', async () => {
     // HTML in pages/ is reported so dev and build can point to the right command.
     expect(await findIgnoredHtml(join(root, 'project'))).toEqual(['pages/report.html'])
     for (const path of ['project', 'empty', 'missing']) expect(await staticTarget(join(root, path))).toBeUndefined()
+    // Markdown next to HTML is previewed as a page; other files are refused.
+    expect(await pageEntry(join(root, 'output/notes.md'))).toEqual({ root: join(root, 'output'), entry: 'notes.md' })
     await expect(staticTarget(join(root, 'output/notes.txt'))).rejects.toThrow('Pass an .html, .tsx, .jsx, or .md file')
   } finally {
     await rm(root, { recursive: true, force: true })

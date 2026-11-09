@@ -1,0 +1,11 @@
+{
+  "title": "Weekly signups",
+  "weeks": [
+    { "label": "Week 1", "signups": 120 },
+    { "label": "Week 2", "signups": 164 },
+    { "label": "Week 3", "signups": 138 },
+    { "label": "Week 4", "signups": 201 },
+    { "label": "Week 5", "signups": 246 },
+    { "label": "Week 6", "signups": 229 }
+  ]
+}
