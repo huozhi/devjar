@@ -3,6 +3,7 @@ import { cp, copyFile, mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/pr
 import { homedir, tmpdir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { brotliCompressSync, constants as zlibConstants, gzipSync } from 'node:zlib'
 import { ensureCompiler } from './compiler-cache'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -94,7 +95,9 @@ try {
   for (const output of result.outputs) {
     console.log(`dist/assets/${basename(output.path)} ${output.size} bytes`)
   }
-  console.log(`dist/assets/${wasmName} ${wasm.byteLength} bytes`)
+  const gzip = gzipSync(wasm, { level: 9 }).byteLength
+  const brotli = brotliCompressSync(wasm, { params: { [zlibConstants.BROTLI_PARAM_QUALITY]: 11 } }).byteLength
+  console.log(`dist/assets/${wasmName} ${wasm.byteLength} bytes (gzip ${gzip}, brotli ${brotli})`)
 } finally {
   await rm(stagingDirectory, { recursive: true, force: true })
 }
