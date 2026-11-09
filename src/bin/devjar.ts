@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises'
 import { isAbsolute, join, relative } from 'node:path'
 import { buildProject, startBuiltServer, startDevServer } from '../cli/index'
 import { pageEntry } from '../cli/entry'
+import { isPortFree } from '../cli/port'
 import { startStaticServer, staticTarget } from '../cli/static'
 import { vercelOutputRoot, writeVercelOutput } from '../cli/vercel-output'
 
@@ -228,6 +229,9 @@ async function run() {
   // Agents often run several previews at once; take the next free port unless
   // one was requested explicitly.
   const startWithFreePort = async (attempt: number): ReturnType<typeof startServer> => {
+    if (port === undefined && attempt < 9 && !await isPortFree(requestedPort + attempt, host || 'localhost')) {
+      return startWithFreePort(attempt + 1)
+    }
     try {
       return await startServer(requestedPort + attempt)
     } catch (error) {
