@@ -138,7 +138,7 @@ async function renderPage(options: MarkdownOptions): Promise<MarkdownPage> {
     const compiled = await compileProjectModule({
       root: options.root, projectPath: 'markdown.css', moduleUrl: () => '',
       resolveModule: () => '', runtimeModuleUrl: '', assetUrl: options.assetUrl,
-      development: options.liveReload, refresh: false, platform: 'server',
+      development: options.liveReload, refresh: false, platform: 'server', stylesheets: 'adopted',
     })
     styles += '\n' + compiled.style
     for (const path of compiled.dependencies) assets.set(path, await readFile(resolve(options.root, path)))

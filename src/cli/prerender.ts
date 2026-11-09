@@ -23,13 +23,19 @@ type PrerenderOptions = {
   runtimeModulePath: string
 }
 
+export type LinkedStylesheet = {
+  projectPath: string
+  href: string
+}
+
 export type PrerenderedRoute = {
   head: string
   markup: string
-  styles: string
+  /** Hashed CSS files the route imports, in import order. */
+  stylesheets: LinkedStylesheet[]
 }
 
-type RenderedRoute = Pick<PrerenderedRoute, 'head' | 'markup'>
+type RenderedRoute = Omit<PrerenderedRoute, 'stylesheets'>
 
 type RenderInput = {
   routes: Record<string, string>
@@ -84,6 +90,7 @@ export async function prerender(options: PrerenderOptions) {
         development: false,
         refresh: false,
         platform: 'server',
+        stylesheets: 'adopted',
       })
       await writeFile(join(temporaryRoot, serverModuleName(projectPath)), compiled.code)
       if (compiled.style !== undefined) projectStyles.set(projectPath, compiled.style)
@@ -127,13 +134,14 @@ export async function prerender(options: PrerenderOptions) {
     const rendered = JSON.parse(await readFile(outputPath, 'utf8')) as Record<string, RenderedRoute>
     const result: Record<string, PrerenderedRoute> = {}
     for (const [route, files] of routeFiles) {
-      const styles: string[] = []
+      const stylesheets: LinkedStylesheet[] = []
       for (const projectPath of files) {
         if (extname(projectPath) === '.css') {
-          styles.push(projectStyles.get(projectPath)!)
+          const style = Buffer.from(projectStyles.get(projectPath)!)
+          stylesheets.push({ projectPath, href: builtAssetUrl(projectPath, style, options.base) })
         }
       }
-      result[route] = { ...rendered[route], styles: styles.join('\n') }
+      result[route] = { ...rendered[route], stylesheets }
     }
     return result
   } finally {

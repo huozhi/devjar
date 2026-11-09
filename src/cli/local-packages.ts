@@ -145,6 +145,7 @@ export class LocalPackages {
       development: this.options.development,
       refresh: false,
       platform,
+      stylesheets: 'adopted',
     })
     return { contents: compiled.code, contentType: 'text/javascript; charset=utf-8' }
   }

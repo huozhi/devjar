@@ -784,7 +784,13 @@ describe('production build', () => {
     expect(runtimeFiles).not.toContain('runtime.js')
     expect(runtimeFiles.some(file => /^runtime-[a-f0-9]{10}\.js$/.test(file))).toBe(false)
     expect(runtimeFiles).not.toContain('transform-assets.json')
-    expect(assetFiles).toHaveLength(2)
+    expect(assetFiles).toHaveLength(3)
+    // Project CSS ships as a hashed file; its module links the file instead of embedding the CSS.
+    const stylesAsset = assetFiles.find(file => /^styles-[a-f0-9]{10}\.css$/.test(file))!
+    expect(await readFile(join(buildRoot, '_jar/assets', stylesAsset), 'utf8')).toContain('accent-color: #84cc16')
+    const stylesModule = await readFile(join(buildRoot, '_jar/modules', `${Buffer.from('styles.css').toString('base64url')}.js`), 'utf8')
+    expect(stylesModule).toContain(`/preview/_jar/assets/${stylesAsset}`)
+    expect(stylesModule).not.toContain('accent-color')
     const tailwindAsset = assetFiles.find(file => /^tailwind-[a-f0-9]{10}\.css$/.test(file))
     expect(tailwindAsset).toBeDefined()
     const tailwindCss = await readFile(join(buildRoot, '_jar/assets', tailwindAsset!), 'utf8')
@@ -942,8 +948,12 @@ export default function Page() {
       expect(document).toContain('<main class="page"><h1>Static now</h1>')
       expect(document).toMatch(/<img src="\/_jar\/assets\/logo-[a-f0-9]{10}\.svg" alt="Logo"/)
       expect(document).toContain('<iframe')
-      expect(document).toMatch(/background-image: url\('\/_jar\/assets\/background-[a-f0-9]{10}\.png'\)/)
-      expect(document).toMatch(/src: url\("\/_jar\/assets\/body-[a-f0-9]{10}\.woff2\?#iefix"\)/)
+      // Route CSS is linked as a hashed file instead of being inlined in every page.
+      expect(document).not.toContain('<style data-devjar-static')
+      const stylesheet = /<link rel="stylesheet" href="(\/_jar\/assets\/styles-[a-f0-9]{10}\.css)" data-devjar-css="styles.css">/.exec(document)!
+      const css = await readFile(join(result.outDir, stylesheet[1]), 'utf8')
+      expect(css).toMatch(/background-image: url\('\/_jar\/assets\/background-[a-f0-9]{10}\.png'\)/)
+      expect(css).toMatch(/src: url\("\/_jar\/assets\/body-[a-f0-9]{10}\.woff2\?#iefix"\)/)
       expect(document).toContain('<div id="__jar"><main class="page">')
       const aboutDocument = await readFile(join(result.outDir, 'guides/about/index.html'), 'utf8')
       expect(aboutDocument).toContain('<title>About title</title>')

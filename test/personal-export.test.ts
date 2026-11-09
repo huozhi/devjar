@@ -53,7 +53,9 @@ test('personal example exports saved JSON edits without its playground', async (
     expect(html).toContain('<h1>Casey Testerson</h1>')
     expect(html).toContain('<title>Casey Testerson</title>')
     expect(html).toContain(content.intro)
-    expect(html).toContain(await readFile(join(root, 'styles.css'), 'utf8'))
+    // The page links its stylesheet, which the export serves.
+    const stylesheet = /<link rel="stylesheet" href="([^"]+)" data-devjar-css="styles.css">/.exec(html)![1]
+    expect(await (await fetch(origin + stylesheet)).text()).toBe(await readFile(join(root, 'styles.css'), 'utf8'))
     expect(html).not.toContain('href="/playground"')
     expect(html).not.toContain(cdn.url.origin)
     const missing = await fetch(`${origin}/playground`)
