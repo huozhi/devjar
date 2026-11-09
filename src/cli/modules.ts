@@ -3,7 +3,7 @@ import { createJsonModule } from '../shared/json'
 import { createHash } from 'node:crypto'
 import { readFile, realpath, stat } from 'node:fs/promises'
 import { basename, extname, relative, resolve, sep } from 'node:path'
-import { init, parse } from 'es-module-lexer'
+import { init, parse } from 'es-module-lexer/minimal'
 import { minifySync } from 'oxc-minify'
 import { transformSync } from 'oxc-transform'
 import { sourceExtensions, withBase } from '../shared/project'
@@ -121,7 +121,7 @@ async function localImports(projectPath: string, source: string) {
   const error = getTransformErrorMessage(output.errors)
   if (error) throw new Error(error)
 
-  await init
+  await init()
   const [parsedImports] = parse(output.code)
   const imports = new Set<string>()
   for (const imported of parsedImports) {
@@ -194,7 +194,7 @@ export async function usesDevjarRuntime(root: string, projectPaths: Set<string>)
     const error = getTransformErrorMessage(output.errors)
     if (error) return true
 
-    await init
+    await init()
     const [imports] = parse(output.code)
     if (imports.some(imported => imported.n === 'devjar')) return true
   }
@@ -214,7 +214,7 @@ export async function collectPackageImports(root: string, projectPaths: Set<stri
     const error = getTransformErrorMessage(output.errors)
     if (error) throw new Error(error)
 
-    await init
+    await init()
     const [imports] = parse(output.code)
     for (const imported of imports) {
       if (imported.n
@@ -427,7 +427,7 @@ export async function compileProjectModule(
   const error = getTransformErrorMessage(output.errors)
   if (error) throw new Error(error)
 
-  await init
+  await init()
   const [imports, exports] = parse(output.code)
   const replacements: Array<{ start: number, end: number, value: string }> = []
   const localDependencies: string[] = []

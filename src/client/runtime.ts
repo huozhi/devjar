@@ -1,4 +1,4 @@
-import { init, parse } from 'es-module-lexer'
+import { init, parse } from 'es-module-lexer/minimal'
 import { isTextImport } from '../shared/text'
 import { sourceExtensions } from '../shared/project'
 import {
@@ -77,7 +77,7 @@ export function createPreviewRuntime(iframe: HTMLIFrameElement, {
       }
       const manifest = createIframeRouteManifest(files)
 
-      await init
+      await init()
       if (!isCurrent(loadId)) return
       const localFiles = new Map(Object.keys(files).map(path => [normalizeProjectPath(path), getModuleKey(path)]))
       const filenames = new Map(Object.keys(files).map(path => [getModuleKey(path), path]))

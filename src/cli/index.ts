@@ -216,7 +216,7 @@ function html(options: HtmlOptions) {
     'react-dom/client': options.resolveModule('react-dom/client'),
     ...(options.devjarRuntime
       ? {
-          'es-module-lexer': options.resolveRuntimeModule('es-module-lexer'),
+          'es-module-lexer/minimal': options.resolveRuntimeModule('es-module-lexer/minimal'),
           devjar: options.runtimeUrl,
         }
       : {}),
@@ -898,7 +898,7 @@ async function buildWithPackages(options: BuildOptions, localPackages: LocalPack
   const sourceUrls = new Set([
     ...htmlImports.map(resolveSourceModule),
     ...[...packageImports].map(resolveSourceModule),
-    ...(devjarRuntime ? [resolveSourceRuntimeModule('es-module-lexer')] : []),
+    ...(devjarRuntime ? [resolveSourceRuntimeModule('es-module-lexer/minimal')] : []),
   ])
   const vendored = await vendorModules({
     load: async url => {

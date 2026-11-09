@@ -3,7 +3,7 @@ import { cp, mkdir, mkdtemp, readFile, readdir, realpath, rename, rm, writeFile 
 import { createServer as createHttpServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
-import { init, parse } from 'es-module-lexer'
+import { init, parse } from 'es-module-lexer/minimal'
 import {
   buildProject,
   loadRouteManifest,
@@ -54,7 +54,7 @@ async function readChangeEvent(
 
 describe('project loading', () => {
   test('keeps parent-directory imports in the local module graph', async () => {
-    await init
+    await init()
     const files = {
       'pages/index.tsx': `import { Card } from '../components/card'; import '../styles.css'`,
       'components/card.tsx': 'export function Card() {}',
@@ -223,7 +223,7 @@ export function projectComponent() { return environment }
       expect(entry).not.toContain('modules.example.test')
       expect(document).not.toContain('http://')
       expect(document).not.toContain('https://')
-      expect(requests.some(path => path.includes('/es-module-lexer@1.6.0'))).toBe(true)
+      expect(requests.some(path => path.includes('/es-module-lexer@3.0.4'))).toBe(true)
       expect(requests.some(path => path.includes('/es-module-lexer@9.9.9'))).toBe(false)
       expect(requests.some(path => path.includes('/react@19.3.0'))).toBe(true)
       expect(requests.some(path => path.includes('/react@18.3.0'))).toBe(false)
@@ -538,7 +538,7 @@ describe('dev server', () => {
     const sharedModule = await (await fetch(`${base}/_jar/module?path=components%2Fshell.tsx`)).text()
     expect(sharedModule).not.toContain('ReactNode')
     const client = await (await fetch(`${base}/_jar/client.js`)).text()
-    await init
+    await init()
     expect(() => parse(client)).not.toThrow()
     expect(client).toContain('/_jar/routes.json')
     expect(client).toContain('modulepreload')

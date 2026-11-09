@@ -3,7 +3,7 @@ import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { init, parse } from 'es-module-lexer'
+import { init, parse } from 'es-module-lexer/minimal'
 import { vendorModules } from '../src/cli/vendor'
 
 describe('production dependency vendoring', () => {
@@ -73,7 +73,7 @@ export const value = 1`,
       const sourceFiles = files.filter(file => file.endsWith('.js') || file.endsWith('.css'))
       const sources = await Promise.all(sourceFiles
         .map(file => readFile(join(output, revisions[0], file), 'utf8')))
-      await init
+      await init()
       for (const [index, source] of sources.entries()) {
         if (sourceFiles[index].endsWith('.js')) expect(() => parse(source)).not.toThrow()
       }

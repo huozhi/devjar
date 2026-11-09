@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test'
 import { mkdtemp, mkdir, writeFile, rm, realpath, symlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { init, parse } from 'es-module-lexer'
+import { init, parse } from 'es-module-lexer/minimal'
 import { linkModules } from '../src/client/core'
 import { collectProjectFiles, compileProjectModule, DevModuleGraph } from '../src/cli/modules'
 import { textModuleSuffix, isTextImport } from '../src/shared/text'
@@ -21,7 +21,7 @@ function compile(root: string, projectPath: string, development: boolean, platfo
 }
 
 test('text import attributes support static and dynamic imports', async () => {
-  await init
+  await init()
   for (const source of [
     `import text from './file' with { type: 'text' };`,
     `export { default as text } from './file' with { "type": "text", };`,

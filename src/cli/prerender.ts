@@ -111,7 +111,7 @@ export async function prerender(options: PrerenderOptions) {
       imports: {
         react: resolveModule('react'),
         'react/jsx-runtime': resolveModule('react/jsx-runtime'),
-        'es-module-lexer': resolveRuntimeModule('es-module-lexer'),
+        'es-module-lexer/minimal': resolveRuntimeModule('es-module-lexer/minimal'),
       },
       outputPath,
     }

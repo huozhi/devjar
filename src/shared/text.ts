@@ -1,4 +1,4 @@
-import type { ImportSpecifier } from 'es-module-lexer'
+import type { ImportSpecifier } from 'es-module-lexer/minimal'
 
 export const textModuleSuffix = '?devjar-text'
 

@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { extname, join } from 'node:path'
-import { init, parse } from 'es-module-lexer'
+import { init, parse } from 'es-module-lexer/minimal'
 import { withBase } from '../shared/project'
 
 type Replacement = {
@@ -185,7 +185,7 @@ export async function vendorModules(options: VendorModulesOptions): Promise<Vend
       const references: Array<{ target: string, replacement: Replacement }> = []
 
       if (isJavaScript(resource)) {
-        await init
+        await init()
         const [imports] = parse(source)
         for (const imported of imports) {
           // Minification can turn import('url') into import(`url`). The lexer

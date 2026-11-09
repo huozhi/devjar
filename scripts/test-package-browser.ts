@@ -452,11 +452,15 @@ export default function Playground() {
   assert.deepEqual(previewErrors, [])
   // A separate development React root makes Strict Mode's effect replay real;
   // production React in the exported website intentionally does not replay it.
-  const strictFiles = { 'pages/index.js': 'export default function Page() { return "Strict preview" }' }
+  // The relative import makes the lexer decode a specifier under a CSP that blocks eval.
+  const strictFiles = {
+    'pages/index.js': 'import { label } from "./label.js"\nexport default function Page() { return label }',
+    'pages/label.js': 'export const label = "Strict preview"',
+  }
   const strictHtml = `<div id="root"></div><script type="importmap">${JSON.stringify({ imports: {
     react: 'https://esm.sh/react@19.2.0?dev',
     'react/jsx-runtime': 'https://esm.sh/react@19.2.0/jsx-runtime?dev',
-    'es-module-lexer': '/lexer.js',
+    'es-module-lexer/minimal': '/lexer.js',
     'react-dom/client': 'https://esm.sh/react-dom@19.2.0/client?dev&deps=react@19.2.0',
   } })}</script><script type="module">
 import { createElement, StrictMode, useEffect, useState } from 'react'
@@ -497,8 +501,11 @@ window.showHook = () => root.render(createElement(StrictMode, null, createElemen
 </script>`
   strictServer = Bun.serve({ hostname: '127.0.0.1', port: 0, fetch(request) {
     const path = new URL(request.url).pathname
-    if (path === '/') return new Response(strictHtml, { headers: { 'content-type': 'text/html' } })
-    if (path === '/lexer.js') return new Response(Bun.file(join(projectRoot, 'node_modules/es-module-lexer/dist/lexer.js')))
+    if (path === '/') return new Response(strictHtml, { headers: {
+      'content-type': 'text/html',
+      'content-security-policy': "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://esm.sh blob: data:",
+    } })
+    if (path === '/lexer.js') return new Response(Bun.file(join(projectRoot, 'node_modules/es-module-lexer/dist/lexer.minimal.js')))
     return new Response(Bun.file(join(projectRoot, 'node_modules/devjar/dist', path)))
   } })
   const strictPage = await browser.newPage()
@@ -532,7 +539,7 @@ window.showHook = () => root.render(createElement(StrictMode, null, createElemen
   assert.equal(await strictPage.evaluate(() => (window as any).effectCleanups), 2)
   assert.deepEqual(strictErrors, [])
   await strictPage.close()
-  console.log('Packaged static export and live DevJar compilation, JSON/text imports, Refresh state preservation, and error recovery passed without isolation headers.')
+  console.log('Packaged static export and live DevJar compilation, JSON/text imports, Refresh state preservation, and error recovery passed without isolation headers or eval.')
 
 } finally {
   await browser?.close()
