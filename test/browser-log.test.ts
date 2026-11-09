@@ -34,7 +34,7 @@ test('injects the forwarder before any page script', () => {
   ]) expect(withEarlyScript(document, 'S')).toBe(expected)
 })
 
-test('dev servers accept forwarded browser errors', async () => {
+test('dev servers accept browser errors only from their own pages', async () => {
   const root = await realpath(await mkdtemp(join(tmpdir(), 'devjar-browser-log-')))
   const errors = spyOn(console, 'error').mockImplementation(() => {})
   let dev: Awaited<ReturnType<typeof startDevServer>> | undefined
@@ -52,10 +52,18 @@ test('dev servers accept forwarded browser errors', async () => {
       const page = await (await fetch(origin + (endpoint === '/_jar/log' ? '/' : '/preview/'))).text()
       expect(page).toContain(`const endpoint = ${JSON.stringify(endpoint)}`)
       const message = `Error: broken ${endpoint}\n    at ${origin}/app.js:1:1`
-      const sent = await fetch(origin + endpoint, { method: 'POST', body: JSON.stringify({ type: 'error', message, page: '/' }) })
+      // Escape sequences cannot rewrite the terminal.
+      const body = JSON.stringify({ type: 'error', message: `\u001b[2J${message}\u0007`, page: '/\u001b]0;title' })
+      const sent = await fetch(origin + endpoint, { method: 'POST', headers: { Origin: origin }, body })
       expect(sent.status).toBe(204)
-      expect(errors).toHaveBeenLastCalledWith(`Browser error on /\n  Error: broken ${endpoint}\n      at /app.js:1:1`)
+      expect(errors).toHaveBeenLastCalledWith(`Browser error on /]0;title\n  [2JError: broken ${endpoint}\n      at /app.js:1:1`)
       expect((await fetch(origin + endpoint, { method: 'POST', body: '{"type":"other"}' })).status).toBe(400)
+      // Another website, or a rebound DNS name pointing at the server, is refused.
+      const calls = errors.mock.calls.length
+      for (const headers of [{ Origin: 'https://evil.example' }, { Origin: 'http://evil.example', Host: 'evil.example' }]) {
+        expect((await fetch(origin + endpoint, { method: 'POST', headers, body })).status).toBe(403)
+      }
+      expect(errors.mock.calls.length).toBe(calls)
     }
   } finally {
     errors.mockRestore()

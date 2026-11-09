@@ -3,7 +3,7 @@ import { readFile, readdir, realpath, stat } from 'node:fs/promises'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { basename, dirname, extname, join, relative, resolve, sep } from 'node:path'
-import { browserLogPath, browserLogScript, createBrowserLogPrinter, readBrowserLog, withEarlyScript } from './browser-log'
+import { browserLogPath, browserLogScript, createBrowserLogPrinter, receiveBrowserLog, withEarlyScript } from './browser-log'
 import { contentTypes } from './content-types'
 
 // Serves HTML documents and their files as-is, without pages/ routing. This is
@@ -166,10 +166,7 @@ export async function startStaticServer(options: StaticServerOptions) {
 
   async function handle(request: IncomingMessage, response: ServerResponse) {
     if (request.method === 'POST' && request.url === browserLogPath) {
-      const entry = await readBrowserLog(request)
-      if (entry) printBrowserLog(entry, `http://${request.headers.host}`)
-      response.writeHead(entry ? 204 : 400)
-      response.end()
+      await receiveBrowserLog(request, response, printBrowserLog)
       return
     }
     if (request.method !== 'GET' && request.method !== 'HEAD') {

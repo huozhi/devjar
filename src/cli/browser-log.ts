@@ -1,4 +1,5 @@
-import type { IncomingMessage } from 'node:http'
+import type { IncomingMessage, ServerResponse } from 'node:http'
+import { isIP } from 'node:net'
 
 // Forwards browser errors to the dev server's terminal, where people and
 // agents running `devjar dev` already look, so a broken page is visible
@@ -73,7 +74,7 @@ export function withEarlyScript(document: string, script: string) {
   return document.slice(0, end) + script + document.slice(end)
 }
 
-export async function readBrowserLog(request: IncomingMessage): Promise<BrowserLogEntry | undefined> {
+async function readBrowserLog(request: IncomingMessage): Promise<BrowserLogEntry | undefined> {
   const chunks: Buffer[] = []
   let size = 0
   for await (const chunk of request) {
@@ -88,6 +89,46 @@ export async function readBrowserLog(request: IncomingMessage): Promise<BrowserL
   } catch {
     return
   }
+}
+
+// Any website open in the same browser can POST to a local dev server. Only
+// accept entries from the dev server's own pages, and refuse hostnames that
+// are not local addresses, which a DNS rebinding attack would use.
+function isOwnPage(request: IncomingMessage) {
+  const host = request.headers.host
+  if (!host) return false
+  let hostname: string
+  try {
+    hostname = new URL(`http://${host}`).hostname.replace(/^\[|\]$/g, '')
+  } catch {
+    return false
+  }
+  if (hostname !== 'localhost' && !hostname.endsWith('.localhost') && !isIP(hostname)) return false
+  const origin = request.headers.origin
+  return origin === undefined || origin === `http://${host}`
+}
+
+/** Handles a POST to the browser log endpoint of a dev server. */
+export async function receiveBrowserLog(
+  request: IncomingMessage,
+  response: ServerResponse,
+  print: (entry: BrowserLogEntry, origin: string) => void,
+) {
+  if (!isOwnPage(request)) {
+    response.writeHead(403)
+    response.end()
+    return
+  }
+  const entry = await readBrowserLog(request)
+  if (entry) print(entry, `http://${request.headers.host}`)
+  response.writeHead(entry ? 204 : 400)
+  response.end()
+}
+
+// Keep line breaks and tabs; drop escape sequences and other control
+// characters that could rewrite or hide terminal output.
+function printable(value: string) {
+  return value.replace(/[\u0000-\u0008\u000b-\u001f\u007f-\u009f]/g, '')
 }
 
 const labels: Record<BrowserLogEntry['type'], string> = {
@@ -126,9 +167,10 @@ function collapseExternalFrames(message: string) {
 export function createBrowserLogPrinter(write: (line: string) => void) {
   const recent = new Map<string, { time: number, repeats: number }>()
   return (entry: BrowserLogEntry, origin: string) => {
-    const message = collapseExternalFrames(entry.message.split(origin).join('').trim())
+    const message = collapseExternalFrames(printable(entry.message).split(origin).join('').trim())
+    const page = printable(entry.page)
     const firstLine = message.split('\n').find(line => line.trim())?.trim() || ''
-    const key = `${entry.page}\n${firstLine}`
+    const key = `${page}\n${firstLine}`
     const now = Date.now()
     const previous = recent.get(key)
     if (previous && now - previous.time < repeatWindowMs) {
@@ -139,6 +181,6 @@ export function createBrowserLogPrinter(write: (line: string) => void) {
     recent.set(key, { time: now, repeats: 0 })
     const repeated = previous?.repeats ? ` (repeated ${previous.repeats} more times)` : ''
     const body = entry.type === 'resource' ? message.replace(/^Failed to load /, '') : message
-    write(`${labels[entry.type]} on ${entry.page}${repeated}\n${body.replace(/^/gm, '  ')}`)
+    write(`${labels[entry.type]} on ${page}${repeated}\n${body.replace(/^/gm, '  ')}`)
   }
 }
