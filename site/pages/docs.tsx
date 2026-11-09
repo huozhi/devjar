@@ -191,6 +191,26 @@ function Preview({ files }) {
 npx devjar build
 npx devjar start`}</Code>
               </div>
+              <p>
+                While the server runs, browser errors, rejected promises, <code>console.error</code> calls,
+                and failed loads print in the terminal, so you or an agent can see a broken page without opening developer tools.
+              </p>
+            </div>
+
+            <div id="single-file" className="section docs-anchor">
+              <h3>Preview a single file<HeadingLink hash="single-file" /></h3>
+              <p>Open one file without creating <code>pages/</code>, such as a report an agent just wrote.</p>
+              <div className="code-block" aria-label="Single-file preview commands">
+                <Code theme={taffy.light} lang="bash" controls={false} fontSize={13}>{`npx devjar report.html   # HTML file and its folder, as-is
+npx devjar ./output      # folder of HTML files
+npx devjar chart.tsx     # React component at /
+npx devjar notes.md      # Markdown page at /`}</Code>
+              </div>
+              <p>
+                HTML is served without a build step, and files next to it keep their relative URLs.
+                A folder without <code>index.html</code> lists its HTML files, newest first.
+                Components and Markdown render like pages, with the same imports and live updates.
+              </p>
             </div>
 
             <div id="routes" className="section docs-anchor">
@@ -247,6 +267,19 @@ import '../styles.css'`}</Code>
                 JSON imports as data. <code>type: 'text'</code> imports as a string.
                 Images, fonts, media, and PDFs import as URLs.
               </p>
+            </div>
+
+            <div id="page-shell" className="section docs-anchor">
+              <h3>Style the page<HeadingLink hash="page-shell" /></h3>
+              <p>
+                Pages render into <code>{'<div id="__jar">'}</code>. The only base style removes the body margin,
+                and any rule in your CSS overrides it.
+              </p>
+              <div className="code-block" aria-label="Page shell styles">
+                <Code theme={taffy.light} lang="css" controls={false} fontSize={13}>{`html, body, #__jar { height: 100%; }  /* full-height app */
+body { margin: 8px; }                 /* browser default margin */
+#__jar { display: contents; }         /* body layout applies to the page */`}</Code>
+              </div>
             </div>
 
             <div id="public-files" className="section docs-anchor">
@@ -365,7 +398,10 @@ npx devjar start`}</Code>
 
             <details id="cli-reference" className="section docs-details">
               <summary>All commands and options<HeadingLink hash="cli-reference" /></summary>
-              <p>Usage: <code>npx devjar [command] [root] [options]</code>. <code>root</code> defaults to the current folder.</p>
+              <p>
+                Usage: <code>npx devjar [command] [root] [options]</code>. <code>root</code> defaults to the current folder.
+                Pass a single <code>.html</code>, <code>.tsx</code>, <code>.jsx</code>, or <code>.md</code> file, or a folder without <code>pages/</code>, to preview it directly.
+              </p>
               <div className="docs-table-wrap">
                 <table>
                   <thead><tr><th>Command</th><th>What it does</th></tr></thead>
@@ -382,7 +418,7 @@ npx devjar start`}</Code>
                   <thead><tr><th>Option</th><th>Commands</th><th>Default and purpose</th></tr></thead>
                   <tbody>
                     <tr><td><code>--host &lt;host&gt;</code></td><td>dev, start</td><td><code>localhost</code>; use <code>0.0.0.0</code> for network access.</td></tr>
-                    <tr><td><code>--port &lt;port&gt;</code>, <code>-p</code></td><td>dev, start</td><td><code>3000</code>; port to listen on.</td></tr>
+                    <tr><td><code>--port &lt;port&gt;</code>, <code>-p</code></td><td>dev, start</td><td><code>3000</code>; port to listen on. Without it, a busy port moves to the next free one.</td></tr>
                     <tr><td><code>--cdn &lt;url&gt;</code></td><td>dev, build</td><td><code>https://esm.sh</code>; ESM module CDN.</td></tr>
                     <tr><td><code>--exclude &lt;path&gt;</code></td><td>build</td><td>Leave a page or folder out. Repeatable.</td></tr>
                     <tr><td><code>--math</code></td><td>dev, build</td><td>Render LaTeX math in Markdown pages.</td></tr>
