@@ -429,13 +429,21 @@ describe('dev server', () => {
       await writeFile(join(projectRoot, 'pages/index.tsx'), 'export default function Page() { return null }')
       const icons = ['ico', 'png', 'jpg', 'jpeg', 'svg', 'gif', 'webp'].map(ext => `icon.${ext}`)
       const images = ['png', 'jpg', 'jpeg', 'gif', 'webp'].map(ext => `opengraph-image.${ext}`)
-      for (const filename of [...icons, ...images]) {
+      const media = [
+        ['opengraph-video.mp4', 'og:video', 'video/mp4'],
+        ['opengraph-video.webm', 'og:video', 'video/webm'],
+        ['opengraph-audio.mp3', 'og:audio', 'audio/mpeg'],
+        ['opengraph-audio.ogg', 'og:audio', 'audio/ogg'],
+        ['opengraph-audio.wav', 'og:audio', 'audio/wav'],
+      ]
+      for (const filename of [...icons, ...images, ...media.map(([filename]) => filename)]) {
         await writeFile(join(projectRoot, filename), filename)
       }
       await writeFile(join(projectRoot, 'public/icon.svg'), 'public icon')
       await writeFile(join(projectRoot, 'opengraph-image.svg'), '<svg/>')
       await writeFile(join(projectRoot, 'icon.txt'), 'unsupported')
       await mkdir(join(projectRoot, 'opengraph-image.ico'))
+      await writeFile(join(projectRoot, 'opengraph-video.mov'), 'unsupported')
       server = await startDevServer({ root: projectRoot, host: '127.0.0.1', port: 0, cdn: undefined, base: '/docs/' })
       const base = `http://${server.host}:${server.port}/docs`
       for (const route of ['/', '/nested/page']) {
@@ -446,9 +454,13 @@ describe('dev server', () => {
           expect(document).toContain(`property="og:image" content="http://localhost:3000/docs/${filename}"`)
           expect(document).toContain(`name="twitter:image" content="http://localhost:3000/docs/${filename}"`)
         }
+        for (const [filename, property, type] of media) {
+          expect(document).toContain(`<meta property="${property}" content="http://localhost:3000/docs/${filename}"><meta property="${property}:type" content="${type}">`)
+        }
         expect(document).not.toContain('opengraph-image.svg')
         expect(document).not.toContain('icon.txt')
         expect(document).not.toContain('opengraph-image.ico')
+        expect(document).not.toContain('opengraph-video.mov')
       }
       for (const filename of [...icons, ...images]) {
         const response = await fetch(`${base}/${filename}`)
