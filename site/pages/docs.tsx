@@ -330,10 +330,11 @@ pages/
               </div>
               <p>
                 Links then show a large image on X, Slack, Discord, LinkedIn, Facebook, iMessage, WhatsApp, and Telegram.
-                Use a 1200 × 630 image.
+                Use a 1200 × 630 image. Support for playing video and audio in previews varies by platform,
+                so keep an <code>opengraph-image</code> as the fallback.
               </p>
               <p>
-                Build with <code>--origin</code> set to your site URL, so image, video, and audio links are absolute.
+                Image, video, and audio links are absolute. Build with <code>--origin</code> set to your site URL so they point to your site.
                 Without it, Devjar uses your Vercel URL or <code>http://localhost:3000</code>.
               </p>
               <p>Set each page’s title and description in the page itself:</p>
