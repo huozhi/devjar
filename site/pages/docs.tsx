@@ -2,6 +2,7 @@ import { Code } from '@sugar-high/react'
 import { taffy } from '@sugar-high/react/themes'
 import { Footer } from '../components/footer'
 import { HomeLink } from '../components/home-link'
+import { MarkdownThemes } from '../components/markdown-themes'
 import { SiteNav } from '../components/site-nav'
 import '../styles.css'
 import '../docs.css'
@@ -267,7 +268,8 @@ export const defaultParams = { locale: 'en' }`}</Code>
                 <Code theme={taffy.light} lang="bash" controls={false} fontSize={13}>{`npx devjar dev --theme editorial
 npx devjar build --theme editorial --math`}</Code>
               </div>
-              <p><a href="/markdown">Compare themes</a> · <a href={markdownDocs}>Markdown guide</a></p>
+              <MarkdownThemes />
+              <p>See the <a href={markdownDocs}>Markdown guide</a> for frontmatter, custom styles, and math.</p>
             </div>
 
             <div id="tailwind" className="section docs-anchor">

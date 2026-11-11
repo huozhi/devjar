@@ -208,3 +208,31 @@
   .feature-index { grid-template-columns: 1fr; gap: 32px; }
   .feature-group li { grid-template-columns: 1fr; }
 }
+
+.docs-page .markdown-themes { margin: 20px 0; }
+.docs-page .markdown-themes-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+.docs-page .markdown-themes-tabs button {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 5px 12px;
+  background: transparent;
+  color: #777b6e;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.docs-page .markdown-themes-tabs button:hover { color: #292d24; }
+.docs-page .markdown-themes-tabs button[aria-selected="true"] { border-color: #e2dfd5; background: #fff; color: #292d24; }
+.docs-page .markdown-themes-tabs button:focus-visible { outline: 2px solid #586349; outline-offset: 2px; }
+.docs-page .markdown-themes iframe {
+  display: block;
+  width: 100%;
+  height: 420px;
+  border: 1px solid #e2dfd5;
+  border-radius: 8px;
+  background: #fff;
+}
+.docs-page .section .markdown-themes-caption { margin: 10px 0 0; font-size: 14px; }
+@media (max-width: 640px) {
+  .docs-page .markdown-themes iframe { height: 360px; }
+}
