@@ -49,6 +49,10 @@ jobs:
   browser:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    container:
+      # Keep this version aligned with Playwright in pnpm-lock.yaml.
+      image: mcr.microsoft.com/playwright:v1.62.1-noble
+      options: --ipc=host
 
     name: Packaged browser
     steps:
@@ -72,9 +76,6 @@ jobs:
 
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: Install browsers
-        run: pnpm exec playwright install --with-deps chromium webkit
 
       - name: Build Package
         run: pnpm run build
