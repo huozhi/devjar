@@ -109,11 +109,21 @@ try {
   await writeFile(join(projectRoot, 'assets/logo.svg'), '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><circle cx="4" cy="4" r="4" /></svg>')
   await writeFile(join(projectRoot, 'pages/index.tsx'), `import logo from '../assets/logo.svg'
 export default function Page() {
-  return <><title>Package home</title><main><h1>Home</h1><img src={logo} alt="Logo" /><a href="/docs/start">Docs</a><a href="/article">Article</a><a href="/preview/mini/">Mini site</a></main></>
+  return <><title>Package home</title><main><h1>Home</h1><img src={logo} alt="Logo" /><a href="/docs/start">Docs</a><a href="/article">Article</a><a href="/lessons/">Lessons</a><a href="/preview/mini/">Mini site</a></main></>
 }`)
   await writeFile(join(projectRoot, 'pages/docs/start.tsx'), `export default function Page() {
   return <><title>Package docs</title><main><h1>Docs</h1><a href="/">Home</a></main></>
 }`)
+  await mkdir(join(projectRoot, 'pages/lessons/[locale]'), { recursive: true })
+  await writeFile(join(projectRoot, 'pages/lessons/index.tsx'), `export const defaultParams = { locale: 'en' }`)
+  await writeFile(join(projectRoot, 'pages/lessons/[locale]/[lesson].tsx'), `import { useEffect } from 'react'
+export function paths() { return [{ locale: 'en', lesson: 'intro' }, { locale: 'zh', lesson: '开始 100%' }] }
+export default function Lesson({ params }) {
+  useEffect(() => { globalThis.lessonMounts = (globalThis.lessonMounts || 0) + 1 }, [])
+  return <><title>{params.locale + ' lesson'}</title><h1>{params.locale + ': ' + params.lesson}</h1><a href="/lessons/zh/开始%20100%25/">中文</a><a href="/">Home</a></>
+}`)
+  // zh has no intro, so its entrance chooses a different existing child.
+  await writeFile(join(projectRoot, 'pages/lessons/[locale]/index.tsx'), `export function defaultParams({ params }) { return { lesson: params.locale === 'en' ? 'intro' : '开始 100%' } }`)
   await writeFile(join(projectRoot, 'pages/article.md'), '# Article\n\n[Home](/)\n\nEnergy is $E = mc^2$.\n')
   await writeFile(join(projectRoot, 'markdown.css'), ':root { --md-accent: rgb(120, 40, 90); }')
   await mkdir(join(projectRoot, 'public/mini/next'), { recursive: true })
@@ -198,6 +208,35 @@ export default function Page() {
   assert.equal(await page.title(), 'Next stop')
   assert.equal(await page.locator('h1').textContent(), 'Next stop')
   await page.goto(baseUrl)
+  await assertPage(page, 'Home', 'Package home')
+
+  // One real browser journey covers generated params, default entrances,
+  // client history replacement, and direct prerendered hydration.
+  const documentMarker = await page.evaluate(() => {
+    const value = Math.random().toString()
+    ;(globalThis as typeof globalThis & { routeMarker: string }).routeMarker = value
+    return value
+  })
+  await page.locator('a[href="/lessons/"]').click()
+  await page.waitForURL(`${baseUrl}lessons/en/intro/`)
+  await assertPage(page, 'en: intro', 'en lesson')
+  assert.equal(await page.evaluate(() => (globalThis as typeof globalThis & { routeMarker: string }).routeMarker), documentMarker)
+  await page.waitForFunction('globalThis.lessonMounts === 1')
+  await page.locator('a').filter({ hasText: '中文' }).click()
+  await page.waitForURL(`${baseUrl}lessons/zh/%E5%BC%80%E5%A7%8B%20100%25/`)
+  await assertPage(page, 'zh: 开始 100%', 'zh lesson')
+  // Lessons share a page module, so React updates params without remounting.
+  assert.equal(await page.evaluate('globalThis.lessonMounts'), 1)
+  await page.goBack()
+  await page.waitForURL(`${baseUrl}lessons/en/intro/`)
+  await assertPage(page, 'en: intro', 'en lesson')
+  const lessonResponse = await page.goto(`${baseUrl}lessons/en/intro/`)
+  assert.equal(lessonResponse?.status(), 200)
+  assert((await lessonResponse!.text()).includes('<h1>en: intro</h1>'))
+  await page.waitForFunction('globalThis.__devjarRenderCount > 0')
+  await assertPage(page, 'en: intro', 'en lesson')
+  await page.locator('a[href="/"]').click()
+  await page.waitForURL(baseUrl)
   await assertPage(page, 'Home', 'Package home')
 
   // Markdown uses a document navigation and needs no React runtime.

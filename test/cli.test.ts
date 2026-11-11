@@ -95,7 +95,7 @@ describe('project loading', () => {
 
   test('loads a route manifest with module entries', async () => {
     const manifest = await loadTestRouteManifest(root)
-    expect(manifest.version).toBe(3)
+    expect(manifest.version).toBe(4)
     expect(manifest.base).toBe('/')
     expect(manifest.revision).toBe(7)
     expect(manifest.routes['/']).toEqual({
@@ -745,7 +745,7 @@ describe('production build', () => {
   test('omits the unused Devjar runtime while writing the static site', async () => {
     const manifest = JSON.parse(await readFile(join(buildRoot, 'manifest.json'), 'utf8'))
     expect(Object.keys(manifest.routes).sort()).toEqual(['/', '/404', '/projects', '/settings'])
-    expect(manifest.version).toBe(3)
+    expect(manifest.version).toBe(4)
     expect(manifest.base).toBe('/preview/')
     expect(manifest.liveReload).toBe(false)
     expect(manifest.routes['/'].module).toMatch(/^\/preview\/_jar\/modules\/.+\.js$/)

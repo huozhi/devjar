@@ -176,6 +176,57 @@ Underscore-prefixed files and folders (such as `pages/_helpers.tsx` or
 They remain importable; `_layout.tsx` has no automatic layout behavior.
 
 <details>
+<summary>Generate pages from data</summary>
+
+A `[name]` segment turns one page file into many pages. Two exports cover it:
+
+- `paths()` in a `[name]` page lists the params to build. Each item becomes a
+  page, and the component receives them as `params`.
+- `defaultParams` in a directory's `index.tsx` names the child to open when
+  someone visits the directory. It is a redirect, not a page.
+
+```tsx
+// pages/[locale]/[lesson].tsx
+export function paths() {
+  return ['en', 'zh'].flatMap(locale =>
+    ['intro', 'examples'].map(lesson => ({ locale, lesson })),
+  )
+}
+
+export default function Lesson({ params }: {
+  params: { locale: string; lesson: string }
+}) {
+  return <h1>{params.locale}: {params.lesson}</h1>
+}
+```
+
+```tsx
+// pages/index.tsx: / opens /en/
+export const defaultParams = { locale: 'en' }
+
+// pages/[locale]/index.tsx: /en/ opens /en/intro/
+export function defaultParams({ params }: { params: { locale: string } }) {
+  return { lesson: params.locale === 'zh' ? 'examples' : 'intro' }
+}
+```
+
+Pages generated from the same file share one component, so moving between
+them updates `params` without remounting. Unlisted params are 404s.
+
+- `paths()` is synchronous; read local JS, TS or JSON data. It runs in Node at
+  build time and in dev whenever that data changes, so module-level code in
+  the page must not need the browser.
+- `defaultParams` supplies one child param. An index either renders a component
+  or exports `defaultParams`, not both. Without an index, the directory URL is a 404.
+- A static segment wins over `[name]` at the same URL. Catch-all segments,
+  optional segments and `[name]` Markdown pages are not supported.
+- Redirects keep the query string. `devjar dev` and `devjar start` send HTTP
+  redirects; builds write a small redirect page. Redirects are left out of the sitemap.
+- Embedded `<DevJar>` previews do not evaluate these exports.
+
+</details>
+
+<details>
 <summary>Write a website in Markdown</summary>
 
 Create `pages/index.md`:

@@ -3,6 +3,7 @@ import { createRoot, hydrateRoot, type Root } from 'react-dom/client'
 import { createHotUpdater } from './hmr'
 import type { HmrChange, RouteEntry, RouteManifest } from './protocol'
 import { restoreScroll } from './scroll'
+import { routeHref } from '../shared/project'
 
 performance.mark('devjar:client-start')
 
@@ -83,6 +84,10 @@ function withBase(path: string) {
 }
 
 function routeFromPathname(pathname: string) {
+  try {
+    if (/%2f|%5c/i.test(pathname)) return '/_jar/invalid-path'
+    pathname = decodeURIComponent(pathname)
+  } catch { return '/_jar/invalid-path' }
   if (base === '/') return normalizeRoute(pathname)
   if (pathname === base.slice(0, -1)) return '/'
   if (pathname.startsWith(base)) return normalizeRoute(pathname.slice(base.length))
@@ -95,7 +100,7 @@ async function getRouteManifest(revision: number) {
   const response = await fetch(url)
   const data = await response.json()
   if (!response.ok) throw new Error(data.error || 'Unable to load routes')
-  if (data.version !== 3) throw new Error(`Unsupported Devjar route manifest: ${data.version}`)
+  if (data.version !== 4) throw new Error(`Unsupported Devjar route manifest: ${data.version}`)
   if (data.base !== base) throw new Error(`Unexpected Devjar base path: ${data.base}`)
   return data as RouteManifest
 }
@@ -114,8 +119,17 @@ function importRoute(entry: RouteEntry) {
   return promise
 }
 
+/** The page a default entrance redirects to, if the route is one. */
+function redirectTarget(route: string): string | undefined {
+  return routeManifest.redirects[normalizeRoute(route)]
+}
+
+function isKnownRoute(route: string) {
+  return Boolean(routeManifest.routes[normalizeRoute(route)] || redirectTarget(route))
+}
+
 function preloadRoute(route: string) {
-  const entry = getRouteEntry(route)
+  const entry = getRouteEntry(redirectTarget(route) || route)
   if (!entry || entry.page.endsWith('.md') || routeModules.has(entry.module)) return
   const preload = document.createElement('link')
   preload.rel = 'modulepreload'
@@ -170,10 +184,20 @@ function isElementType(value: unknown): value is ElementType {
 }
 
 async function load(route: string) {
+  const target = redirectTarget(route)
+  if (target) {
+    route = target
+    history.replaceState(null, '', withBase(routeHref(target) + '/') + location.search + location.hash)
+  }
   const revision = ++loadRevision
   try {
     const entry = getRouteEntry(route)
-    if (!entry) throw new Error(`No page found for ${normalizeRoute(route)}`)
+    if (!entry) {
+      if (!reactRoot) reactRoot = createRoot(appRoot)
+      reactRoot.render(React.createElement('h1', null, '404 — Not found'))
+      hideError()
+      return
+    }
     const module = await importRoute(entry)
     if (revision !== loadRevision) return
     if (!isElementType(module.default)) {
@@ -184,7 +208,7 @@ async function load(route: string) {
     const page = React.createElement(
       ErrorBoundary,
       { revision: renderRevision },
-      React.createElement(module.default),
+      React.createElement(module.default, { params: entry.params }),
     )
     // A navigation can finish importing before the initial route. Only hydrate
     // when the requested page matches the route that supplied the HTML.
@@ -234,14 +258,14 @@ function shouldNavigate(event: MouseEvent, anchor: HTMLAnchorElement) {
 function navigate(event: MouseEvent) {
   const route = routeAnchor(event.target)
   if (!route || !shouldNavigate(event, route.anchor)) return
-  if (!routeManifest.routes[normalizeRoute(route.route)]) return
-  const pathname = withBase(route.route)
+  if (!isKnownRoute(route.route)) return
+  const pathname = withBase(routeHref(route.route) + (route.route !== '/' && route.url.pathname.endsWith('/') ? '/' : ''))
   if (pathname === location.pathname
     && route.url.search === location.search
     && route.url.hash) return
 
   event.preventDefault()
-  if (getRouteEntry(route.route)?.page.endsWith('.md')) {
+  if (getRouteEntry(redirectTarget(route.route) || route.route)?.page.endsWith('.md')) {
     location.assign(pathname + route.url.search + route.url.hash)
     return
   }
@@ -251,7 +275,7 @@ function navigate(event: MouseEvent) {
 
 function preloadNavigation(event: Event) {
   const route = routeAnchor(event.target)
-  if (route && routeManifest.routes[normalizeRoute(route.route)]) preloadRoute(route.route)
+  if (route && isKnownRoute(route.route)) preloadRoute(route.route)
 }
 
 async function start() {
@@ -260,7 +284,12 @@ async function start() {
     ? createHotUpdater({
         refreshRuntime: globalThis.__jarRefreshRuntime,
         reloadRoutes: async revision => {
+          const route = routeFromPathname(location.pathname)
+          const current = () => JSON.stringify([redirectTarget(route), getRouteEntry(route)])
+          const before = current()
           routeManifest = await getRouteManifest(revision)
+          // Generated routes can change params, disappear, or become redirects.
+          if (current() !== before) await load(route)
         },
         onRefresh: detail => {
           syncDefaultTitle()

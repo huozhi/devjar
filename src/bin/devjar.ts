@@ -202,7 +202,10 @@ async function run() {
     console.log(`Output  ${style(36, relative(process.cwd(), result.outDir) || '.')}`)
     console.log('')
     console.log('Routes')
-    console.log(routeTree(result.routes))
+    console.log(routeTree([
+      ...result.routes,
+      ...Object.entries(result.redirects).map(([route, target]) => `${route} → ${target}`),
+    ]))
     showUpdateHint()
     return
   }
