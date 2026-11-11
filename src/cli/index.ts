@@ -428,6 +428,10 @@ export async function startDevServer(options: DevServerOptions) {
     lastPages = pages
     return pages
   }
+  // Root metadata files only change through the watcher below, which clears this.
+  let metadataCache: Promise<string[]> | undefined
+  const findMetadataFiles = () => metadataCache ||= discoverMetadataFiles(root)
+    .catch(error => { metadataCache = undefined; throw error })
   const isPageFile = (filename: string) => filename.startsWith('pages/') && routeFromCliPage(filename.slice('pages/'.length)) !== undefined
   const server = createServer(async (request, response) => {
     try {
@@ -536,7 +540,7 @@ export async function startDevServer(options: DevServerOptions) {
         }
         return
       }
-      const metadataFiles = await discoverMetadataFiles(root)
+      const metadataFiles = await findMetadataFiles()
       if (metadataFiles.includes(requestPath.slice(1))
         && await serveFile(request, response, root, requestPath.slice(1), undefined, noStore)) return
       if (await serveFile(request, response, join(root, 'public'), requestPath.slice(1), undefined, noStore)) return
@@ -615,6 +619,7 @@ export async function startDevServer(options: DevServerOptions) {
       const timestamp = pendingTimestamp
       pendingTimestamp = 0
       let reload = changedFiles.includes('markdown.css') || changedFiles.some(path => path.endsWith('.md') || markdownAssets.has(path)) || changedFiles.includes('package.json') || changedFiles.some(isMetadataFile)
+      if (changedFiles.some(isMetadataFile)) metadataCache = undefined
       let routes = changedFiles.some(isPageFile)
       const previous = lastPages
       if (routes || !previous) {
