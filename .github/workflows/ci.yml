@@ -46,9 +46,23 @@ jobs:
       - name: Check Package
         run: pnpm test:package
 
+      - name: Upload tested package
+        uses: actions/upload-artifact@v7
+        with:
+          name: devjar-package
+          path: dist/
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
   browser:
+    needs: install
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    container:
+      # Keep this version aligned with Playwright in pnpm-lock.yaml.
+      image: mcr.microsoft.com/playwright:v1.62.1-noble
+      options: --ipc=host
 
     name: Packaged browser
     steps:
@@ -64,20 +78,17 @@ jobs:
           cache: 'pnpm'
 
       - name: Use Bun
-        uses: oven-sh/setup-bun@v2
+        # The official image does not include unzip, required by setup-bun.
+        run: npm install --global bun
 
-      - name: Set up browser compiler
-        if: hashFiles('compiler/Cargo.toml') != ''
-        uses: ./.github/actions/setup-compiler
+      - name: Download tested package
+        uses: actions/download-artifact@v8
+        with:
+          name: devjar-package
+          path: dist/
 
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: Install browsers
-        run: pnpm exec playwright install --with-deps chromium webkit
-
-      - name: Build Package
-        run: pnpm run build
 
       - name: Test Packaged Browser (Chromium)
         run: bun scripts/test-package-browser.ts
