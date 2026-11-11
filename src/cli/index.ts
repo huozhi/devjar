@@ -185,6 +185,7 @@ type HtmlOptions = {
   metadataOrigin: string
   content: string
   stylesheets: LinkedStylesheet[]
+  modulePreloads: string[]
 }
 
 function metadataTags(files: string[], base: string, origin: string) {
@@ -248,6 +249,9 @@ await import(${JSON.stringify(options.clientUrl)})
   const staticStyles = options.stylesheets.map(stylesheet => (
     `<link rel="stylesheet" href="${escapeAttribute(stylesheet.href)}" data-devjar-css="${escapeAttribute(stylesheet.projectPath)}">`
   )).join('')
+  const modulePreloads = [...new Set(options.modulePreloads)].map(url => (
+    `<link rel="modulepreload" href="${escapeAttribute(url)}">`
+  )).join('')
   const metadataHead = metadataTags(options.metadataFiles, options.base, options.metadataOrigin)
   const documentHead = /<title(?:\s|>)/i.test(options.head)
     ? options.head
@@ -272,7 +276,7 @@ addEventListener('unhandledrejection', event => showBootstrapError(event.reason?
   const browserLog = options.liveReload ? browserLogScript(withBase(options.base, browserLogPath)) : ''
   return `<!doctype html>
 <html><head>${browserLog}<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="devjar-base" content="${options.base}">${documentHead}${metadataHead}${tailwindPreload}<script type="importmap">${JSON.stringify({ imports })}</script>
+<meta name="devjar-base" content="${options.base}">${documentHead}${metadataHead}${tailwindPreload}<script type="importmap">${JSON.stringify({ imports })}</script>${modulePreloads}
 <style>${baseStyles}</style>${staticStyles}
 ${tailwindStylesheet}</head><body><div id="__jar">${options.content}</div>${errorOverlay}${tailwindScript}${clientScript}</body></html>`
 }
@@ -562,6 +566,7 @@ export async function startDevServer(options: DevServerOptions) {
             head: '',
             content: '',
             stylesheets: [],
+            modulePreloads: [],
           },
         ),
       )
@@ -780,6 +785,7 @@ async function writeRouteHtml(
     | 'devjarRuntime'
     | 'metadataFiles'
     | 'metadataOrigin'
+    | 'modulePreloads'
   >,
 ) {
   const outputPath = routeHtmlPath(outDir, route)
@@ -799,6 +805,7 @@ async function writeRouteHtml(
     head: rendered.head,
     content: rendered.markup,
     stylesheets: rendered.stylesheets,
+    modulePreloads: options.modulePreloads,
   })
   await writeFile(outputPath, document)
   if (route === '/404') await writeFile(join(outDir, '404.html'), document)
@@ -879,8 +886,10 @@ async function buildWithPackages(options: BuildOptions, localPackages: LocalPack
     }))
   }
   const projectPaths = new Set<string>()
-  for (const page of reactRoutes.values()) {
+  const routeFiles = new Map<string, Set<string>>()
+  for (const [route, page] of reactRoutes) {
     const files = await collectProjectFiles(root, page)
+    routeFiles.set(route, files)
     for (const projectPath of files) projectPaths.add(projectPath)
   }
   const devjarRuntime = await usesDevjarRuntime(root, projectPaths)
@@ -977,6 +986,7 @@ async function buildWithPackages(options: BuildOptions, localPackages: LocalPack
     await writeRouteHtml(outDir, route, renderedRoutes[route], {
       metadataFiles,
       metadataOrigin: metadataBaseOrigin,
+      modulePreloads: [...routeFiles.get(route)!].map(path => builtModuleUrl(path, base)),
       resolveModule: resolveBuiltModule,
       resolveRuntimeModule: resolveBuiltRuntimeModule,
       tailwindUrl: undefined,
