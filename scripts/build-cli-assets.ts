@@ -5,9 +5,15 @@ const root = join(import.meta.dir, '..')
 
 await rm(join(root, 'dist/markdown-styles'), { recursive: true, force: true })
 
-await Promise.all([
-  cp(join(root, 'src/cli/markdown-styles'), join(root, 'dist/markdown-styles'), { recursive: true }),
-  cp(join(root, 'src/cli/http-loader.mjs'), join(root, 'dist/http-loader.mjs')),
-  cp(join(root, 'src/cli/prerender-runner.mjs'), join(root, 'dist/prerender-runner.mjs')),
-  cp(join(root, 'src/cli/tailwind-runner.mjs'), join(root, 'dist/tailwind-runner.mjs')),
-])
+// Runners execute in their own Node process, so each is a standalone ES module.
+const runners = await Bun.build({
+  entrypoints: ['http-loader', 'prerender-runner', 'tailwind-runner']
+    .map(name => join(root, `src/cli/runners/${name}.ts`)),
+  outdir: join(root, 'dist'),
+  naming: '[name].mjs',
+  target: 'node',
+  format: 'esm',
+})
+if (!runners.success) throw new AggregateError(runners.logs, 'Unable to build CLI runners')
+
+await cp(join(root, 'src/cli/markdown-styles'), join(root, 'dist/markdown-styles'), { recursive: true })

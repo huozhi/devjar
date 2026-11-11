@@ -1,10 +1,9 @@
-import { execFile } from 'node:child_process'
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { extname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { promisify } from 'node:util'
 import { sourceExtensions } from '../shared/project'
+import { runNode } from './node-runner'
+import type { TailwindInput } from './runners/tailwind-runner'
 
 type CompileTailwindOptions = {
   root: string
@@ -14,14 +13,6 @@ type CompileTailwindOptions = {
   stylesheetUrl: string
 }
 
-type TailwindInput = {
-  candidates: string[]
-  compilerUrl: string
-  stylesheetUrl: string
-  outputPath: string
-}
-
-const runFile = promisify(execFile)
 const quotedValues = [
   /"((?:\\[\s\S]|[^"\\])*)"/g,
   /'((?:\\[\s\S]|[^'\\])*)'/g,
@@ -44,17 +35,6 @@ export function extractTailwindCandidates(source: string) {
   return candidates
 }
 
-function nodeExecutable() {
-  const versions = process.versions as NodeJS.ProcessVersions & { bun?: string }
-  return versions.bun ? 'node' : process.execPath
-}
-
-function renderError(error: unknown) {
-  if (!(error instanceof Error)) return String(error)
-  const stderr = (error as Error & { stderr?: string }).stderr?.trim()
-  return stderr || error.message
-}
-
 export async function compileTailwind(options: CompileTailwindOptions) {
   const candidates = new Set<string>()
   for (const projectPath of options.projectPaths) {
@@ -70,24 +50,14 @@ export async function compileTailwind(options: CompileTailwindOptions) {
 
   const temporaryRoot = await mkdtemp(join(tmpdir(), 'devjar-tailwind-'))
   try {
-    const outputPath = join(temporaryRoot, 'tailwind.css')
     const input: TailwindInput = {
       candidates: [...candidates].sort(),
       compilerUrl: options.compilerUrl,
       stylesheetUrl: options.stylesheetUrl,
-      outputPath,
     }
-    const inputPath = join(temporaryRoot, 'input.json')
-    await writeFile(inputPath, JSON.stringify(input))
-    const runnerPath = fileURLToPath(new URL('./tailwind-runner.mjs', import.meta.url))
-    try {
-      await runFile(nodeExecutable(), ['--no-warnings', runnerPath, inputPath], {
-        maxBuffer: 10 * 1024 * 1024,
-      })
-    } catch (error) {
-      throw new Error(`Unable to compile Tailwind CSS: ${renderError(error)}`)
-    }
-    return Buffer.from(await readFile(outputPath))
+    const css = await runNode<string>('tailwind-runner', input, { directory: temporaryRoot, forwardOutput: false })
+      .catch(error => { throw new Error(`Unable to compile Tailwind CSS: ${error.message}`) })
+    return Buffer.from(css)
   } finally {
     await rm(temporaryRoot, { recursive: true, force: true })
   }

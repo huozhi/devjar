@@ -1,9 +1,7 @@
-import { execFile } from 'node:child_process'
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { extname, join, relative, sep } from 'node:path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
-import { promisify } from 'node:util'
+import { pathToFileURL } from 'node:url'
 import { createEsmShResolver } from '../shared/cdn'
 import {
   builtAssetUrl,
@@ -11,6 +9,8 @@ import {
   compileProjectModule,
   moduleAssetName,
 } from './modules'
+import { runNode } from './node-runner'
+import type { PrerenderInput, RenderedRoute } from './runners/prerender-runner'
 
 type PrerenderOptions = {
   root: string
@@ -35,31 +35,9 @@ export type PrerenderedRoute = {
   stylesheets: LinkedStylesheet[]
 }
 
-type RenderedRoute = Omit<PrerenderedRoute, 'stylesheets'>
-
-type RenderInput = {
-  routes: Record<string, string>
-  react: string
-  reactDomServer: string
-  imports: Record<string, string>
-  outputPath: string
-}
-
-const runFile = promisify(execFile)
 
 function serverModuleName(projectPath: string) {
   return `${moduleAssetName(projectPath)}.mjs`
-}
-
-function nodeExecutable() {
-  const versions = process.versions as NodeJS.ProcessVersions & { bun?: string }
-  return versions.bun ? 'node' : process.execPath
-}
-
-function renderError(error: unknown) {
-  if (!(error instanceof Error)) return String(error)
-  const stderr = (error as Error & { stderr?: string }).stderr?.trim()
-  return stderr || error.message
 }
 
 export async function prerender(options: PrerenderOptions) {
@@ -96,12 +74,11 @@ export async function prerender(options: PrerenderOptions) {
       if (compiled.style !== undefined) projectStyles.set(projectPath, compiled.style)
     }
 
-    const outputPath = join(temporaryRoot, 'rendered.json')
     const resolveRuntimeModule = createEsmShResolver({
       ...options.dependencies,
       ...options.devjarDependencies,
     }, options.cdn, false)
-    const input: RenderInput = {
+    const input: PrerenderInput = {
       routes: Object.fromEntries([...options.routes].map(([route, entry]) => {
         const projectPath = relative(options.root, entry).split(sep).join('/')
         return [route, pathToFileURL(join(temporaryRoot, serverModuleName(projectPath))).href]
@@ -113,25 +90,10 @@ export async function prerender(options: PrerenderOptions) {
         'react/jsx-runtime': resolveModule('react/jsx-runtime'),
         'es-module-lexer/minimal': resolveRuntimeModule('es-module-lexer/minimal'),
       },
-      outputPath,
     }
-    const inputPath = join(temporaryRoot, 'input.json')
-    await writeFile(inputPath, JSON.stringify(input))
-
-    try {
-      const rendererPath = fileURLToPath(new URL('./prerender-runner.mjs', import.meta.url))
-      const rendering = runFile(nodeExecutable(), ['--no-warnings', rendererPath, inputPath], {
-        maxBuffer: 10 * 1024 * 1024,
-        env: { ...process.env, NODE_ENV: 'production' },
-      })
-      rendering.child.stdout?.on('data', chunk => process.stdout.write(chunk))
-      rendering.child.stderr?.on('data', chunk => process.stderr.write(chunk))
-      await rendering
-    } catch (error) {
-      throw new Error(renderError(error))
-    }
-
-    const rendered = JSON.parse(await readFile(outputPath, 'utf8')) as Record<string, RenderedRoute>
+    const rendered = await runNode<Record<string, RenderedRoute>>('prerender-runner', input, {
+      directory: temporaryRoot, forwardOutput: true,
+    })
     const result: Record<string, PrerenderedRoute> = {}
     for (const [route, files] of routeFiles) {
       const stylesheets: LinkedStylesheet[] = []
