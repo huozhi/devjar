@@ -244,31 +244,44 @@ export default function Page() {
 
   // Navigate while the initial route import is pending. The destination must
   // render without trying to hydrate the home page's prerendered HTML.
-  const manifest = await (await page.request.get(`${baseUrl}_jar/routes.json`)).json()
+  // A fresh context prevents WebKit's cross-document module cache from
+  // satisfying the import before the request interception gate.
+  const navigationPage = await browser.newPage()
+  await navigationPage.addInitScript(`
+    globalThis.__devjarRenderCount = 0
+    addEventListener('devjar:render', () => globalThis.__devjarRenderCount++)
+  `)
+  navigationPage.on('console', message => {
+    if (message.type() === 'error') consoleErrors.push(message.text())
+  })
+  navigationPage.on('pageerror', error => pageErrors.push(error.stack || error.message))
+  const manifest = await (await navigationPage.request.get(`${baseUrl}_jar/routes.json`)).json()
   const homeModuleUrl = new URL(manifest.routes['/'].module, baseUrl).href
   let releaseHomeModule!: () => void
   const homeModuleGate = new Promise<void>(resolve => { releaseHomeModule = resolve })
-  await page.route(homeModuleUrl, async route => {
+  await navigationPage.route(homeModuleUrl, async route => {
     await homeModuleGate
     await route.continue()
   })
   try {
-    const homeModuleRequest = page.waitForRequest(homeModuleUrl)
-    await page.goto(baseUrl, { waitUntil: 'domcontentloaded' })
+    const homeModuleRequest = navigationPage.waitForRequest(homeModuleUrl)
+    await navigationPage.goto(baseUrl, { waitUntil: 'domcontentloaded' })
     await homeModuleRequest
-    await page.locator('a[href="/docs/start"]').click()
-    await assertPage(page, 'Docs', 'Package docs')
-    assert.equal(await page.evaluate('globalThis.__devjarRenderCount'), 1)
+    await navigationPage.locator('a[href="/docs/start"]').click()
+    await assertPage(navigationPage, 'Docs', 'Package docs')
+    assert.equal(await navigationPage.evaluate('globalThis.__devjarRenderCount'), 1)
     assert.deepEqual(consoleErrors, [])
     assert.deepEqual(pageErrors, [])
   } finally {
     releaseHomeModule()
-    await page.unrouteAll({ behavior: 'wait' })
+    await navigationPage.unrouteAll({ behavior: 'wait' })
   }
-  await page.evaluate(url => import(url).then(() => undefined), homeModuleUrl)
-  await assertPage(page, 'Docs', 'Package docs')
+  await navigationPage.evaluate(url => import(url).then(() => undefined), homeModuleUrl)
+  await assertPage(navigationPage, 'Docs', 'Package docs')
   assert.deepEqual(consoleErrors, [])
   assert.deepEqual(pageErrors, [])
+
+  await navigationPage.close()
 
   consoleErrors.length = 0
   const missingResponse = await page.goto(`${baseUrl}missing`)
