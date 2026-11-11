@@ -458,17 +458,22 @@ for content-hashed assets. Use the Other framework preset and run
 <details>
 <summary>Page metadata and prerendering</summary>
 
-Place images in the project root (alongside `pages/`) to add them to every
-page in development and static exports:
+Place images and media in the project root (alongside `pages/`) to add them to
+every page in development and static exports:
 
 ```text
 icon.svg             → <link rel="icon" href="/icon.svg" type="image/svg+xml">
 opengraph-image.jpg  → <meta property="og:image" content="/opengraph-image.jpg">
                      → <meta name="twitter:image" content="/opengraph-image.jpg">
+opengraph-video.mp4  → <meta property="og:video" content="/opengraph-video.mp4">
+                     → <meta property="og:video:type" content="video/mp4">
+opengraph-audio.mp3  → <meta property="og:audio" content="/opengraph-audio.mp3">
+                     → <meta property="og:audio:type" content="audio/mpeg">
 ```
 
 Icons support `.ico`, `.png`, `.jpg`, `.jpeg`, `.svg`, `.gif`, and `.webp`.
-Open Graph images support `.png`, `.jpg`, `.jpeg`, `.gif`, and `.webp`.
+Open Graph images support `.png`, `.jpg`, `.jpeg`, `.gif`, and `.webp`; videos
+support `.mp4` and `.webm`; audio supports `.mp3`, `.ogg`, and `.wav`.
 Every page includes a `summary_large_image` Twitter card; each Open Graph image
 also gets a Twitter image tag.
 Multiple matching files are included in filename order. URLs respect `--base`;

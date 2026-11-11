@@ -193,9 +193,13 @@ function metadataTags(files: string[], base: string, origin: string) {
   return `<meta name="twitter:card" content="summary_large_image">${files.map(filename => {
     const url = withBase(base, `/${filename}`)
     const absoluteUrl = `${origin}${url}`
-    return filename.startsWith('icon.')
-      ? `<link rel="icon" href="${url}" type="${contentTypes[extname(filename)]}">`
-      : `<meta property="og:image" content="${absoluteUrl}"><meta name="twitter:image" content="${absoluteUrl}">`
+    const type = contentTypes[extname(filename)]
+    if (filename.startsWith('icon.')) return `<link rel="icon" href="${url}" type="${type}">`
+    if (filename.startsWith('opengraph-image.')) {
+      return `<meta property="og:image" content="${absoluteUrl}"><meta name="twitter:image" content="${absoluteUrl}">`
+    }
+    const property = filename.startsWith('opengraph-video.') ? 'og:video' : 'og:audio'
+    return `<meta property="${property}" content="${absoluteUrl}"><meta property="${property}:type" content="${type}">`
   }).join('')}`
 }
 
@@ -424,6 +428,10 @@ export async function startDevServer(options: DevServerOptions) {
     lastPages = pages
     return pages
   }
+  // Root metadata files only change through the watcher below, which clears this.
+  let metadataCache: Promise<string[]> | undefined
+  const findMetadataFiles = () => metadataCache ||= discoverMetadataFiles(root)
+    .catch(error => { metadataCache = undefined; throw error })
   const isPageFile = (filename: string) => filename.startsWith('pages/') && routeFromCliPage(filename.slice('pages/'.length)) !== undefined
   const server = createServer(async (request, response) => {
     try {
@@ -532,7 +540,7 @@ export async function startDevServer(options: DevServerOptions) {
         }
         return
       }
-      const metadataFiles = await discoverMetadataFiles(root)
+      const metadataFiles = await findMetadataFiles()
       if (metadataFiles.includes(requestPath.slice(1))
         && await serveFile(request, response, root, requestPath.slice(1), undefined, noStore)) return
       if (await serveFile(request, response, join(root, 'public'), requestPath.slice(1), undefined, noStore)) return
@@ -611,6 +619,7 @@ export async function startDevServer(options: DevServerOptions) {
       const timestamp = pendingTimestamp
       pendingTimestamp = 0
       let reload = changedFiles.includes('markdown.css') || changedFiles.some(path => path.endsWith('.md') || markdownAssets.has(path)) || changedFiles.includes('package.json') || changedFiles.some(isMetadataFile)
+      if (changedFiles.some(isMetadataFile)) metadataCache = undefined
       let routes = changedFiles.some(isPageFile)
       const previous = lastPages
       if (routes || !previous) {
@@ -707,6 +716,8 @@ async function copyApiFiles(source: string, destination: string) {
 function isMetadataFile(filename: string) {
   return /^icon\.(ico|png|jpg|jpeg|svg|gif|webp)$/.test(filename)
     || /^opengraph-image\.(png|jpg|jpeg|gif|webp)$/.test(filename)
+    || /^opengraph-video\.(mp4|webm)$/.test(filename)
+    || /^opengraph-audio\.(mp3|ogg|wav)$/.test(filename)
 }
 
 async function discoverMetadataFiles(root: string) {

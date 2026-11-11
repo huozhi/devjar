@@ -295,12 +295,14 @@ api/message.txt  → /api/message.txt`}</Code>
             <div id="metadata" className="section docs-anchor">
               <h3>Page metadata<HeadingLink hash="metadata" /></h3>
               <p>
-                Add an icon and a share image to the project root.
+                Add an icon, a share image, and optional share video or audio to the project root.
                 Devjar adds them to every page. No code needed.
               </p>
               <div className="code-block" aria-label="Metadata file conventions">
                 <Code theme={taffy.light} lang="plaintext" controls={false} fontSize={13}>{`icon.svg              # browser tab and bookmark icon
 opengraph-image.png    # link preview image
+opengraph-video.mp4    # link preview video (optional)
+opengraph-audio.mp3    # link preview audio (optional)
 pages/
 └── index.tsx`}</Code>
               </div>
@@ -310,6 +312,8 @@ pages/
                   <tbody>
                     <tr><td><code>icon.*</code></td><td><code>.svg</code>, <code>.png</code>, <code>.ico</code>, <code>.jpg</code>, <code>.jpeg</code>, <code>.gif</code>, <code>.webp</code></td><td>Browser tab icon</td></tr>
                     <tr><td><code>opengraph-image.*</code></td><td><code>.png</code>, <code>.jpg</code>, <code>.jpeg</code>, <code>.gif</code>, <code>.webp</code></td><td>Image in link previews</td></tr>
+                    <tr><td><code>opengraph-video.*</code></td><td><code>.mp4</code>, <code>.webm</code></td><td>Video in link previews</td></tr>
+                    <tr><td><code>opengraph-audio.*</code></td><td><code>.mp3</code>, <code>.ogg</code>, <code>.wav</code></td><td>Audio in link previews</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -318,6 +322,10 @@ pages/
                 <Code theme={taffy.light} lang="html" controls={false} fontSize={13}>{`<link rel="icon" href="/icon.svg" type="image/svg+xml">
 <meta property="og:image" content="https://example.com/opengraph-image.png">
 <meta name="twitter:image" content="https://example.com/opengraph-image.png">
+<meta property="og:video" content="https://example.com/opengraph-video.mp4">
+<meta property="og:video:type" content="video/mp4">
+<meta property="og:audio" content="https://example.com/opengraph-audio.mp3">
+<meta property="og:audio:type" content="audio/mpeg">
 <meta name="twitter:card" content="summary_large_image">`}</Code>
               </div>
               <p>
@@ -325,7 +333,7 @@ pages/
                 Use a 1200 × 630 image.
               </p>
               <p>
-                Build with <code>--origin</code> set to your site URL, so image links are absolute.
+                Build with <code>--origin</code> set to your site URL, so image, video, and audio links are absolute.
                 Without it, Devjar uses your Vercel URL or <code>http://localhost:3000</code>.
               </p>
               <p>Set each page’s title and description in the page itself:</p>
