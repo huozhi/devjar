@@ -12,7 +12,7 @@ import {
 } from '../src/cli/index'
 import { CDN_HOST, createEsmShResolver } from '../src/shared/cdn'
 import { createIframeRouteManifest, linkModules } from '../src/client/core'
-import { collectProjectFiles, compileProjectModule } from '../src/cli/modules'
+import { builtModuleUrl, collectProjectFiles, compileProjectModule } from '../src/cli/modules'
 import { getTailwindBrowserUrl, getTailwindBuildUrls } from '../src/cli/tailwind'
 import { extractTailwindCandidates } from '../src/cli/tailwind-build'
 import { testCdnModule } from '../scripts/test-cdn'
@@ -768,6 +768,8 @@ describe('production build', () => {
     expect(entryModule).not.toContain('__jarRegisterModule')
     const builtHtml = await readFile(join(buildRoot, 'index.html'), 'utf8')
     expect(builtHtml).toContain('<title data-devjar-default>Devjar</title>')
+    expect(builtHtml).toContain(`<link rel="modulepreload" href="${manifest.routes['/'].module}">`)
+    expect(builtHtml).not.toContain(`<link rel="modulepreload" href="${manifest.routes['/projects'].module}">`)
     expect(builtHtml).toContain('<meta name="devjar-base" content="/preview/">')
     expect(builtHtml).toContain('<meta name="twitter:card" content="summary_large_image">')
     expect(builtHtml).toContain('<meta name="twitter:image" content="http://localhost:3000/preview/opengraph-image.jpg">')
@@ -888,12 +890,14 @@ describe('static export', () => {
       await mkdir(join(projectRoot, 'pages'))
       await mkdir(join(projectRoot, 'pages/guides'))
       await mkdir(join(projectRoot, 'assets'))
+      await mkdir(join(projectRoot, 'components'))
       await writeFile(join(projectRoot, 'package.json'), JSON.stringify({
         dependencies: { react: '19.2.0', 'react-dom': '19.2.0' },
       }))
       await writeFile(
         join(projectRoot, 'pages/index.tsx'),
         `import '../styles.css'
+import { Message } from '../components/message'
 import logo from '../assets/logo.svg'
 import note from '../notes.md' with { type: 'text' }
 import { DevJar } from 'devjar'
@@ -903,7 +907,7 @@ export default function Page() {
   return <>
     <title>Static title</title>
     <meta name="description" content="Static description" />
-    <main className="page"><h1>Static now</h1><p>{note}</p><img src={logo} alt="Logo" /><DevJar files={{ 'pages/index.jsx': 'export default function Page() {}' }} /></main>
+    <main className="page"><h1>Static now</h1><Message /><p>{note}</p><img src={logo} alt="Logo" /><DevJar files={{ 'pages/index.jsx': 'export default function Page() {}' }} /></main>
   </>
 }`,
       )
@@ -920,6 +924,9 @@ export default function Page() {
         `.page { color: black; background-image: url('./assets/background.png'); }
 @font-face { font-family: Body; src: url("./assets/body.woff2?#iefix") format("woff2"); }`,
       )
+      await writeFile(join(projectRoot, 'components/message.tsx'),
+        `import note from '../notes.md' with { type: 'text' }
+export function Message() { return <aside>{note}</aside> }`)
       await writeFile(join(projectRoot, 'icon.png'), 'icon')
       await writeFile(join(projectRoot, 'opengraph-image.png'), 'og')
       await writeFile(join(projectRoot, 'notes.md'), 'Text imported at build time')
@@ -956,6 +963,17 @@ export default function Page() {
       expect(css).toMatch(/src: url\("\/_jar\/assets\/body-[a-f0-9]{10}\.woff2\?#iefix"\)/)
       expect(document).toContain('<div id="__jar"><main class="page">')
       const aboutDocument = await readFile(join(result.outDir, 'guides/about/index.html'), 'utf8')
+      const preloads = (html: string) => [...html.split('</head>')[0].matchAll(/<link rel="modulepreload" href="([^"]+)">/g)]
+        .map(match => match[1])
+      const expectedModules = [
+        'pages/index.tsx', 'components/message.tsx', 'styles.css',
+        'assets/logo.svg', 'notes.md?devjar-text', 'assets/background.png', 'assets/body.woff2',
+      ].map(path => builtModuleUrl(path, '/'))
+      expect(preloads(document).sort()).toEqual(expectedModules.sort())
+      expect(preloads(aboutDocument)).toEqual([builtModuleUrl('pages/guides/about.tsx', '/')])
+      for (const url of preloads(document)) {
+        expect(await readFile(join(result.outDir, url), 'utf8')).not.toBe('')
+      }
       expect(aboutDocument).toContain('<title>About title</title>')
       expect(aboutDocument).toContain('<h1>About statically rendered</h1>')
       const notFoundDocument = await readFile(join(result.outDir, '404.html'), 'utf8')
