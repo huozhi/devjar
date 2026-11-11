@@ -10,14 +10,6 @@ runs:
         path: compiler/pkg
         key: compiler-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('compiler/src/**', 'compiler/*.rs', 'compiler/Cargo.toml', 'compiler/Cargo.lock', 'compiler/rust-toolchain.toml', 'scripts/setup-compiler.sh', 'scripts/build-workers.ts', '.github/actions/setup-compiler/action.yml') }}
 
-    - name: Identify native build environment
-      if: steps.compiler.outputs.cache-hit != 'true'
-      id: platform
-      shell: bash
-      run: |
-        . /etc/os-release
-        echo "id=$ID-$VERSION_ID" >> "$GITHUB_OUTPUT"
-
     - name: Restore Rust build cache
       if: steps.compiler.outputs.cache-hit != 'true'
       uses: actions/cache@v6
@@ -27,10 +19,10 @@ runs:
           ~/.cargo/git/db
           compiler/target
           compiler/tools
-        key: rust-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.platform.outputs.id }}-${{ hashFiles('compiler/rust-toolchain.toml', 'scripts/setup-compiler.sh') }}-${{ hashFiles('compiler/Cargo.lock', 'compiler/Cargo.toml') }}-${{ hashFiles('compiler/src/**', 'compiler/*.rs') }}
+        key: rust-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('compiler/rust-toolchain.toml', 'scripts/setup-compiler.sh') }}-${{ hashFiles('compiler/Cargo.lock', 'compiler/Cargo.toml') }}-${{ hashFiles('compiler/src/**', 'compiler/*.rs') }}
         restore-keys: |
-          rust-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.platform.outputs.id }}-${{ hashFiles('compiler/rust-toolchain.toml', 'scripts/setup-compiler.sh') }}-${{ hashFiles('compiler/Cargo.lock', 'compiler/Cargo.toml') }}-
-          rust-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.platform.outputs.id }}-${{ hashFiles('compiler/rust-toolchain.toml', 'scripts/setup-compiler.sh') }}-
+          rust-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('compiler/rust-toolchain.toml', 'scripts/setup-compiler.sh') }}-${{ hashFiles('compiler/Cargo.lock', 'compiler/Cargo.toml') }}-
+          rust-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('compiler/rust-toolchain.toml', 'scripts/setup-compiler.sh') }}-
 
     - name: Install Rust and wasm-bindgen
       if: steps.compiler.outputs.cache-hit != 'true'
