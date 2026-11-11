@@ -34,12 +34,23 @@ reference for the CLI, file routing, and embedded preview API.
 
 - Create `pages/index.tsx` with a default-exported React component. Add pages
   with file-based routes such as `pages/about.tsx`.
+- For pages generated from data, name the file with a `[name]` segment, such as
+  `pages/[locale]/[lesson].tsx`. Export a synchronous `paths()` that returns
+  the params to build, such as `[{ locale: 'en', lesson: 'intro' }]`; the
+  component receives them as `params`. Unlisted params are 404s. `paths()`
+  runs in Node, so read local JS, TS or JSON data and keep module-level code
+  free of browser APIs.
+- To send a directory URL to a default child, export `defaultParams` (an
+  object, or a function of `{ params }`) from that directory's `index.tsx`
+  instead of a component. Catch-all, optional, and Markdown `[name]` pages are
+  not supported.
 - Do not create a Devjar configuration file. Use CLI flags for user-facing
   settings.
 - Run `npx devjar dev` for the live preview and `npx devjar build` to export
   the static site to `dist/`.
 - Keep the implementation browser-compatible. Devjar does not provide a Node
-  runtime, server actions, dynamic server routes, or automatic layouts.
+  runtime, server actions, dynamic server routes, or automatic layouts;
+  `[name]` pages are generated at build time.
 - Pages render into `<div id="__jar">`, not `#root`. Devjar only removes the
   body margin, and any project CSS overrides it. For a full-height app, style
   `html, body, #__jar { height: 100%; }`.
