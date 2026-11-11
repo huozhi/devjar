@@ -65,7 +65,7 @@ test('build exclusions remove routes and unused runtime while keeping shared imp
 
     await writeFile(join(result.outDir, 'keep.txt'), 'Previous build')
     for (const [exclude, message] of [
-      [['pages/index.tsx', 'pages/playground.tsx', 'pages/drafts'], 'No index page'],
+      [['pages'], 'No content pages'],
       [['pages/typo.tsx'], 'Exclude path not found'],
       [['../outside'], 'inside pages/'],
     ] as const) {

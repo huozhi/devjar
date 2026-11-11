@@ -20,14 +20,15 @@ import {
   usesDevjarRuntime,
 } from './modules'
 import type { HmrChange, RouteManifest } from './protocol'
-import { discover, isInside, manifest as createManifest, routeFromCliPage, singlePage } from './routes'
-import type { ManifestOptions } from './routes'
+import { discover, isInside, manifest as createManifest, routeFromCliPage, routeSignature, singlePage } from './routes'
+import type { DiscoveredPages, ManifestOptions } from './routes'
 import { renderMarkdown, markdownDocument, type MarkdownPage } from './markdown'
 import { markdownTheme, markdownStylesRoot, copyMarkdownStyles } from './markdown-theme'
 import { copyMathAssets, mathAssetsRoot } from './math'
 import { closeServer, createDirectoryWatcher, createEventStream, listen, trackServerShutdown } from './server'
 export { loadRouteManifest } from './routes'
 import {
+  routeHref,
   normalizeBase,
   normalizeRoute,
   withBase,
@@ -354,7 +355,7 @@ function createResponder(headers: Record<string, string>) {
 
 // File names such as `my plot.svg` arrive percent-encoded in request URLs.
 function decodedPath(pathname: string | undefined) {
-  if (!pathname) return
+  if (!pathname || /%2f|%5c/i.test(pathname)) return
   try {
     return decodeURIComponent(pathname)
   } catch {
@@ -390,13 +391,14 @@ export async function startDevServer(options: DevServerOptions) {
   let revision = 0
   let localReloadTimer: NodeJS.Timeout | undefined
   warnIgnoredHtml(await findIgnoredHtml(root))
-  const localPackages = new LocalPackages({
+  const localPackageOptions = {
     root,
     prefix: withBase(base, '/_jar/local'),
     serverPrefix: withBase(base, '/_jar/local'),
     cdn: resolveCdn(options.cdn),
     development: true,
     onChange: () => {
+      pageCache = undefined
       clearTimeout(localReloadTimer)
       localReloadTimer = setTimeout(() => {
         revision++
@@ -404,12 +406,21 @@ export async function startDevServer(options: DevServerOptions) {
         events.send(JSON.stringify(change))
       }, 40)
     },
-  })
+  }
+  const localPackages = new LocalPackages(localPackageOptions)
 
   const entry = options.entry
-  const findPages = () => entry ? Promise.resolve(singlePage(root, entry)) : discover(root, [])
-  await findPages()
-
+  let pageCache: ReturnType<typeof discover> | undefined
+  // The last routes served, so a data edit only counts as a route change when
+  // paths() or defaultParams actually produce different routes.
+  let lastPages: DiscoveredPages | undefined
+  const findPages = async () => {
+    const pages = await (pageCache ||= entry ? Promise.resolve(singlePage(root, entry))
+      : discover(root, [], specifier => localPackages.resolve(specifier, 'server', root)))
+    lastPages = pages
+    return pages
+  }
+  const isPageFile = (filename: string) => filename.startsWith('pages/') && routeFromCliPage(filename.slice('pages/'.length)) !== undefined
   const server = createServer(async (request, response) => {
     try {
       const url = new URL(request.url || '/', `http://${request.headers.host || 'localhost'}`)
@@ -511,7 +522,7 @@ export async function startDevServer(options: DevServerOptions) {
         if (!await serveFile(request, response, assetsRoot, requestPath.slice('/_jar/'.length), undefined, cacheControl)) send(request, response, 404, 'text/plain', 'Not found')
         return
       }
-      if (requestPath.startsWith('/api/')) {
+      if (requestPath.startsWith('/api/') && requestPath !== '/api/') {
         if (!await serveFile(request, response, join(root, 'api'), requestPath.slice('/api/'.length), new Set(['.json', '.txt']), noStore)) {
           send(request, response, 404, 'text/plain; charset=utf-8', 'Not found')
         }
@@ -523,6 +534,12 @@ export async function startDevServer(options: DevServerOptions) {
       if (await serveFile(request, response, join(root, 'public'), requestPath.slice(1), undefined, noStore)) return
       const pages = await findPages()
       const route = normalizeRoute(requestPath)
+      const destination = pages.redirects[route]
+      if (destination) {
+        response.writeHead(302, { Location: withBase(base, routeHref(destination) + '/') + url.search })
+        response.end()
+        return
+      }
       const page = pages.routes.get(route) || pages.notFound
       if (page?.endsWith('.md')) {
         const rendered = await renderMarkdown({ root, page, routes: pages.routes, base, theme,
@@ -541,7 +558,7 @@ export async function startDevServer(options: DevServerOptions) {
       send(
         request,
         response,
-        200,
+        pages.routes.has(route) ? 200 : 404,
         'text/html; charset=utf-8',
         html(
           {
@@ -589,14 +606,24 @@ export async function startDevServer(options: DevServerOptions) {
       const timestamp = pendingTimestamp
       pendingTimestamp = 0
       let reload = changedFiles.includes('markdown.css') || changedFiles.some(path => path.endsWith('.md') || markdownAssets.has(path)) || changedFiles.includes('package.json') || changedFiles.some(isMetadataFile)
-      const routes = changedFiles.some(filename => (
-        filename.startsWith('pages/') && routeFromCliPage(filename.slice('pages/'.length)) !== undefined
-      ))
+      let routes = changedFiles.some(isPageFile)
+      const previous = lastPages
+      if (routes || !previous) {
+        pageCache = undefined
+      } else if (changedFiles.some(filename => previous.routeInputs.has(filename))) {
+        // Data read by paths() or defaultParams changed. Other edits keep hot updates.
+        pageCache = undefined
+        try {
+          routes = routeSignature(await findPages()) !== routeSignature(previous)
+        } catch {
+          routes = true // The browser reloads the route list and shows the error.
+        }
+      }
       const invalidation = modules.invalidate(changedFiles)
       reload ||= invalidation.reload
       const renamedTrackedFiles = renamedFiles.filter(filename => (
         modules.isTracked(filename)
-        || (filename.startsWith('pages/') && routeFromCliPage(filename.slice('pages/'.length)) !== undefined)
+        || isPageFile(filename)
       ))
       if (!reload && renamedTrackedFiles.length) {
         reload = (await Promise.all(renamedTrackedFiles.map(async filename => (
@@ -624,7 +651,13 @@ export async function startDevServer(options: DevServerOptions) {
 
   try {
     await listen(server, port, host)
+    const address = server.address() as import('node:net').AddressInfo
+    const localHost = address.address === '0.0.0.0' ? '127.0.0.1'
+      : address.address.includes(':') ? `[${address.address === '::' ? '::1' : address.address}]` : address.address
+    localPackageOptions.serverPrefix = `http://${localHost}:${address.port}${withBase(base, '/_jar/local')}`
+    await findPages()
   } catch (error) {
+    server.close()
     watcher.close()
     localPackages.close()
     throw error
@@ -758,6 +791,53 @@ async function copyRuntimeAssets(destination: string, devjarRuntime: boolean) {
   return { clientAsset, runtimeAsset }
 }
 
+async function validateRouteOutput(root: string, pages: DiscoveredPages, metadata: string[], sitemap: string | undefined) {
+  const files = new Map<string, string>()
+  const directories = new Map<string, string>()
+  const claim = (path: string, owner: string) => {
+    const normalized = path.normalize('NFC').toLowerCase()
+    let conflict = files.get(normalized) || directories.get(normalized)
+    const ancestors: string[] = []
+    const parts = normalized.split('/')
+    for (let index = 1; index < parts.length; index++) {
+      const parent = parts.slice(0, index).join('/')
+      ancestors.push(parent)
+      conflict ||= files.get(parent)
+    }
+    if (conflict) throw new Error(`Output collision at ${path}: ${conflict} and ${owner}`)
+    files.set(normalized, owner)
+    for (const parent of ancestors) directories.set(parent, owner)
+  }
+  claim('manifest.json', 'Devjar manifest')
+  if (sitemap !== undefined) claim(sitemap, 'sitemap')
+  if (pages.notFound) claim('404.html', '404 page')
+  for (const file of metadata) claim(file, 'metadata')
+  for (const route of [...pages.routes.keys(), ...Object.keys(pages.redirects)]) {
+    claim(route === '/' ? 'index.html' : route.slice(1) + '/index.html', `route ${route}`)
+  }
+  const visit = async (directory: string, prefix: string) => {
+    let entries
+    try { entries = await readdir(directory, { withFileTypes: true }) } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return
+      throw error
+    }
+    for (const entry of entries) {
+      const path = prefix + entry.name
+      if (!prefix && ['_jar', 'api'].includes(entry.name)) throw new Error(`Reserved public path: ${path}`)
+      if (entry.isDirectory()) await visit(join(directory, entry.name), path + '/')
+      else if (!metadata.includes(path)) claim(path, `public/${path}`)
+    }
+  }
+  await visit(join(root, 'public'), '')
+}
+
+function redirectDocument(target: string) {
+  const escaped = target.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  // The script keeps the query and hash; the meta refresh covers disabled JavaScript.
+  const script = `location.replace(${JSON.stringify(target).replace(/</g, '\\u003c')}+location.search+location.hash)`
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Redirecting</title><script>${script}</script><meta http-equiv="refresh" content="0;url=${escaped}"><link rel="canonical" href="${escaped}"><meta name="robots" content="noindex"></head><body><a href="${escaped}">Continue</a></body></html>`
+}
+
 function routeHtmlPath(outDir: string, route: string) {
   return route === '/'
     ? join(outDir, 'index.html')
@@ -815,9 +895,6 @@ export async function buildProject(options: BuildOptions) {
     development: false,
     onChange: undefined,
   })
-  if (!options.prerender) {
-    return buildWithPackages(options, createLocalPackages(localPackagePrefix))
-  }
   let localPackages: LocalPackages
   const server = createServer(async (request, response) => {
     try {
@@ -868,8 +945,10 @@ async function buildWithPackages(options: BuildOptions, localPackages: LocalPack
   const dependencies = packageDependencies(packageJson)
   const runtime = await runtimeRoot()
   const cdn = resolveCdn(options.cdn)
-  const discovered = await discover(root, options.exclude)
+  const discovered = await discover(root, options.exclude, specifier => localPackages.resolve(specifier, 'server', root))
   warnIgnoredHtml(await findIgnoredHtml(root))
+  const metadataFiles = await discoverMetadataFiles(root)
+  await validateRouteOutput(root, discovered, metadataFiles, options.sitemap)
   const reactRoutes = new Map([...discovered.routes].filter(([, page]) => !page.endsWith('.md')))
   const markdownPages = new Map<string, MarkdownPage>()
   for (const [route, page] of discovered.routes) {
@@ -927,6 +1006,7 @@ async function buildWithPackages(options: BuildOptions, localPackages: LocalPack
     ? await prerender({
         root,
         routes: reactRoutes,
+        params: discovered.params,
         dependencies,
         devjarDependencies,
         cdn,
@@ -952,7 +1032,6 @@ async function buildWithPackages(options: BuildOptions, localPackages: LocalPack
   await rm(outDir, { recursive: true, force: true })
   await mkdir(outDir, { recursive: true })
   await copyPublicFiles(join(root, 'public'), outDir)
-  const metadataFiles = await discoverMetadataFiles(root)
   for (const filename of metadataFiles) {
     await cp(join(root, filename), join(outDir, filename))
   }
@@ -987,12 +1066,17 @@ async function buildWithPackages(options: BuildOptions, localPackages: LocalPack
       devjarRuntime,
     })
   }
+  for (const [route, target] of Object.entries(discovered.redirects)) {
+    const path = routeHtmlPath(outDir, route)
+    await mkdir(dirname(path), { recursive: true })
+    await writeFile(path, redirectDocument(withBase(base, routeHref(target) + '/')))
+  }
   if (options.sitemap !== undefined) {
     const locations = Object.keys(manifest.routes)
       .filter(route => route !== '/404')
       .sort()
       .map(route => {
-        const location = `${metadataBaseOrigin}${withBase(base, route === '/' ? '/' : `${route}/`)}`
+        const location = `${metadataBaseOrigin}${withBase(base, route === '/' ? '/' : `${routeHref(route)}/`)}`
         return `  <url><loc>${location.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</loc></url>`
       })
     await writeFile(join(outDir, options.sitemap), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${locations.join('\n')}\n</urlset>\n`)
@@ -1036,7 +1120,7 @@ async function buildWithPackages(options: BuildOptions, localPackages: LocalPack
   await writeFile(join(outDir, '_jar/routes.json'), JSON.stringify(manifest))
   await copyApiFiles(join(root, 'api'), join(outDir, 'api'))
 
-  return { root, outDir, routes: Object.keys(manifest.routes), base, devjarRuntime }
+  return { root, outDir, routes: Object.keys(manifest.routes), redirects: manifest.redirects, base, devjarRuntime }
 }
 
 export async function startBuiltServer(options: StartServerOptions) {
@@ -1048,15 +1132,14 @@ export async function startBuiltServer(options: StartServerOptions) {
   const host = options.host
   const port = options.port
   const manifest = JSON.parse(await readFile(join(root, 'manifest.json'), 'utf8')) as RouteManifest
-  if (manifest.version !== 3) throw new Error(`Unsupported Devjar build version: ${manifest.version}`)
+  if (manifest.version !== 4) throw new Error(`Unsupported Devjar build version: ${manifest.version}`)
   const base = normalizeBase(manifest.base)
   const devjarRuntime = await fileExists(join(root, '_jar/transform-assets.json'))
   const { send, serveFile } = createResponder({})
-  const fallbackHtml = await readFile(join(root, 'index.html'), 'utf8')
   const routeHtml = new Map<string, string>()
   for (const route of Object.keys(manifest.routes)) {
     const path = routeHtmlPath(root, route)
-    routeHtml.set(route, await fileExists(path) ? await readFile(path, 'utf8') : fallbackHtml)
+    routeHtml.set(route, await readFile(path, 'utf8'))
   }
   const notFoundHtml = manifest.notFound ? routeHtml.get('/404') : undefined
 
@@ -1084,10 +1167,16 @@ export async function startBuiltServer(options: StartServerOptions) {
         }
         return
       }
-      if (requestPath.startsWith('/api/')) {
+      if (requestPath.startsWith('/api/') && requestPath !== '/api/') {
         if (!await serveFile(request, response, join(root, 'api'), requestPath.slice('/api/'.length), new Set(['.json', '.txt']), noStore)) {
           send(request, response, 404, 'text/plain; charset=utf-8', 'Not found')
         }
+        return
+      }
+      const destination = manifest.redirects[normalizeRoute(requestPath)]
+      if (destination) {
+        response.writeHead(302, { Location: withBase(base, routeHref(destination) + '/') + url.search })
+        response.end()
         return
       }
       if (await serveFile(request, response, root, requestPath.slice(1), undefined, noStore)) return

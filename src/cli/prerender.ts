@@ -15,6 +15,7 @@ import type { PrerenderInput, RenderedRoute } from './runners/prerender-runner'
 type PrerenderOptions = {
   root: string
   routes: Map<string, string>
+  params: Map<string, Record<string, string>>
   dependencies: Record<string, string>
   devjarDependencies: Record<string, string>
   cdn: string
@@ -47,8 +48,10 @@ export async function prerender(options: PrerenderOptions) {
     const routeFiles = new Map<string, Set<string>>()
     const projectStyles = new Map<string, string>()
     const resolveModule = options.resolveModule
+    const pageFiles = new Map<string, Set<string>>()
     for (const [route, entry] of options.routes) {
-      const files = await collectProjectFiles(options.root, entry)
+      const files = pageFiles.get(entry) || await collectProjectFiles(options.root, entry)
+      pageFiles.set(entry, files)
       routeFiles.set(route, files)
       for (const projectPath of files) projectFiles.add(projectPath)
     }
@@ -81,7 +84,7 @@ export async function prerender(options: PrerenderOptions) {
     const input: PrerenderInput = {
       routes: Object.fromEntries([...options.routes].map(([route, entry]) => {
         const projectPath = relative(options.root, entry).split(sep).join('/')
-        return [route, pathToFileURL(join(temporaryRoot, serverModuleName(projectPath))).href]
+        return [route, { module: pathToFileURL(join(temporaryRoot, serverModuleName(projectPath))).href, params: options.params.get(route) }]
       })),
       react: resolveModule('react'),
       reactDomServer: resolveModule('react-dom/server'),

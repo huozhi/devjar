@@ -36,3 +36,8 @@ export function routeFromPagePath(pagePath: string) {
   const pathWithoutExtension = pagePath.slice(0, -extension.length)
   return normalizeRoute(pathWithoutExtension.replace(/(?:^|\/)index$/, ''))
 }
+
+/** Encode raw route segments, preserving their separators. */
+export function routeHref(route: string) {
+  return route.split('/').map(segment => encodeURIComponent(segment)).join('/')
+}

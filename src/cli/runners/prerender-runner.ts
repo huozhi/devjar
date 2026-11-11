@@ -3,8 +3,7 @@ import { register } from 'node:module'
 import type { RunnerInput } from '../node-runner'
 
 export type PrerenderInput = {
-  /** Route to the URL of its compiled page module. */
-  routes: Record<string, string>
+  routes: Record<string, { module: string; params: Record<string, string> | undefined }>
   react: string
   reactDomServer: string
   imports: Record<string, string>
@@ -30,16 +29,16 @@ function contentBetween(document: string, start: string, end: string) {
 }
 
 const rendered: Record<string, RenderedRoute> = {}
-for (const [route, module] of Object.entries(input.routes)) {
+for (const [route, entry] of Object.entries(input.routes)) {
   try {
-    const page = (await import(module)).default
+    const page = (await import(entry.module)).default
     if (typeof page !== 'function' && (typeof page !== 'object' || page === null)) {
       throw new Error('page must have a default React component export')
     }
     // React hoists title, meta and link tags into <head>; the boundaries mark the page markup.
     const document = renderToString(h('html', null, h('head', null), h('body', null,
       h('template', { 'data-devjar-prerender': 'start' }),
-      h(page, null),
+      h(page, { params: entry.params }),
       h('template', { 'data-devjar-prerender': 'end' }),
     )))
     rendered[route] = {

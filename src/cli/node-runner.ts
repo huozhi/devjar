@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 
-export type RunnerName = 'prerender-runner' | 'tailwind-runner'
+export type RunnerName = 'prerender-runner' | 'route-runner' | 'tailwind-runner'
 
 /** Every runner receives these, plus its own input. */
 export type RunnerInput = {
