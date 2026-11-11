@@ -226,6 +226,34 @@ pages/
 └── 404.tsx           → unmatched routes`}</Code>
               </div>
               <p>Files and folders starting with <code>_</code> are not routes. You can still import them.</p>
+              <p>
+                A <code>[name]</code> segment builds many pages from one file. Export <code>paths()</code> to list them;
+                the component receives each item as <code>params</code>.
+              </p>
+              <div className="code-block" aria-label="Pages generated from data">
+                <Code theme={taffy.light} lang="tsx" controls={false} fontSize={13}>{`// pages/[locale]/[lesson].tsx → /en/intro, /en/examples, /zh/intro, …
+export function paths() {
+  return ['en', 'zh'].flatMap(locale =>
+    ['intro', 'examples'].map(lesson => ({ locale, lesson })),
+  )
+}
+
+export default function Lesson({ params }: {
+  params: { locale: string; lesson: string }
+}) {
+  return <h1>{params.locale}: {params.lesson}</h1>
+}`}</Code>
+              </div>
+              <div className="code-block" aria-label="Default child redirect">
+                <Code theme={taffy.light} lang="tsx" controls={false} fontSize={13}>{`// pages/index.tsx: / opens /en/
+export const defaultParams = { locale: 'en' }`}</Code>
+              </div>
+              <p>
+                <code>paths()</code> is synchronous and runs in Node, so read local JS, TS, or JSON data.
+                Unlisted params are 404s. A directory's <code>index.tsx</code> exports either a component or
+                {' '}<code>defaultParams</code>. Catch-all, optional, and Markdown <code>[name]</code> pages are not supported.
+                See the <a href="https://github.com/huozhi/devjar#readme">README</a> for redirects and other details.
+              </p>
             </div>
 
             <div id="markdown" className="section docs-anchor">

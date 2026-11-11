@@ -138,6 +138,9 @@ While npx devjar dev runs, browser errors, rejected promises, console.error call
 - pages/about.md -> /about
 - pages/blog/index.tsx -> /blog
 - pages/404.tsx or pages/404.md -> custom not-found page
+- pages/[locale]/[lesson].tsx -> one page per item from its exported synchronous paths(), e.g. [{ locale: 'en', lesson: 'intro' }]; the component receives them as params. Unlisted params are 404s. paths() runs in Node at build time and in dev when its data changes, so read local JS, TS or JSON and keep module-level code free of browser APIs.
+- A directory's index.tsx can export defaultParams (an object, or a function of { params }) instead of a component to redirect the directory URL to a default child, e.g. / -> /en/. Redirects keep the query string and are left out of the sitemap.
+- Static segments win over [name] at the same URL. Catch-all segments, optional segments, and [name] Markdown pages are not supported. Embedded <DevJar> previews do not evaluate paths() or defaultParams.
 - Underscore-prefixed files and folders inside pages/ are private: they are not routes in dev, builds, or embedded previews, but remain importable.
 - React pages default-export a component. Shared components are explicitly imported; there is no automatic layout convention.
 - React pages render into <div id="__jar">, not #root. The only base style removes the body margin and any project CSS overrides it; style html, body, #__jar { height: 100%; } for a full-height app.
@@ -174,4 +177,4 @@ This reference tracks the main branch. Check the README and installed CLI's
 --help for the version in use; main may include features not yet published.
 Devjar is a Markdown and React static-site builder and live-code runtime, not a full-stack
 framework. Do not assume server actions, dynamic server routes, or automatic
-layouts. Never put secrets in preview files, browser code, or exported assets.
+layouts; [name] pages are generated at build time from paths(). Never put secrets in preview files, browser code, or exported assets.
