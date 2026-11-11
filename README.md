@@ -290,7 +290,7 @@ npx devjar [command] [root] [options]
 | `--math` | `dev`, `build` | Render LaTeX math in Markdown at build time |
 | `--theme <name>` | `dev`, `build` | Markdown theme: `minimal` (default), `github`, `editorial`, or `academic` |
 | `--base <path>` | `dev`, `build` | `/`; deployment subdirectory |
-| `--origin <url>` | `build` | Vercel production URL, or `http://localhost:3000`; absolute origin for social image URLs |
+| `--origin <url>` | `build` | Vercel production URL, or `http://localhost:3000`; absolute origin for Open Graph image, video, and audio URLs |
 | `--sitemap[=<filename>]` | `build` | Export a sitemap using `--origin`; defaults to `sitemap.xml` |
 | `-o, --out-dir <directory>` | `build`, `start` | `dist`; must stay inside the project |
 | `-h, --help` | All | Show help |
@@ -463,11 +463,11 @@ every page in development and static exports:
 
 ```text
 icon.svg             → <link rel="icon" href="/icon.svg" type="image/svg+xml">
-opengraph-image.jpg  → <meta property="og:image" content="/opengraph-image.jpg">
-                     → <meta name="twitter:image" content="/opengraph-image.jpg">
-opengraph-video.mp4  → <meta property="og:video" content="/opengraph-video.mp4">
+opengraph-image.jpg  → <meta property="og:image" content="https://example.com/opengraph-image.jpg">
+                     → <meta name="twitter:image" content="https://example.com/opengraph-image.jpg">
+opengraph-video.mp4  → <meta property="og:video" content="https://example.com/opengraph-video.mp4">
                      → <meta property="og:video:type" content="video/mp4">
-opengraph-audio.mp3  → <meta property="og:audio" content="/opengraph-audio.mp3">
+opengraph-audio.mp3  → <meta property="og:audio" content="https://example.com/opengraph-audio.mp3">
                      → <meta property="og:audio:type" content="audio/mpeg">
 ```
 
@@ -476,7 +476,8 @@ Open Graph images support `.png`, `.jpg`, `.jpeg`, `.gif`, and `.webp`; videos
 support `.mp4` and `.webm`; audio supports `.mp3`, `.ogg`, and `.wav`.
 Every page includes a `summary_large_image` Twitter card; each Open Graph image
 also gets a Twitter image tag.
-Multiple matching files are included in filename order. URLs respect `--base`;
+Multiple matching files are included in filename order. Open Graph URLs are
+absolute: build with `--origin` set to your site URL. URLs respect `--base`;
 root metadata files take precedence over files with the same name in `public/`.
 
 Add page titles and other metadata in the page component:
